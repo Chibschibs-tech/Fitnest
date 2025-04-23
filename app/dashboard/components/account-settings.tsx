@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
-import { AlertCircle, CreditCard, User, Bell, Lock } from "lucide-react"
+import { AlertCircle, CreditCard, User, Bell, Lock, LogOut } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { signOut } from "next-auth/react"
 
 export default function AccountSettings() {
   const { data: session } = useSession()
@@ -290,6 +291,19 @@ export default function AccountSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+      <div className="mt-8 pt-8 border-t">
+        <h3 className="text-lg font-medium mb-4">Account Actions</h3>
+        <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+          <Button
+            variant="outline"
+            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={() => signOut({ callbackUrl: "/" })}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

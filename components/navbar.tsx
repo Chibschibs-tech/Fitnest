@@ -4,9 +4,11 @@ import { useState } from "react"
 import Link from "next/link"
 import { Menu, X, ShoppingCart, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { signOut, useSession } from "next-auth/react"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { data: session } = useSession()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
@@ -44,17 +46,31 @@ export default function Navbar() {
                 0
               </span>
             </Link>
-            <Link href="/account" className="hidden md:block">
-              <Button variant="outline" size="sm" className="gap-2">
-                <User className="h-4 w-4" />
-                Account
-              </Button>
-            </Link>
-            <Link href="/login" className="hidden md:block">
-              <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                Sign In
-              </Button>
-            </Link>
+
+            {session ? (
+              <div className="hidden md:flex items-center gap-4">
+                <Link href="/dashboard">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <User className="h-4 w-4" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Link href="/login" className="hidden md:block">
+                <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  Sign In
+                </Button>
+              </Link>
+            )}
+
             <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -112,14 +128,30 @@ export default function Navbar() {
                 Contact
               </Link>
               <div className="pt-6 space-y-4">
-                <Link href="/login" className="block">
-                  <Button className="w-full bg-green-600 hover:bg-green-700">Sign In</Button>
-                </Link>
-                <Link href="/account" className="block">
-                  <Button variant="outline" className="w-full">
-                    My Account
-                  </Button>
-                </Link>
+                {session ? (
+                  <>
+                    <Link href="/dashboard" className="block">
+                      <Button variant="outline" className="w-full" onClick={() => setIsMenuOpen(false)}>
+                        Dashboard
+                      </Button>
+                    </Link>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        signOut({ callbackUrl: "/" })
+                      }}
+                    >
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <Link href="/login" className="block">
+                    <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => setIsMenuOpen(false)}>
+                      Sign In
+                    </Button>
+                  </Link>
+                )}
               </div>
             </nav>
           </div>

@@ -7,6 +7,7 @@ import AccountSettings from "./components/account-settings"
 import MealPreferences from "./components/meal-preferences"
 import DeliverySchedule from "./components/delivery-schedule"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import LogoutButton from "./components/logout-button"
 
 export default async function DashboardPage() {
   const session = await getServerSession()
@@ -17,9 +18,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 md:px-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Welcome, {session.user.name}!</h1>
-        <p className="text-gray-600">Manage your meal plans, deliveries, and account settings</p>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Welcome, {session.user.name}!</h1>
+          <p className="text-gray-600">Manage your meal plans, deliveries, and account settings</p>
+        </div>
+        <LogoutButton />
       </div>
 
       <Tabs defaultValue="subscription" className="w-full">

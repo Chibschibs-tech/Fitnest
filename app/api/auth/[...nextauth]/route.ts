@@ -59,6 +59,7 @@ const handler = NextAuth({
   },
   pages: {
     signIn: "/login",
+    error: "/api/auth/error", // Add this line to specify the error page
   },
   callbacks: {
     jwt({ token, user }) {
