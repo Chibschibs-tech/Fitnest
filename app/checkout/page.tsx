@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { ArrowLeft, CreditCard, Truck, Calendar, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,12 +14,37 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+type MealPlanSelections = {
+  mealType: string
+  mealsPerDay: string[]
+  daysPerWeek: string[]
+  paymentCycle: string
+  totalPrice: number
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [deliveryDate, setDeliveryDate] = useState("")
   const [deliveryTime, setDeliveryTime] = useState("")
+  const [mealPlan, setMealPlan] = useState<MealPlanSelections | null>(null)
+
+  useEffect(() => {
+    // Get meal plan selections from localStorage
+    const savedSelections = localStorage.getItem("mealPlanSelections")
+    if (savedSelections) {
+      setMealPlan(JSON.parse(savedSelections))
+    } else {
+      // Redirect back to meal plans if no selections found
+      router.push("/meal-plans")
+    }
+
+    // Set default delivery date to next Monday
+    const nextMonday = new Date()
+    nextMonday.setDate(nextMonday.getDate() + ((8 - nextMonday.getDay()) % 7))
+    setDeliveryDate(nextMonday.toISOString().split("T")[0])
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,10 +56,55 @@ export default function CheckoutPage() {
     }, 1500)
   }
 
+  if (!mealPlan) {
+    return (
+      <div className="container mx-auto px-4 py-12 flex justify-center items-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+          <p>Please wait while we prepare your checkout.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const formatMealType = (type: string) => {
+    return type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())
+  }
+
+  const formatDays = (days: string[]) => {
+    const dayMap: Record<string, string> = {
+      sun: "Sunday",
+      mon: "Monday",
+      tue: "Tuesday",
+      wed: "Wednesday",
+      thu: "Thursday",
+      fri: "Friday",
+      sat: "Saturday",
+    }
+
+    if (days.length === 7) return "Every day"
+    if (
+      days.length === 5 &&
+      days.includes("mon") &&
+      days.includes("tue") &&
+      days.includes("wed") &&
+      days.includes("thu") &&
+      days.includes("fri")
+    ) {
+      return "Weekdays (Mon-Fri)"
+    }
+
+    return days.map((d) => dayMap[d] || d).join(", ")
+  }
+
+  const formatMeals = (meals: string[]) => {
+    return meals.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")
+  }
+
   return (
     <div className="container mx-auto px-4 py-12 md:px-6">
       <div className="mb-8">
-        <Link href="/meal-plans/preview" className="flex items-center text-green-600 hover:text-green-700 mb-4">
+        <Link href="/meal-plans" className="flex items-center text-green-600 hover:text-green-700 mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Meal Plan
         </Link>
@@ -220,12 +290,17 @@ export default function CheckoutPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Weight Loss Plan (5 days)</span>
-                    <span>349 MAD</span>
+                    <span>{formatMealType(mealPlan.mealType)} Plan</span>
+                    <span>{mealPlan.totalPrice} MAD</span>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>Customization</span>
-                    <span>+50 MAD</span>
+                  <div className="text-sm text-gray-500">
+                    <div>
+                      {mealPlan.mealsPerDay.length} meals per day ({formatMeals(mealPlan.mealsPerDay)})
+                    </div>
+                    <div>
+                      {mealPlan.daysPerWeek.length} days per week ({formatDays(mealPlan.daysPerWeek)})
+                    </div>
+                    <div>Billed {mealPlan.paymentCycle}</div>
                   </div>
                 </div>
 
@@ -234,7 +309,7 @@ export default function CheckoutPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>399 MAD</span>
+                    <span>{mealPlan.totalPrice} MAD</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Delivery Fee</span>
@@ -246,11 +321,14 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>399 MAD</span>
+                  <span>{mealPlan.totalPrice} MAD</span>
                 </div>
 
                 <div className="pt-4 text-sm text-gray-600">
-                  <p>Your subscription will automatically renew each week. You can pause or cancel anytime.</p>
+                  <p>
+                    Your subscription will automatically renew each{" "}
+                    {mealPlan.paymentCycle === "weekly" ? "week" : "month"}. You can pause or cancel anytime.
+                  </p>
                 </div>
               </CardContent>
             </Card>

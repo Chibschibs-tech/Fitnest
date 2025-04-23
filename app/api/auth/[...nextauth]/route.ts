@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { neon } from "@neondatabase/serverless"
 
-// Create a direct SQL client instead of using Drizzle
+// Create a direct SQL client
 const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "")
 
 const handler = NextAuth({
@@ -17,10 +17,11 @@ const handler = NextAuth({
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
+            console.log("Missing credentials")
             return null
           }
 
-          // Use direct SQL query instead of Drizzle
+          // Use direct SQL query
           const users = await sql`
             SELECT * FROM users WHERE email = ${credentials.email} LIMIT 1
           `

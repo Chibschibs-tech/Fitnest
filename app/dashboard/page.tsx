@@ -4,6 +4,8 @@ import ActiveSubscription from "./components/active-subscription"
 import UpcomingDeliveries from "./components/upcoming-deliveries"
 import OrderHistory from "./components/order-history"
 import AccountSettings from "./components/account-settings"
+import MealPreferences from "./components/meal-preferences"
+import DeliverySchedule from "./components/delivery-schedule"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default async function DashboardPage() {
@@ -21,15 +23,25 @@ export default async function DashboardPage() {
       </div>
 
       <Tabs defaultValue="subscription" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8">
+        <TabsList className="grid w-full grid-cols-6 mb-8">
           <TabsTrigger value="subscription">My Subscription</TabsTrigger>
-          <TabsTrigger value="deliveries">Upcoming Deliveries</TabsTrigger>
+          <TabsTrigger value="meal-preferences">Meal Preferences</TabsTrigger>
+          <TabsTrigger value="delivery-schedule">Delivery Schedule</TabsTrigger>
+          <TabsTrigger value="deliveries">Upcoming Meals</TabsTrigger>
           <TabsTrigger value="orders">Order History</TabsTrigger>
           <TabsTrigger value="account">Account Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="subscription">
           <ActiveSubscription />
+        </TabsContent>
+
+        <TabsContent value="meal-preferences">
+          <MealPreferences />
+        </TabsContent>
+
+        <TabsContent value="delivery-schedule">
+          <DeliverySchedule />
         </TabsContent>
 
         <TabsContent value="deliveries">

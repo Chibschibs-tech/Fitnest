@@ -1,13 +1,68 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CheckCircle, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
+type MealPlanSelections = {
+  mealType: string
+  mealsPerDay: string[]
+  daysPerWeek: string[]
+  paymentCycle: string
+  totalPrice: number
+}
+
 export default function OrderConfirmationPage() {
+  const [mealPlan, setMealPlan] = useState<MealPlanSelections | null>(null)
+
+  useEffect(() => {
+    // Get meal plan selections from localStorage
+    const savedSelections = localStorage.getItem("mealPlanSelections")
+    if (savedSelections) {
+      setMealPlan(JSON.parse(savedSelections))
+    }
+  }, [])
+
   // In a real application, you would fetch the order details from the server
   const orderNumber = "FN" + Math.floor(10000 + Math.random() * 90000)
   const deliveryDate = new Date()
   deliveryDate.setDate(deliveryDate.getDate() + 2)
+
+  const formatMealType = (type: string) => {
+    return type?.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()) || ""
+  }
+
+  const formatDays = (days: string[] = []) => {
+    const dayMap: Record<string, string> = {
+      sun: "Sunday",
+      mon: "Monday",
+      tue: "Tuesday",
+      wed: "Wednesday",
+      thu: "Thursday",
+      fri: "Friday",
+      sat: "Saturday",
+    }
+
+    if (days.length === 7) return "Every day"
+    if (
+      days.length === 5 &&
+      days.includes("mon") &&
+      days.includes("tue") &&
+      days.includes("wed") &&
+      days.includes("thu") &&
+      days.includes("fri")
+    ) {
+      return "Weekdays (Mon-Fri)"
+    }
+
+    return days.map((d) => dayMap[d] || d).join(", ")
+  }
+
+  const formatMeals = (meals: string[] = []) => {
+    return meals.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 md:px-6 max-w-3xl">
@@ -54,20 +109,27 @@ export default function OrderConfirmationPage() {
 
           <div className="pt-4 border-t">
             <div className="flex justify-between mb-2">
-              <span>Weight Loss Plan (5 days)</span>
-              <span>349 MAD</span>
+              <span>{mealPlan ? formatMealType(mealPlan.mealType) : "Weight Loss"} Plan</span>
+              <span>{mealPlan ? mealPlan.totalPrice : 349} MAD</span>
             </div>
-            <div className="flex justify-between mb-2 text-sm text-gray-500">
-              <span>Customization</span>
-              <span>+50 MAD</span>
-            </div>
+            {mealPlan && (
+              <div className="text-sm text-gray-500 mb-2">
+                <div>
+                  {mealPlan.mealsPerDay.length} meals per day ({formatMeals(mealPlan.mealsPerDay)})
+                </div>
+                <div>
+                  {mealPlan.daysPerWeek.length} days per week ({formatDays(mealPlan.daysPerWeek)})
+                </div>
+                <div>Billed {mealPlan.paymentCycle}</div>
+              </div>
+            )}
             <div className="flex justify-between mb-2 text-sm text-gray-500">
               <span>Delivery Fee</span>
               <span>Free</span>
             </div>
             <div className="flex justify-between font-bold text-lg pt-2 border-t">
               <span>Total</span>
-              <span>399 MAD</span>
+              <span>{mealPlan ? mealPlan.totalPrice : 349} MAD</span>
             </div>
           </div>
         </CardContent>

@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,10 +15,14 @@ import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // Check if user was redirected after registration
+  const registered = searchParams.get("registered")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,17 +30,21 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Use the direct signIn method with redirect: true
-      // This will handle the redirect automatically
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email,
         password,
-        callbackUrl: "/dashboard",
-        redirect: true,
+        redirect: false,
       })
 
-      // Note: The code below won't execute if redirect is true
-      // as the page will be redirected by NextAuth
+      if (result?.error) {
+        setError("Invalid email or password. Please try again.")
+        setIsLoading(false)
+        return
+      }
+
+      // Successful login
+      router.push("/dashboard")
+      router.refresh()
     } catch (error) {
       console.error("Login error:", error)
       setError("Something went wrong. Please try again.")
@@ -45,18 +53,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Sign in to your account</CardTitle>
           <CardDescription>Enter your email and password to sign in</CardDescription>
         </CardHeader>
         <CardContent>
+          {registered && (
+            <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+              <AlertDescription>Registration successful! You can now sign in with your credentials.</AlertDescription>
+            </Alert>
+          )}
+
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
