@@ -3,44 +3,39 @@ import { getToken } from "next-auth/jwt"
 import type { NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  try {
-    // Skip middleware for API routes to prevent auth issues
-    if (request.nextUrl.pathname.startsWith("/api/")) {
-      return NextResponse.next()
-    }
+  // Get the pathname
+  const path = request.nextUrl.pathname
 
-    const token = await getToken({ req: request })
-    const isAuthenticated = !!token
+  // Public paths that don't require authentication
+  const isPublicPath = path === "/login" || path === "/register" || path.startsWith("/api/auth")
 
-    // Admin routes protection
-    if (request.nextUrl.pathname.startsWith("/admin")) {
-      if (!isAuthenticated) {
-        return NextResponse.redirect(new URL("/login", request.url))
-      }
+  // Get the token
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
 
-      if (token?.role !== "admin") {
-        return NextResponse.redirect(new URL("/", request.url))
-      }
-    }
-
-    // Dashboard routes protection
-    if (request.nextUrl.pathname.startsWith("/dashboard") && !isAuthenticated) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
-
-    // Redirect authenticated users away from auth pages
-    if ((request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") && isAuthenticated) {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
-
-    return NextResponse.next()
-  } catch (error) {
-    console.error("Middleware error:", error)
-    // If there's an error, allow the request to continue
-    return NextResponse.next()
+  // Redirect logic
+  if (isPublicPath && token) {
+    // If the user is authenticated and trying to access a public path,
+    // redirect them to the dashboard
+    return NextResponse.redirect(new URL("/dashboard", request.url))
   }
+
+  if (!isPublicPath && !token) {
+    // If the user is not authenticated and trying to access a protected path,
+    // redirect them to the login page
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+
+  // Continue with the request
+  return NextResponse.next()
 }
 
+// Specify which paths this middleware should run on
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/login", "/register"],
+  matcher: [
+    // Apply to all paths except static files, api routes that aren't auth-related, etc.
+    "/((?!_next/static|_next/image|favicon.ico|api/(?!auth)).*)",
+  ],
 }

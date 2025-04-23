@@ -1,8 +1,9 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { compare } from "bcryptjs"
+import { db, users } from "@/lib/db"
+import { eq } from "drizzle-orm"
 
-// TEMPORARY CONFIGURATION FOR TESTING ONLY
-// REMOVE THIS AND RESTORE THE ORIGINAL CODE AFTER TESTING
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -12,28 +13,63 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Accept any credentials for testing
-        console.log("Login attempt with:", credentials?.email)
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
 
-        // Return a mock user
-        return {
-          id: "1",
-          name: "Test User",
-          email: credentials?.email || "test@example.com",
-          role: "customer",
+        try {
+          // Find user by email
+          const user = await db.select().from(users).where(eq(users.email, credentials.email)).limit(1)
+
+          if (user.length === 0) {
+            return null
+          }
+
+          // Compare passwords
+          const passwordMatch = await compare(credentials.password, user[0].password)
+
+          if (!passwordMatch) {
+            return null
+          }
+
+          // Return user data
+          return {
+            id: String(user[0].id),
+            name: user[0].name,
+            email: user[0].email,
+            role: user[0].role,
+          }
+        } catch (error) {
+          console.error("Authentication error:", error)
+          return null
         }
       },
     }),
   ],
+  // Configure JWT
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  // Customize pages
+  pages: {
+    signIn: "/login",
+    // signOut: '/auth/signout',
+    // error: '/auth/error',
+    // newUser: '/auth/new-user'
+  },
+  // Callbacks
   callbacks: {
-    jwt({ token, user }) {
+    // Add custom properties to the JWT token
+    jwt: ({ token, user }) => {
       if (user) {
         token.id = user.id
         token.role = user.role
       }
       return token
     },
-    session({ session, token }) {
+    // Add custom properties to the session
+    session: ({ session, token }) => {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
@@ -41,14 +77,8 @@ const handler = NextAuth({
       return session
     },
   },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
-  // For debugging
-  debug: true,
+  // Enable debug messages in the console if you are having problems
+  debug: process.env.NODE_ENV === "development",
 })
 
 export { handler as GET, handler as POST }

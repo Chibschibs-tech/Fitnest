@@ -1,16 +1,11 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,7 +20,6 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Use a simpler signIn call
       const result = await signIn("credentials", {
         redirect: false,
         email,
@@ -40,6 +34,7 @@ export default function LoginPage() {
 
       // Redirect on success
       router.push("/dashboard")
+      router.refresh()
     } catch (error) {
       console.error("Login error:", error)
       setError("Something went wrong. Please try again.")
@@ -48,66 +43,65 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in to your account</CardTitle>
-          <CardDescription>Enter your email and password to access your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow">
+        <div>
+          <h2 className="text-center text-3xl font-bold tracking-tight">Sign in to your account</h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{" "}
+            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              create a new account
+            </Link>
+          </p>
+        </div>
+
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>}
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4 rounded-md shadow-sm">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <input
                 id="email"
+                name="email"
                 type="email"
-                placeholder="your.email@example.com"
+                autoComplete="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               />
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password" className="text-sm text-green-600 hover:text-green-700">
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
                 id="password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               />
             </div>
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col">
-          <div className="text-center text-sm">
-            Don't have an account?{" "}
-            <Link href="/register" className="text-green-600 hover:text-green-700 font-medium">
-              Sign up
-            </Link>
           </div>
-        </CardFooter>
-      </Card>
+
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
