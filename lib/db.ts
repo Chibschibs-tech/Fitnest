@@ -52,6 +52,7 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
+// Make sure the meals table has all the fields we need
 export const meals = pgTable("meals", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -61,6 +62,9 @@ export const meals = pgTable("meals", {
   carbs: integer("carbs").notNull(),
   fat: integer("fat").notNull(),
   imageUrl: text("image_url"),
+  mealType: text("meal_type").notNull(), // breakfast, lunch, dinner, snack
+  tags: text("tags").notNull(), // Store as JSON string
+  dietaryInfo: text("dietary_info").notNull(), // Store as JSON string
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
