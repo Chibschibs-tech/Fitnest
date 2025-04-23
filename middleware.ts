@@ -11,11 +11,20 @@ export async function middleware(request: NextRequest) {
     path === "/" ||
     path === "/login" ||
     path === "/register" ||
+    path === "/meal-plans" ||
+    path === "/how-it-works" ||
+    path === "/about" ||
+    path === "/contact" ||
     path.startsWith("/api/auth") ||
     path.startsWith("/api/auth-test")
 
-  // During debugging, allow access to test routes
-  if (path.startsWith("/api/")) {
+  // Allow access to static files and images
+  if (
+    path.startsWith("/_next") ||
+    path.startsWith("/favicon") ||
+    path.startsWith("/images") ||
+    path.startsWith("/public")
+  ) {
     return NextResponse.next()
   }
 
@@ -25,27 +34,29 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   })
 
-  // Redirect logic
-  if (isPublicPath && token) {
-    // If the user is authenticated and trying to access a public path,
-    // redirect them to the dashboard
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
+  // If trying to access a protected route without being logged in
   if (!isPublicPath && !token) {
-    // If the user is not authenticated and trying to access a protected path,
-    // redirect them to the login page
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // Continue with the request
+  // If trying to access login/register while already logged in
+  if ((path === "/login" || path === "/register") && token) {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
+
+  // Continue with the request for all other cases
   return NextResponse.next()
 }
 
 // Specify which paths this middleware should run on
 export const config = {
   matcher: [
-    // Apply to all paths except static files, api routes that aren't auth-related, etc.
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 }
