@@ -11,8 +11,24 @@ export function getPool() {
       throw new Error("Database connection string is not defined")
     }
 
-    pool = new Pool({ connectionString })
+    try {
+      pool = new Pool({ connectionString })
+    } catch (error) {
+      console.error("Error creating database pool:", error)
+      throw new Error("Failed to initialize database connection")
+    }
   }
 
   return pool
+}
+
+export async function testConnection() {
+  const pool = getPool()
+  const client = await pool.connect()
+  try {
+    const result = await client.query("SELECT 1 as test")
+    return result.rows[0]
+  } finally {
+    client.release()
+  }
 }

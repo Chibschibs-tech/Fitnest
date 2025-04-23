@@ -22,6 +22,7 @@ const handler = NextAuth({
           const user = await db.select().from(users).where(eq(users.email, credentials.email)).limit(1)
 
           if (user.length === 0) {
+            console.log("User not found:", credentials.email)
             return null
           }
 
@@ -29,6 +30,7 @@ const handler = NextAuth({
           const passwordMatch = await compare(credentials.password, user[0].password)
 
           if (!passwordMatch) {
+            console.log("Password doesn't match for user:", credentials.email)
             return null
           }
 
@@ -78,7 +80,7 @@ const handler = NextAuth({
     },
   },
   // Enable debug messages in the console if you are having problems
-  debug: process.env.NODE_ENV === "development",
+  debug: true, // Set to true to help diagnose the issue
 })
 
 export { handler as GET, handler as POST }
