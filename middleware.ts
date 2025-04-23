@@ -7,7 +7,17 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Public paths that don't require authentication
-  const isPublicPath = path === "/login" || path === "/register" || path.startsWith("/api/auth")
+  const isPublicPath =
+    path === "/" ||
+    path === "/login" ||
+    path === "/register" ||
+    path.startsWith("/api/auth") ||
+    path.startsWith("/api/auth-test")
+
+  // During debugging, allow access to test routes
+  if (path.startsWith("/api/")) {
+    return NextResponse.next()
+  }
 
   // Get the token
   const token = await getToken({
@@ -36,6 +46,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Apply to all paths except static files, api routes that aren't auth-related, etc.
-    "/((?!_next/static|_next/image|favicon.ico|api/(?!auth)).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 }

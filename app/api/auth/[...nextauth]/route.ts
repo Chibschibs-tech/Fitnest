@@ -1,8 +1,10 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
-import { db, users } from "@/lib/db"
-import { eq } from "drizzle-orm"
+import { neon } from "@neondatabase/serverless"
+
+// Create a direct SQL client instead of using Drizzle
+const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "")
 
 const handler = NextAuth({
   providers: [
@@ -13,65 +15,59 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
         try {
-          // Find user by email
-          const user = await db.select().from(users).where(eq(users.email, credentials.email)).limit(1)
-
-          if (user.length === 0) {
-            console.log("User not found:", credentials.email)
+          if (!credentials?.email || !credentials?.password) {
             return null
           }
 
-          // Compare passwords
-          const passwordMatch = await compare(credentials.password, user[0].password)
+          // Use direct SQL query instead of Drizzle
+          const users = await sql`
+            SELECT * FROM users WHERE email = ${credentials.email} LIMIT 1
+          `
+
+          const user = users[0]
+
+          if (!user) {
+            console.log("User not found")
+            return null
+          }
+
+          const passwordMatch = await compare(credentials.password, user.password)
 
           if (!passwordMatch) {
-            console.log("Password doesn't match for user:", credentials.email)
+            console.log("Password doesn't match")
             return null
           }
 
-          // Return user data
           return {
-            id: String(user[0].id),
-            name: user[0].name,
-            email: user[0].email,
-            role: user[0].role,
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+            role: user.role,
           }
         } catch (error) {
-          console.error("Authentication error:", error)
+          console.error("Auth error:", error)
           return null
         }
       },
     }),
   ],
-  // Configure JWT
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Customize pages
   pages: {
     signIn: "/login",
-    // signOut: '/auth/signout',
-    // error: '/auth/error',
-    // newUser: '/auth/new-user'
   },
-  // Callbacks
   callbacks: {
-    // Add custom properties to the JWT token
-    jwt: ({ token, user }) => {
+    jwt({ token, user }) {
       if (user) {
         token.id = user.id
         token.role = user.role
       }
       return token
     },
-    // Add custom properties to the session
-    session: ({ session, token }) => {
+    session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
@@ -79,8 +75,7 @@ const handler = NextAuth({
       return session
     },
   },
-  // Enable debug messages in the console if you are having problems
-  debug: true, // Set to true to help diagnose the issue
+  debug: process.env.NODE_ENV === "development",
 })
 
 export { handler as GET, handler as POST }

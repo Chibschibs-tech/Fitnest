@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+
+import { useState } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,28 +15,10 @@ import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-
-  // Check for error or success in URL params
-  useEffect(() => {
-    const errorParam = searchParams?.get("error")
-    if (errorParam) {
-      if (errorParam === "CredentialsSignin") {
-        setError("Invalid email or password. Please try again.")
-      } else {
-        setError(`Authentication error: ${errorParam}`)
-      }
-    }
-
-    const successParam = searchParams?.get("registered")
-    if (successParam) {
-      setError("Account created successfully! Please sign in.")
-    }
-  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,25 +26,17 @@ export default function LoginPage() {
     setError("")
 
     try {
-      console.log("Attempting to sign in with:", { email })
-
-      const result = await signIn("credentials", {
-        redirect: false,
+      // Use the direct signIn method with redirect: true
+      // This will handle the redirect automatically
+      await signIn("credentials", {
         email,
         password,
+        callbackUrl: "/dashboard",
+        redirect: true,
       })
 
-      console.log("Sign in result:", result)
-
-      if (!result?.ok) {
-        setError(result?.error || "Invalid email or password")
-        setIsLoading(false)
-        return
-      }
-
-      // Redirect on success
-      router.push("/dashboard")
-      router.refresh()
+      // Note: The code below won't execute if redirect is true
+      // as the page will be redirected by NextAuth
     } catch (error) {
       console.error("Login error:", error)
       setError("Something went wrong. Please try again.")
@@ -78,7 +53,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant={error.includes("created successfully") ? "default" : "destructive"} className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
