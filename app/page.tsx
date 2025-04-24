@@ -155,6 +155,132 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <h2 className="text-3xl font-bold text-center mb-4">What Our Customers Say</h2>
+          <p className="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+            Don't just take our word for it. Here's what our satisfied customers have to say about Fitnest.ma.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Testimonial 1 */}
+            <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+              <div className="flex text-yellow-400 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg
+                    key={i}
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-gray-700 mb-4">
+                "Fitnest.ma has completely transformed my eating habits. The meals are delicious and I've lost 5kg in
+                just 2 months!"
+              </p>
+              <div>
+                <p className="font-semibold">Sara L.</p>
+                <p className="text-sm text-gray-500">Weight Loss Plan</p>
+              </div>
+            </div>
+
+            {/* Testimonial 2 */}
+            <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+              <div className="flex text-yellow-400 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg
+                    key={i}
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-gray-700 mb-4">
+                "As a busy professional, I don't have time to cook. Fitnest.ma delivers healthy meals that keep me
+                energized throughout the day."
+              </p>
+              <div>
+                <p className="font-semibold">Karim M.</p>
+                <p className="text-sm text-gray-500">Balanced Nutrition Plan</p>
+              </div>
+            </div>
+
+            {/* Testimonial 3 */}
+            <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+              <div className="flex text-yellow-400 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg
+                    key={i}
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-gray-700 mb-4">
+                "The quality and variety of meals is impressive. My fitness goals are finally within reach thanks to
+                Fitnest.ma."
+              </p>
+              <div>
+                <p className="font-semibold">Leila B.</p>
+                <p className="text-sm text-gray-500">Muscle Gain Plan</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-green-600 text-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Start Your Healthy Journey?</h2>
+              <p className="text-lg mb-8">
+                Join thousands of satisfied customers who have transformed their eating habits with Fitnest.ma.
+              </p>
+              <Link href="/order">
+                <Button size="lg" variant="secondary" className="bg-white text-green-600 hover:bg-gray-100">
+                  Get Started Today
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-green-500/30 p-6 rounded-lg text-center">
+                <p className="text-3xl font-bold mb-1">100+</p>
+                <p>Meal Options</p>
+              </div>
+              <div className="bg-green-500/30 p-6 rounded-lg text-center">
+                <p className="text-3xl font-bold mb-1">5000+</p>
+                <p>Happy Customers</p>
+              </div>
+              <div className="bg-green-500/30 p-6 rounded-lg text-center">
+                <p className="text-3xl font-bold mb-1">7</p>
+                <p>Days a Week</p>
+              </div>
+              <div className="bg-green-500/30 p-6 rounded-lg text-center">
+                <p className="text-3xl font-bold mb-1">100%</p>
+                <p>Satisfaction</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
