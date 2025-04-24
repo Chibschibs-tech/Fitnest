@@ -22,8 +22,8 @@ export default function Navbar() {
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium hover:text-green-600 transition-colors">
-              Home
+            <Link href="/order" className="text-sm font-medium hover:text-green-600 transition-colors">
+              Order
             </Link>
             <Link href="/meal-plans" className="text-sm font-medium hover:text-green-600 transition-colors">
               Meal Plans
@@ -93,11 +93,11 @@ export default function Navbar() {
             </div>
             <nav className="mt-8 px-4 space-y-6">
               <Link
-                href="/"
+                href="/order"
                 className="block text-lg font-medium hover:text-green-600"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Home
+                Order
               </Link>
               <Link
                 href="/meal-plans"
