@@ -19,7 +19,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/api/auth-test") ||
     path.startsWith("/api/test-auth") ||
     path.startsWith("/api/test-db") ||
-    path.startsWith("/api/health")
+    path.startsWith("/api/health") ||
+    path.startsWith("/api/auth-health")
 
   // Allow access to static files and images
   if (

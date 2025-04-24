@@ -37,7 +37,14 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again.")
+        console.error("Login error:", result.error)
+
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password. Please try again.")
+        } else {
+          setError(`Authentication error: ${result.error}`)
+        }
+
         setIsLoading(false)
         return
       }
@@ -47,7 +54,7 @@ export default function LoginPage() {
       router.refresh()
     } catch (error) {
       console.error("Login error:", error)
-      setError("Something went wrong. Please try again.")
+      setError("Something went wrong with the authentication service. Please try again.")
       setIsLoading(false)
     }
   }

@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { neon } from "@neondatabase/serverless"
 
-// Create a direct SQL client
+// Create a direct SQL client with better error handling
 const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "")
 
 const handler = NextAuth({
@@ -21,22 +21,25 @@ const handler = NextAuth({
             return null
           }
 
-          // Use direct SQL query
+          // Use direct SQL query with better error handling
           const users = await sql`
             SELECT * FROM users WHERE email = ${credentials.email} LIMIT 1
-          `
+          `.catch((err) => {
+            console.error("Database query error:", err)
+            throw new Error("Database connection failed")
+          })
 
           const user = users[0]
 
           if (!user) {
-            console.log("User not found")
+            console.log(`User not found for email: ${credentials.email}`)
             return null
           }
 
           const passwordMatch = await compare(credentials.password, user.password)
 
           if (!passwordMatch) {
-            console.log("Password doesn't match")
+            console.log(`Password doesn't match for user: ${user.email}`)
             return null
           }
 
@@ -48,7 +51,7 @@ const handler = NextAuth({
           }
         } catch (error) {
           console.error("Auth error:", error)
-          return null
+          throw new Error("Authentication failed")
         }
       },
     }),
@@ -59,17 +62,17 @@ const handler = NextAuth({
   },
   pages: {
     signIn: "/login",
-    error: "/api/auth/error", // Add this line to specify the error page
+    error: "/api/auth/error",
   },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id
         token.role = user.role
       }
       return token
     },
-    session({ session, token }) {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
@@ -78,6 +81,14 @@ const handler = NextAuth({
     },
   },
   debug: process.env.NODE_ENV === "development",
+  logger: {
+    error(code, metadata) {
+      console.error(`NextAuth error: ${code}`, metadata)
+    },
+    warn(code) {
+      console.warn(`NextAuth warning: ${code}`)
+    },
+  },
 })
 
 export { handler as GET, handler as POST }
