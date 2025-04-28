@@ -12,6 +12,8 @@ export async function middleware(request: NextRequest) {
     path === "/login" ||
     path === "/register" ||
     path === "/meal-plans" ||
+    path === "/meals" ||
+    path === "/order" || // Make order page public
     path === "/how-it-works" ||
     path === "/about" ||
     path === "/contact" ||
@@ -20,7 +22,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/api/test-auth") ||
     path.startsWith("/api/test-db") ||
     path.startsWith("/api/health") ||
-    path.startsWith("/api/auth-health")
+    path.startsWith("/api/auth-health") ||
+    path.startsWith("/api/meals")
 
   // Allow access to static files and images
   if (
@@ -32,24 +35,35 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Get the token
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  })
+  try {
+    // Get the token with proper error handling
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    }).catch((err) => {
+      console.error("Token error in middleware:", err)
+      return null
+    })
 
-  // If trying to access a protected route without being logged in
-  if (!isPublicPath && !token) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    // If trying to access a protected route without being logged in
+    if (!isPublicPath && !token) {
+      const url = new URL("/login", request.url)
+      url.searchParams.set("callbackUrl", encodeURI(request.url))
+      return NextResponse.redirect(url)
+    }
+
+    // If trying to access login/register while already logged in
+    if ((path === "/login" || path === "/register") && token) {
+      return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
+
+    // Continue with the request for all other cases
+    return NextResponse.next()
+  } catch (error) {
+    console.error("Middleware error:", error)
+    // If there's an error in the middleware, allow the request to continue
+    return NextResponse.next()
   }
-
-  // If trying to access login/register while already logged in
-  if ((path === "/login" || path === "/register") && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
-  // Continue with the request for all other cases
-  return NextResponse.next()
 }
 
 // Specify which paths this middleware should run on

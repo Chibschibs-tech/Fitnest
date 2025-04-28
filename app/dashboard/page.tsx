@@ -9,6 +9,8 @@ import DeliverySchedule from "./components/delivery-schedule"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import LogoutButton from "./components/logout-button"
 
+export const dynamic = "force-dynamic"
+
 export default async function DashboardPage() {
   const session = await getServerSession()
 

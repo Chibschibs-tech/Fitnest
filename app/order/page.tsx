@@ -1,13 +1,17 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Check } from "lucide-react"
+import { useSafeSession } from "@/hooks/use-safe-session"
 
 export default function MealPlansPage() {
   const router = useRouter()
+  const { data: session, status } = useSafeSession()
   const [mealType, setMealType] = useState<string>("weight_loss")
   const [mealsPerDay, setMealsPerDay] = useState<string[]>(["lunch", "dinner"])
   const [daysPerWeek, setDaysPerWeek] = useState<string[]>(["mon", "tue", "wed", "thu", "fri"])
@@ -53,7 +57,7 @@ export default function MealPlansPage() {
   }
 
   const handleContinue = () => {
-    // Save selections to localStorage or state management
+    // Save selections to localStorage
     const selections = {
       mealType,
       mealsPerDay,
@@ -62,7 +66,15 @@ export default function MealPlansPage() {
       totalPrice,
     }
     localStorage.setItem("mealPlanSelections", JSON.stringify(selections))
-    router.push("/checkout")
+
+    // If user is not logged in, redirect to login with callback to checkout
+    if (status !== "authenticated") {
+      // Save the current selections to localStorage before redirecting
+      router.push(`/login?callbackUrl=${encodeURIComponent("/checkout")}`)
+    } else {
+      // User is logged in, proceed directly to checkout
+      router.push("/checkout")
+    }
   }
 
   return (
@@ -380,7 +392,7 @@ export default function MealPlansPage() {
                 onClick={handleContinue}
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-md font-medium"
               >
-                Checkout
+                {status === "authenticated" ? "Checkout" : "Continue to Checkout"}
               </Button>
 
               <p className="text-xs text-gray-500 text-center">No commitment. Cancel or pause anytime.</p>

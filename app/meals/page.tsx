@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Filter, Search, ChevronDown, Info, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,8 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+
+export const dynamic = "force-dynamic"
 
 // Types
 interface Meal {
@@ -181,7 +183,7 @@ export default function MealsPage() {
             protein: 22,
             carbs: 8,
             fat: 14,
-            imageUrl: "/placeholder.svg?height=300&width=400&query=egg white omelette",
+            imageUrl: "/fluffy-egg-white-omelette.png",
             tags: ["high-protein", "low-carb"],
             mealType: "breakfast",
             dietaryInfo: ["gluten-free", "vegetarian"],
@@ -194,7 +196,7 @@ export default function MealsPage() {
             protein: 30,
             carbs: 40,
             fat: 15,
-            imageUrl: "/placeholder.svg?height=300&width=400&query=beef broccoli",
+            imageUrl: "/classic-beef-broccoli.png",
             tags: ["high-protein", "balanced"],
             mealType: "dinner",
             dietaryInfo: ["dairy-free"],
@@ -207,7 +209,7 @@ export default function MealsPage() {
             protein: 28,
             carbs: 30,
             fat: 18,
-            imageUrl: "/placeholder.svg?height=300&width=400&query=tuna avocado wrap",
+            imageUrl: "/fresh-tuna-avocado-wrap.png",
             tags: ["high-protein", "omega-3"],
             mealType: "lunch",
             dietaryInfo: ["dairy-free"],
@@ -220,7 +222,7 @@ export default function MealsPage() {
             protein: 12,
             carbs: 45,
             fat: 10,
-            imageUrl: "/placeholder.svg?height=300&width=400&query=overnight oats",
+            imageUrl: "/colorful-overnight-oats.png",
             tags: ["breakfast", "fiber-rich"],
             mealType: "breakfast",
             dietaryInfo: ["vegetarian", "vegan", "dairy-free"],
@@ -247,6 +249,8 @@ export default function MealsPage() {
 
   // Apply filters
   useEffect(() => {
+    if (meals.length === 0) return // Skip if meals aren't loaded yet
+
     let result = [...meals]
 
     // Filter by tab (meal type)
@@ -294,10 +298,13 @@ export default function MealsPage() {
   }, [meals, searchQuery, selectedMealTypes, selectedDiets, calorieRange, sortOption, activeTab])
 
   // Handle tab change
-  const handleTabChange = (value: string) => {
-    setActiveTab(value)
-    router.push(`/meals${value !== "all" ? `?type=${value}` : ""}`, { scroll: false })
-  }
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setActiveTab(value)
+      router.push(`/meals${value !== "all" ? `?type=${value}` : ""}`, { scroll: false })
+    },
+    [router],
+  )
 
   // Toggle meal type filter
   const toggleMealType = (type: string) => {

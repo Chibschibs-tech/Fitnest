@@ -1,24 +1,30 @@
 "use client"
 
-import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { LogOut } from "lucide-react"
+import { signOut } from "next-auth/react"
+import { useState } from "react"
 
 interface LogoutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
-  className?: string
 }
 
-export function LogoutButton({ variant = "default", size = "default", className = "" }: LogoutButtonProps) {
+export function LogoutButton({ variant = "default" }: LogoutButtonProps) {
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/" })
+    setIsLoading(true)
+    try {
+      await signOut({ callbackUrl: "/" })
+    } catch (error) {
+      console.error("Logout error:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <Button variant={variant} size={size} onClick={handleLogout} className={className}>
-      <LogOut className="mr-2 h-4 w-4" />
-      Sign out
+    <Button variant={variant} onClick={handleLogout} disabled={isLoading}>
+      {isLoading ? "Signing out..." : "Sign out"}
     </Button>
   )
 }

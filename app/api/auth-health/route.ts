@@ -1,29 +1,43 @@
 import { NextResponse } from "next/server"
-import { testAuthDbConnection, validateAuthEnvironment } from "@/lib/auth-utils"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET() {
   try {
     // Check environment variables
-    const envCheck = validateAuthEnvironment()
+    const envCheck = {
+      NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+      NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+      DATABASE_URL: !!process.env.DATABASE_URL,
+    }
 
     // Check database connection
-    const dbCheck = await testAuthDbConnection()
+    let dbStatus = "unknown"
+    let dbError = null
+
+    try {
+      const sql = neon(process.env.DATABASE_URL || "")
+      const result = await sql`SELECT NOW()`
+      dbStatus = "connected"
+    } catch (error) {
+      dbStatus = "error"
+      dbError = (error as Error).message
+    }
 
     return NextResponse.json({
-      status: "success",
+      status: "ok",
       timestamp: new Date().toISOString(),
-      environment: envCheck,
-      database: dbCheck,
+      environment: process.env.NODE_ENV,
+      environmentVariables: envCheck,
+      database: {
+        status: dbStatus,
+        error: dbError,
+      },
     })
   } catch (error) {
-    console.error("Auth health check failed:", error)
-
     return NextResponse.json(
       {
         status: "error",
-        message: "Auth health check failed",
-        error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
+        message: (error as Error).message,
       },
       { status: 500 },
     )

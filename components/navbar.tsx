@@ -4,11 +4,13 @@ import { useState } from "react"
 import Link from "next/link"
 import { Menu, X, ShoppingCart, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { signOut, useSession } from "next-auth/react"
+import { signOut } from "next-auth/react"
+import { useSafeSession } from "@/hooks/use-safe-session"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { data: session } = useSession()
+  const { data: session, status } = useSafeSession()
+  const isAuthenticated = status === "authenticated"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
@@ -47,7 +49,7 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {session ? (
+            {isAuthenticated ? (
               <div className="hidden md:flex items-center gap-4">
                 <Link href="/dashboard">
                   <Button variant="outline" size="sm" className="gap-2">
@@ -128,7 +130,7 @@ export default function Navbar() {
                 Contact
               </Link>
               <div className="pt-6 space-y-4">
-                {session ? (
+                {isAuthenticated ? (
                   <>
                     <Link href="/dashboard" className="block">
                       <Button variant="outline" className="w-full" onClick={() => setIsMenuOpen(false)}>

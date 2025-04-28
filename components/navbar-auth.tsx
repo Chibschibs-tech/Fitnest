@@ -1,13 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { LogoutButton } from "@/components/logout-button"
+import { useSafeSession } from "@/hooks/use-safe-session"
 
 export function NavbarAuth() {
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSafeSession()
   const isAuthenticated = status === "authenticated"
+
+  // Don't render anything during SSR
+  if (typeof window === "undefined") {
+    return null
+  }
 
   return (
     <div className="flex items-center gap-4">

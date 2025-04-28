@@ -3,9 +3,10 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { neon } from "@neondatabase/serverless"
 
-// Create a direct SQL client with better error handling
-const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "")
+// Create a SQL client with proper error handling
+const sql = neon(process.env.DATABASE_URL || "")
 
+// Define the handler with comprehensive error handling
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -16,53 +17,73 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         try {
+          // Validate credentials
           if (!credentials?.email || !credentials?.password) {
             console.log("Missing credentials")
             return null
           }
 
-          // Use direct SQL query with better error handling
-          const users = await sql`
-            SELECT * FROM users WHERE email = ${credentials.email} LIMIT 1
-          `.catch((err) => {
-            console.error("Database query error:", err)
-            throw new Error("Database connection failed")
-          })
+          // Log the connection attempt for debugging
+          console.log(`Attempting to authenticate user: ${credentials.email}`)
 
-          const user = users[0]
+          // Query the database with proper error handling
+          let users = []
+          try {
+            users = await sql`
+              SELECT * FROM users WHERE email = ${credentials.email} LIMIT 1
+            `
+            console.log(`Database query successful, found ${users.length} users`)
+          } catch (dbError) {
+            console.error("Database query error:", dbError)
+            // Return null instead of throwing to prevent 500 errors
+            return null
+          }
 
-          if (!user) {
+          // Check if user exists
+          if (!users || users.length === 0) {
             console.log(`User not found for email: ${credentials.email}`)
             return null
           }
 
-          const passwordMatch = await compare(credentials.password, user.password)
+          const user = users[0]
+
+          // Compare passwords with error handling
+          let passwordMatch = false
+          try {
+            passwordMatch = await compare(credentials.password, user.password)
+          } catch (pwError) {
+            console.error("Password comparison error:", pwError)
+            return null
+          }
 
           if (!passwordMatch) {
             console.log(`Password doesn't match for user: ${user.email}`)
             return null
           }
 
+          // Return user data
+          console.log(`Authentication successful for user: ${user.email}`)
           return {
             id: String(user.id),
             name: user.name,
             email: user.email,
-            role: user.role,
+            role: user.role || "user",
           }
         } catch (error) {
+          // Log the error but don't throw
           console.error("Auth error:", error)
-          throw new Error("Authentication failed")
+          return null
         }
       },
     }),
   ],
+  pages: {
+    signIn: "/login",
+    error: "/login?error=AuthError",
+  },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  pages: {
-    signIn: "/login",
-    error: "/api/auth/error",
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -80,7 +101,6 @@ const handler = NextAuth({
       return session
     },
   },
-  debug: process.env.NODE_ENV === "development",
   logger: {
     error(code, metadata) {
       console.error(`NextAuth error: ${code}`, metadata)
@@ -89,6 +109,7 @@ const handler = NextAuth({
       console.warn(`NextAuth warning: ${code}`)
     },
   },
+  debug: process.env.NODE_ENV === "development",
 })
 
 export { handler as GET, handler as POST }
