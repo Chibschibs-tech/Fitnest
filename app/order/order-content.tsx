@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Check } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
+import { useSession } from "next-auth/react"
 
 export function OrderContent() {
   const router = useRouter()
-  const { session, status } = useAuth()
+  const { data: session, status } = useSession()
   const [mealType, setMealType] = useState<string>("weight_loss")
   const [mealsPerDay, setMealsPerDay] = useState<string[]>(["lunch", "dinner"])
   const [daysPerWeek, setDaysPerWeek] = useState<string[]>(["mon", "tue", "wed", "thu", "fri"])
@@ -68,10 +68,9 @@ export function OrderContent() {
       localStorage.setItem("mealPlanSelections", JSON.stringify(selections))
     }
 
-    // If user is not logged in, redirect to login with callback to checkout
+    // If user is not logged in, give them options to login or continue as guest
     if (status !== "authenticated") {
-      // Save the current selections to localStorage before redirecting
-      router.push(`/login?callbackUrl=${encodeURIComponent("/checkout")}`)
+      router.push("/checkout/guest")
     } else {
       // User is logged in, proceed directly to checkout
       router.push("/checkout")

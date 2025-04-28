@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,15 +11,24 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
+import { signIn } from "next-auth/react"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (searchParams?.get("email")) {
+      setEmail(searchParams.get("email") || "")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,7 +60,20 @@ export default function RegisterPage() {
         throw new Error(data.message || "Something went wrong")
       }
 
-      router.push("/login?registered=true")
+      // Auto-login after successful registration
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      })
+
+      if (result?.error) {
+        // If auto-login fails, redirect to login page
+        router.push(`/login?registered=true&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+      } else {
+        // If auto-login succeeds, redirect to the callback URL
+        router.push(callbackUrl)
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message)
@@ -126,7 +148,10 @@ export default function RegisterPage() {
         <CardFooter className="flex flex-col">
           <div className="text-center text-sm">
             Already have an account?{" "}
-            <Link href="/login" className="text-green-600 hover:text-green-700 font-medium">
+            <Link
+              href={`/login${callbackUrl !== "/dashboard" ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`}
+              className="text-green-600 hover:text-green-700 font-medium"
+            >
               Sign in
             </Link>
           </div>

@@ -5,6 +5,8 @@ import { CheckoutContent } from "./checkout-content"
 export const dynamic = "force-dynamic"
 
 export default function CheckoutPage() {
+  // Keep the ProtectedRoute wrapper for the checkout page
+  // Users must be authenticated to complete their order
   return (
     <ProtectedRoute>
       <CheckoutContent />
