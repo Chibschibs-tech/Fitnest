@@ -4,20 +4,21 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 
 export function useSafeSession() {
-  // Start with a loading state
-  const [isMounted, setIsMounted] = useState(false)
   const session = useSession()
+  const [mounted, setMounted] = useState(false)
 
-  // Only enable the hook after mounting
   useEffect(() => {
-    setIsMounted(true)
+    setMounted(true)
   }, [])
 
   // Return a placeholder during SSR
-  if (!isMounted) {
-    return { data: null, status: "loading" }
+  if (!mounted) {
+    return {
+      data: null,
+      status: "loading",
+      update: async () => null,
+    }
   }
 
-  // Use the actual hook only on the client
   return session
 }

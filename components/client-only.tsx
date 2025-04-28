@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 
-export function ClientOnly({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
+export function ClientOnly({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -10,7 +10,7 @@ export function ClientOnly({ children, fallback = null }: { children: ReactNode;
   }, [])
 
   if (!mounted) {
-    return <>{fallback}</>
+    return null
   }
 
   return <>{children}</>

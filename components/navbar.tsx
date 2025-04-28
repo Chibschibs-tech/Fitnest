@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { MobileNav } from "./mobile-nav"
 import NavbarAuth from "./navbar-auth"
 
 export function Navbar() {
@@ -26,7 +25,6 @@ export function Navbar() {
           <nav className="flex items-center space-x-2">
             <NavbarAuth />
           </nav>
-          <MobileNav />
         </div>
       </div>
     </header>
