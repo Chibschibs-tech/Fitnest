@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { Facebook, Instagram, Twitter } from "lucide-react"
 
-export default function Footer() {
+// Create the Footer component
+export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="container mx-auto px-4 md:px-6 py-12">
@@ -101,3 +102,6 @@ export default function Footer() {
     </footer>
   )
 }
+
+// Also export as default for backward compatibility
+export default Footer

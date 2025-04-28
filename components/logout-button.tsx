@@ -1,30 +1,18 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { signOut } from "next-auth/react"
-import { useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 
 interface LogoutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }
 
-export function LogoutButton({ variant = "default" }: LogoutButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleLogout = async () => {
-    setIsLoading(true)
-    try {
-      await signOut({ callbackUrl: "/" })
-    } catch (error) {
-      console.error("Logout error:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+export function LogoutButton({ variant = "outline" }: LogoutButtonProps) {
+  const { logout } = useAuth()
 
   return (
-    <Button variant={variant} onClick={handleLogout} disabled={isLoading}>
-      {isLoading ? "Signing out..." : "Sign out"}
+    <Button variant={variant} onClick={() => logout()}>
+      Logout
     </Button>
   )
 }

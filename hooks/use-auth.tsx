@@ -1,25 +1,22 @@
 "use client"
 
 import { useSession, signIn, signOut } from "next-auth/react"
-import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 
 export function useAuth() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
-
-  // Get session with error handling
-  const sessionResult = useSession()
+  const { data: session, status } = useSession()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Enhanced login function with error handling
   const login = async (email: string, password: string) => {
     try {
-      setAuthError(null)
+      setError(null)
       const result = await signIn("credentials", {
         redirect: false,
         email,
@@ -27,8 +24,7 @@ export function useAuth() {
       })
 
       if (result?.error) {
-        console.error("Login error:", result.error)
-        setAuthError("Invalid email or password")
+        setError("Invalid email or password")
         return false
       }
 
@@ -39,25 +35,22 @@ export function useAuth() {
 
       return false
     } catch (error) {
-      console.error("Login exception:", error)
-      setAuthError("An unexpected error occurred")
+      setError("An unexpected error occurred")
       return false
     }
   }
 
-  // Enhanced logout function
   const logout = async () => {
     try {
       await signOut({ redirect: false })
       router.push("/")
       return true
     } catch (error) {
-      console.error("Logout error:", error)
       return false
     }
   }
 
-  // If not mounted yet, return loading state
+  // If not mounted yet, return a safe placeholder
   if (!mounted) {
     return {
       session: null,
@@ -65,14 +58,16 @@ export function useAuth() {
       login,
       logout,
       error: null,
+      isAuthenticated: false,
     }
   }
 
   return {
-    session: sessionResult.data,
-    status: sessionResult.status,
+    session,
+    status,
     login,
     logout,
-    error: authError,
+    error,
+    isAuthenticated: status === "authenticated" && !!session,
   }
 }

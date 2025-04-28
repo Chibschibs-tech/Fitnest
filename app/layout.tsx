@@ -1,29 +1,27 @@
 import type React from "react"
-import "./globals.css"
 import type { Metadata } from "next"
-import Providers from "@/components/providers"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
+import "./globals.css"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+import { AuthProvider } from "@/components/auth-provider"
 
 export const metadata: Metadata = {
-  title: "Fitnest.ma - Healthy Meal Delivery",
-  description: "Delicious and nutritious meal plans delivered to your door. Eat healthy without the hassle.",
+  title: "Fitnest.ma - Healthy Meal Plans Delivered",
+  description: "Customized meal plans delivered to your door. Healthy, delicious, and convenient.",
     generator: 'v0.dev'
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col">
-        <Providers>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </Providers>
+      <body>
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   )

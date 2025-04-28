@@ -23,25 +23,19 @@ export const authOptions = {
             return null
           }
 
-          // Log the connection attempt for debugging
-          console.log(`Attempting to authenticate user: ${credentials.email}`)
-
           // Query the database with proper error handling
           let users = []
           try {
             users = await sql`
               SELECT * FROM users WHERE email = ${credentials.email} LIMIT 1
             `
-            console.log(`Database query successful, found ${users.length} users`)
           } catch (dbError) {
             console.error("Database query error:", dbError)
-            // Return null instead of throwing to prevent 500 errors
             return null
           }
 
           // Check if user exists
           if (!users || users.length === 0) {
-            console.log(`User not found for email: ${credentials.email}`)
             return null
           }
 
@@ -57,12 +51,10 @@ export const authOptions = {
           }
 
           if (!passwordMatch) {
-            console.log(`Password doesn't match for user: ${user.email}`)
             return null
           }
 
           // Return user data
-          console.log(`Authentication successful for user: ${user.email}`)
           return {
             id: String(user.id),
             name: user.name,
@@ -70,7 +62,6 @@ export const authOptions = {
             role: user.role || "user",
           }
         } catch (error) {
-          // Log the error but don't throw
           console.error("Auth error:", error)
           return null
         }
@@ -101,17 +92,9 @@ export const authOptions = {
       return session
     },
   },
-  logger: {
-    error(code, metadata) {
-      console.error(`NextAuth error: ${code}`, metadata)
-    },
-    warn(code) {
-      console.warn(`NextAuth warning: ${code}`)
-    },
-  },
   debug: process.env.NODE_ENV === "development",
 }
 
 const handler = NextAuth(authOptions)
 
-export { GET, POST }
+export { handler as GET, handler as POST }

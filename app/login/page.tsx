@@ -5,102 +5,79 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
-import { useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { login, error: authError } = useAuth()
-  const searchParams = useSearchParams()
-  const errorParam = searchParams?.get("error")
+  const { login, error } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
-    try {
-      await login(email, password)
-    } catch (error) {
-      console.error("Login submission error:", error)
-    } finally {
-      setIsLoading(false)
-    }
+    await login(email, password)
+    setIsLoading(false)
   }
 
-  // Display appropriate error message
-  const errorMessage = authError || (errorParam === "AuthError" ? "Authentication failed. Please try again." : null)
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h2>
-        </div>
-
-        {errorMessage && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="text-sm text-red-700">{errorMessage}</div>
-            </div>
-          </div>
-        )}
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="-space-y-px rounded-md shadow-sm">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
+    <div className="container flex h-screen items-center justify-center">
+      <Card className="mx-auto w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your credentials to access your account</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 type="email"
-                autoComplete="email"
-                required
-                className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-600 sm:text-sm sm:leading-6"
-                placeholder="Email address"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link href="/forgot-password" className="text-sm text-green-600 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
                 id="password"
-                name="password"
                 type="password"
-                autoComplete="current-password"
-                required
-                className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-green-600 sm:text-sm sm:leading-6"
-                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-75"
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link href="/register" className="font-medium text-green-600 hover:text-green-500">
-                Don't have an account? Sign up
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Login"}
+            </Button>
+            <div className="text-center text-sm">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-green-600 hover:underline">
+                Sign up
               </Link>
             </div>
-          </div>
+          </CardFooter>
         </form>
-      </div>
+      </Card>
     </div>
   )
 }

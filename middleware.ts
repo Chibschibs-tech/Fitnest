@@ -1,29 +1,18 @@
 import { NextResponse } from "next/server"
-import { getToken } from "next-auth/jwt"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
+// This function can be marked `async` if using `await` inside
+export function middleware(request: NextRequest) {
+  // We'll let the client-side auth handling take care of most of the protection
+  // This middleware will only handle a few specific cases
+
   // Get the pathname
   const path = request.nextUrl.pathname
 
-  // Public paths that don't require authentication
-  const isPublicPath =
-    path === "/" ||
-    path === "/login" ||
-    path === "/register" ||
-    path === "/meal-plans" ||
-    path === "/meals" ||
-    path === "/order" || // Make order page public
-    path === "/how-it-works" ||
-    path === "/about" ||
-    path === "/contact" ||
-    path.startsWith("/api/auth") ||
-    path.startsWith("/api/auth-test") ||
-    path.startsWith("/api/test-auth") ||
-    path.startsWith("/api/test-db") ||
-    path.startsWith("/api/health") ||
-    path.startsWith("/api/auth-health") ||
-    path.startsWith("/api/meals")
+  // Allow all API routes to pass through
+  if (path.startsWith("/api")) {
+    return NextResponse.next()
+  }
 
   // Allow access to static files and images
   if (
@@ -35,35 +24,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  try {
-    // Get the token with proper error handling
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    }).catch((err) => {
-      console.error("Token error in middleware:", err)
-      return null
-    })
-
-    // If trying to access a protected route without being logged in
-    if (!isPublicPath && !token) {
-      const url = new URL("/login", request.url)
-      url.searchParams.set("callbackUrl", encodeURI(request.url))
-      return NextResponse.redirect(url)
-    }
-
-    // If trying to access login/register while already logged in
-    if ((path === "/login" || path === "/register") && token) {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
-
-    // Continue with the request for all other cases
-    return NextResponse.next()
-  } catch (error) {
-    console.error("Middleware error:", error)
-    // If there's an error in the middleware, allow the request to continue
-    return NextResponse.next()
-  }
+  // For all other routes, we'll let the client-side auth handling take care of it
+  return NextResponse.next()
 }
 
 // Specify which paths this middleware should run on
