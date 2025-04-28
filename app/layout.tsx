@@ -2,33 +2,27 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-import { Providers } from "@/components/providers"
+import Navbar from "@/components/navbar"
+import Footer from "@/components/footer"
+import { AuthProvider } from "@/components/auth-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Fitnest.ma - Healthy Meal Delivery",
-  description: "Healthy, delicious meals delivered to your door. Custom meal plans designed for your fitness goals.",
+  title: "Fitnest.ma - Healthy Meal Plans Delivered",
+  description: "Customized meal plans delivered to your door. Healthy, delicious, and convenient.",
     generator: 'v0.dev'
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Providers>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        </Providers>
+      <body className={`${inter.className} min-h-screen flex flex-col`}>
+        <AuthProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   )

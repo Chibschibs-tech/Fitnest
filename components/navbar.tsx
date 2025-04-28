@@ -1,32 +1,52 @@
+"use client"
+
+import { useState } from "react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { useSafeSession } from "@/hooks/use-safe-session"
 import NavbarAuth from "./navbar-auth"
 
-export function Navbar() {
+export default function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { data: session, status } = useSafeSession()
+  const isAuthenticated = status === "authenticated"
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white">
-      <div className="container flex h-16 items-center">
-        <div className="mr-4 flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="text-xl font-bold text-green-600">Fitnest.ma</span>
+    <header className="bg-white border-b border-gray-200">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center">
+          <Link href="/" className="text-2xl font-bold text-green-600">
+            Fitnest.ma
           </Link>
-          <nav className="hidden gap-6 md:flex">
-            <Link href="/meal-plans" className="text-sm font-medium transition-colors hover:text-green-600">
+
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/" className="text-gray-600 hover:text-green-600">
+              Home
+            </Link>
+            <Link href="/meal-plans" className="text-gray-600 hover:text-green-600">
               Meal Plans
             </Link>
-            <Link href="/meals" className="text-sm font-medium transition-colors hover:text-green-600">
+            <Link href="/meals" className="text-gray-600 hover:text-green-600">
               Meals
             </Link>
-            <Link href="/how-it-works" className="text-sm font-medium transition-colors hover:text-green-600">
+            <Link href="/how-it-works" className="text-gray-600 hover:text-green-600">
               How It Works
             </Link>
           </nav>
-        </div>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-2">
+
+          <div className="flex items-center space-x-4">
+            <Link href="/order" className="hidden md:block">
+              <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+                Order Now
+              </Button>
+            </Link>
             <NavbarAuth />
-          </nav>
+          </div>
         </div>
       </div>
     </header>
   )
 }
+
+// Also export as named export for compatibility
+export { Navbar }
