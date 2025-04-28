@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Filter, Search, ChevronDown, Info, Check } from "lucide-react"
+import { Filter, Search, ChevronDown, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -26,12 +26,13 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { MealCard } from "./components/meal-card"
+import { MealDetail } from "./components/meal-detail"
 
 export const dynamic = "force-dynamic"
 
@@ -54,15 +55,21 @@ export default function MealsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [meals, setMeals] = useState<Meal[]>([])
-  const [filteredMeals, setFilteredMeals] = useState<Meal[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([])
   const [selectedDiets, setSelectedDiets] = useState<string[]>([])
   const [calorieRange, setCalorieRange] = useState<[number, number]>([0, 1000])
   const [sortOption, setSortOption] = useState("popular")
-  const [activeTab, setActiveTab] = useState("all")
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
+
+  // Get the tab from URL params, but only once during initial render
+  const initialTab = useMemo(() => {
+    const type = searchParams.get("type")
+    return type || "all"
+  }, [searchParams])
+
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   // Fetch meals data
   useEffect(() => {
@@ -105,7 +112,7 @@ export default function MealsPage() {
             protein: 35,
             carbs: 45,
             fat: 12,
-            imageUrl: "/chicken-quinoa-power-bowl.jpg",
+            imageUrl: "/chicken-quinoa-power-bowl.png",
             tags: ["high-protein", "balanced"],
             mealType: "dinner",
             dietaryInfo: ["gluten-free"],
@@ -230,7 +237,6 @@ export default function MealsPage() {
         ]
 
         setMeals(mockMeals)
-        setFilteredMeals(mockMeals)
         setLoading(false)
       } catch (error) {
         console.error("Error fetching meals:", error)
@@ -239,17 +245,11 @@ export default function MealsPage() {
     }
 
     fetchMeals()
+  }, []) // Only run once on component mount
 
-    // Check for URL parameters
-    const type = searchParams.get("type")
-    if (type) {
-      setActiveTab(type)
-    }
-  }, [searchParams])
-
-  // Apply filters
-  useEffect(() => {
-    if (meals.length === 0) return // Skip if meals aren't loaded yet
+  // Filter and sort meals based on current filters
+  const filteredMeals = useMemo(() => {
+    if (meals.length === 0) return [] // Skip if meals aren't loaded yet
 
     let result = [...meals]
 
@@ -294,7 +294,7 @@ export default function MealsPage() {
     }
     // Default is "popular" which is the original order
 
-    setFilteredMeals(result)
+    return result
   }, [meals, searchQuery, selectedMealTypes, selectedDiets, calorieRange, sortOption, activeTab])
 
   // Handle tab change
@@ -307,28 +307,33 @@ export default function MealsPage() {
   )
 
   // Toggle meal type filter
-  const toggleMealType = (type: string) => {
+  const toggleMealType = useCallback((type: string) => {
     setSelectedMealTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]))
-  }
+  }, [])
 
   // Toggle diet filter
-  const toggleDiet = (diet: string) => {
+  const toggleDiet = useCallback((diet: string) => {
     setSelectedDiets((prev) => (prev.includes(diet) ? prev.filter((d) => d !== diet) : [...prev, diet]))
-  }
+  }, [])
 
   // Reset all filters
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSearchQuery("")
     setSelectedMealTypes([])
     setSelectedDiets([])
     setCalorieRange([0, 1000])
     setSortOption("popular")
-  }
+  }, [])
 
   // Open meal detail
-  const openMealDetail = (meal: Meal) => {
+  const openMealDetail = useCallback((meal: Meal) => {
     setSelectedMeal(meal)
-  }
+  }, [])
+
+  // Close meal detail
+  const closeMealDetail = useCallback(() => {
+    setSelectedMeal(null)
+  }, [])
 
   return (
     <div className="container mx-auto px-4 py-12 md:px-6">
@@ -549,78 +554,16 @@ export default function MealsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Meal detail sheet */}
-      {selectedMeal && (
-        <Sheet open={!!selectedMeal} onOpenChange={(open) => !open && setSelectedMeal(null)}>
-          <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>{selectedMeal.name}</SheetTitle>
-            </SheetHeader>
-            <div className="py-4">
-              <div className="aspect-video w-full overflow-hidden rounded-lg mb-4">
-                <img
-                  src={selectedMeal.imageUrl || "/placeholder.svg"}
-                  alt={selectedMeal.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-
-              <p className="text-gray-700 mb-4">{selectedMeal.description}</p>
-
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-sm text-gray-500">Calories</div>
-                  <div className="font-medium">{selectedMeal.calories}</div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-sm text-gray-500">Protein</div>
-                  <div className="font-medium">{selectedMeal.protein}g</div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-sm text-gray-500">Carbs</div>
-                  <div className="font-medium">{selectedMeal.carbs}g</div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-sm text-gray-500">Fat</div>
-                  <div className="font-medium">{selectedMeal.fat}g</div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2">Meal Type</h3>
-                  <Badge className="capitalize">{selectedMeal.mealType}</Badge>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Dietary Information</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMeal.dietaryInfo.map((info) => (
-                      <Badge key={info} variant="outline" className="capitalize">
-                        {info.replace("-", " ")}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMeal.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="capitalize">
-                        {tag.replace("-", " ")}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <SheetFooter>
-              <Button className="w-full bg-green-600 hover:bg-green-700">Add to My Meals</Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
-      )}
+      {/* Meal detail component */}
+      <MealDetail
+        meal={selectedMeal}
+        open={!!selectedMeal}
+        onOpenChange={closeMealDetail}
+        onAddToMeals={() => {
+          // Handle adding to meals
+          closeMealDetail()
+        }}
+      />
     </div>
   )
 
@@ -658,78 +601,7 @@ export default function MealsPage() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMeals.map((meal) => (
-          <Card key={meal.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            <div className="relative h-48 overflow-hidden">
-              <img
-                src={meal.imageUrl || "/placeholder.svg"}
-                alt={meal.name}
-                className="w-full h-full object-cover transition-transform hover:scale-105"
-              />
-              <div className="absolute top-2 right-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-white/80 hover:bg-white"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          openMealDetail(meal)
-                        }}
-                      >
-                        <Info className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>View details</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Badge className="absolute bottom-2 left-2 capitalize" variant="secondary">
-                {meal.mealType}
-              </Badge>
-              <Badge className="absolute bottom-2 right-2" variant="outline">
-                {meal.calories} cal
-              </Badge>
-            </div>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-lg mb-1 line-clamp-1">{meal.name}</h3>
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">{meal.description}</p>
-              <div className="flex justify-between text-sm">
-                <div>
-                  <span className="text-gray-500">Protein:</span> {meal.protein}g
-                </div>
-                <div>
-                  <span className="text-gray-500">Carbs:</span> {meal.carbs}g
-                </div>
-                <div>
-                  <span className="text-gray-500">Fat:</span> {meal.fat}g
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-0 flex justify-between">
-              <div className="flex flex-wrap gap-1">
-                {meal.dietaryInfo.slice(0, 2).map((info) => (
-                  <Badge key={info} variant="outline" className="text-xs capitalize">
-                    {info.replace("-", " ")}
-                  </Badge>
-                ))}
-                {meal.dietaryInfo.length > 2 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{meal.dietaryInfo.length - 2}
-                  </Badge>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openMealDetail(meal)}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              >
-                View Details
-              </Button>
-            </CardFooter>
-          </Card>
+          <MealCard key={meal.id} meal={meal} onViewDetails={openMealDetail} />
         ))}
       </div>
     )
