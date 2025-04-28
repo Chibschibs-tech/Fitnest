@@ -27,6 +27,9 @@ export default function Navbar() {
             <Link href="/order" className="text-sm font-medium hover:text-green-600 transition-colors">
               Order
             </Link>
+            <Link href="/meals" className="text-sm font-medium hover:text-green-600 transition-colors">
+              Meals
+            </Link>
             <Link href="/meal-plans" className="text-sm font-medium hover:text-green-600 transition-colors">
               Meal Plans
             </Link>
@@ -100,6 +103,13 @@ export default function Navbar() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Order
+              </Link>
+              <Link
+                href="/meals"
+                className="block text-lg font-medium hover:text-green-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Meals
               </Link>
               <Link
                 href="/meal-plans"

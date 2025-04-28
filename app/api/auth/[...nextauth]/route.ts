@@ -7,7 +7,7 @@ import { neon } from "@neondatabase/serverless"
 const sql = neon(process.env.DATABASE_URL || "")
 
 // Define the handler with comprehensive error handling
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -110,6 +110,8 @@ const handler = NextAuth({
     },
   },
   debug: process.env.NODE_ENV === "development",
-})
+}
 
-export { handler as GET, handler as POST }
+const handler = NextAuth(authOptions)
+
+export { GET, POST }
