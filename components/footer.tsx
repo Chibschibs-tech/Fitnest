@@ -1,10 +1,21 @@
+import Image from "next/image"
+import Link from "next/link"
+
 export function Footer() {
   return (
     <footer className="bg-white border-t border-gray-200 py-12">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-semibold mb-4">Fitnest.ma</h3>
+            <Link href="/" className="inline-block mb-4">
+              <Image
+                src="/Logo/fitnest-logo-dark.png"
+                alt="Fitnest.ma Logo"
+                width={150}
+                height={40}
+                className="h-10 w-auto"
+              />
+            </Link>
             <p className="text-gray-600 mb-4">
               Healthy, delicious meals delivered to your door. Custom meal plans designed for your fitness goals.
             </p>

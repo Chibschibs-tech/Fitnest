@@ -3,6 +3,7 @@
 import type React from "react"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,7 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="pr-0">
         <MobileLink href="/" onOpenChange={setOpen}>
-          <span className="font-bold text-green-600">Fitnest.ma</span>
+          <Image src="/Logo/fitnest-logo.png" alt="Fitnest.ma Logo" width={120} height={30} className="h-8 w-auto" />
         </MobileLink>
         <div className="flex flex-col space-y-3 pt-4">
           <MobileLink href="/meal-plans" onOpenChange={setOpen}>
@@ -42,6 +43,9 @@ export function MobileNav() {
             <>
               <MobileLink href="/dashboard" onOpenChange={setOpen}>
                 Dashboard
+              </MobileLink>
+              <MobileLink href="/order" onOpenChange={setOpen}>
+                Orders
               </MobileLink>
               <Button
                 variant="ghost"

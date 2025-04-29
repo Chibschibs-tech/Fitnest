@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useSafeSession } from "@/hooks/use-safe-session"
 import NavbarAuth from "./navbar-auth"
@@ -15,8 +16,8 @@ export default function Navbar() {
     <header className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-green-600">
-            Fitnest.ma
+          <Link href="/" className="flex items-center">
+            <Image src="/Logo/fitnest-logo.png" alt="Fitnest.ma Logo" width={150} height={40} className="h-10 w-auto" />
           </Link>
 
           <nav className="hidden md:flex items-center space-x-6">
