@@ -17,7 +17,14 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center">
-            <Image src="/Logo/fitnest-logo.png" alt="Fitnest.ma Logo" width={150} height={40} className="h-10 w-auto" />
+            <Image
+              src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-Vert-v412yUnhxctld0VkvDHD8wXh8H2GMQ.png"
+              alt="Fitnest.ma Logo"
+              width={150}
+              height={50}
+              className="h-12 w-auto"
+              priority
+            />
           </Link>
 
           <nav className="hidden md:flex items-center space-x-6">

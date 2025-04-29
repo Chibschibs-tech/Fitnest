@@ -26,8 +26,14 @@ export function MobileNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="pr-0">
-        <MobileLink href="/" onOpenChange={setOpen}>
-          <Image src="/Logo/fitnest-logo.png" alt="Fitnest.ma Logo" width={120} height={30} className="h-8 w-auto" />
+        <MobileLink href="/" onOpenChange={setOpen} className="flex items-center">
+          <Image
+            src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-Vert-v412yUnhxctld0VkvDHD8wXh8H2GMQ.png"
+            alt="Fitnest.ma Logo"
+            width={120}
+            height={40}
+            className="h-10 w-auto"
+          />
         </MobileLink>
         <div className="flex flex-col space-y-3 pt-4">
           <MobileLink href="/meal-plans" onOpenChange={setOpen}>
