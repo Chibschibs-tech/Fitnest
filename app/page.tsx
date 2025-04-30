@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-20">
+      {/* Hero Section - Updated to fill viewport height */}
+      <section className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white min-h-[calc(100vh-73px)] flex items-center">
         <div className="container mx-auto px-4 text-center">
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
             Healthy Meals <span className="text-white">Delivered</span> To Your Door
