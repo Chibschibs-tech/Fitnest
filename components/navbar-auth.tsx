@@ -1,17 +1,29 @@
 "use client"
 
 import Link from "next/link"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function NavbarAuth() {
   const { data: session, status } = useSession()
   const [mounted, setMounted] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const handleLogout = async () => {
+    try {
+      await signOut({ redirect: false })
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+      router.push("/logout") // Fallback to our custom logout page
+    }
+  }
 
   // Don't render anything on the server or before mounting
   if (!mounted) {
@@ -28,9 +40,9 @@ export default function NavbarAuth() {
         <Link href="/dashboard">
           <Button variant="ghost">Dashboard</Button>
         </Link>
-        <Link href="/logout">
-          <Button variant="outline">Logout</Button>
-        </Link>
+        <Button variant="outline" onClick={handleLogout}>
+          Logout
+        </Button>
       </div>
     )
   }
