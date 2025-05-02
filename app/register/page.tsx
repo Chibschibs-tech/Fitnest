@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
-import { signIn } from "next-auth/react"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -23,12 +23,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    if (searchParams?.get("email")) {
-      setEmail(searchParams.get("email") || "")
-    }
-  }, [searchParams])
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,18 +56,12 @@ export default function RegisterPage() {
       }
 
       // Auto-login after successful registration
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-      })
+      const success = await login(email, password)
 
-      if (result?.error) {
-        // If auto-login fails, redirect to login page
-        router.push(`/login?registered=true&callbackUrl=${encodeURIComponent(callbackUrl)}`)
-      } else {
-        // If auto-login succeeds, redirect to the callback URL
+      if (success) {
         router.push(callbackUrl)
+      } else {
+        router.push(`/login?registered=true&callbackUrl=${encodeURIComponent(callbackUrl)}`)
       }
     } catch (error) {
       if (error instanceof Error) {

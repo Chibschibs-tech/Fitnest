@@ -90,7 +90,8 @@
     "next-auth": "latest",
     "drizzle-orm": "latest",
     "bcryptjs": "latest",
-    "@vercel/blob": "latest"
+    "@vercel/blob": "latest",
+    "jose": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -1,28 +1,23 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
-import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function NavbarAuth() {
-  const { data: session, status } = useSession()
+  const { user, loading, logout } = useAuth()
   const [mounted, setMounted] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const handleLogout = async () => {
-    try {
-      await signOut({ redirect: false })
-      router.push("/")
-    } catch (error) {
-      console.error("Logout error:", error)
-      router.push("/logout") // Fallback to our custom logout page
-    }
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    await logout()
   }
 
   // Don't render anything on the server or before mounting
@@ -30,11 +25,11 @@ export default function NavbarAuth() {
     return null
   }
 
-  if (status === "loading") {
+  if (loading) {
     return null
   }
 
-  if (status === "authenticated" && session) {
+  if (user) {
     return (
       <div className="flex items-center gap-4">
         <Link href="/dashboard">

@@ -1,42 +1,55 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { decrypt } from "./lib/jwt"
 
-// This function can be marked `async` if using `await` inside
-export function middleware(request: NextRequest) {
-  // We'll let the client-side auth handling take care of most of the protection
-  // This middleware will only handle a few specific cases
-
-  // Get the pathname
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // Allow all API routes to pass through
-  if (path.startsWith("/api")) {
-    return NextResponse.next()
-  }
-
-  // Allow access to static files and images
-  if (
+  // Public paths that don't require authentication
+  const isPublicPath =
+    path === "/" ||
+    path === "/login" ||
+    path === "/register" ||
+    path.startsWith("/api/auth") ||
     path.startsWith("/_next") ||
     path.startsWith("/favicon") ||
     path.startsWith("/images") ||
-    path.startsWith("/public")
-  ) {
+    path.startsWith("/public") ||
+    path.startsWith("/meals") ||
+    path.startsWith("/meal-plans") ||
+    path.startsWith("/how-it-works") ||
+    path.startsWith("/order")
+
+  // Get the session cookie
+  const sessionCookie = request.cookies.get("session")?.value
+
+  // If the path is public, allow access
+  if (isPublicPath) {
     return NextResponse.next()
   }
 
-  // For all other routes, we'll let the client-side auth handling take care of it
-  return NextResponse.next()
+  // If there's no session and the path requires auth, redirect to login
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(path)}`, request.url))
+  }
+
+  try {
+    // Verify the session
+    const session = await decrypt(sessionCookie)
+
+    // If session is invalid, redirect to login
+    if (!session) {
+      return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(path)}`, request.url))
+    }
+
+    // Session is valid, continue
+    return NextResponse.next()
+  } catch (error) {
+    // If session verification fails, redirect to login
+    return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(path)}`, request.url))
+  }
 }
 
-// Specify which paths this middleware should run on
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 }

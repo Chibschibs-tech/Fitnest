@@ -6,7 +6,6 @@ import { neon } from "@neondatabase/serverless"
 // Create a SQL client with proper error handling
 const sql = neon(process.env.DATABASE_URL || "")
 
-// Define the handler with comprehensive error handling
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -17,13 +16,11 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
-          // Validate credentials
           if (!credentials?.email || !credentials?.password) {
             console.log("Missing credentials")
             return null
           }
 
-          // Query the database with proper error handling
           let users = []
           try {
             users = await sql`
@@ -34,14 +31,12 @@ export const authOptions = {
             return null
           }
 
-          // Check if user exists
           if (!users || users.length === 0) {
             return null
           }
 
           const user = users[0]
 
-          // Compare passwords with error handling
           let passwordMatch = false
           try {
             passwordMatch = await compare(credentials.password, user.password)
@@ -54,7 +49,6 @@ export const authOptions = {
             return null
           }
 
-          // Return user data
           return {
             id: String(user.id),
             name: user.name,
@@ -71,6 +65,7 @@ export const authOptions = {
   pages: {
     signIn: "/login",
     error: "/login?error=AuthError",
+    signOut: "/api/auth/signout",
   },
   session: {
     strategy: "jwt",
@@ -92,6 +87,7 @@ export const authOptions = {
       return session
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 }
 

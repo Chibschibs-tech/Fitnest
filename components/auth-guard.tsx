@@ -12,19 +12,19 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter()
-  const { status, isAuthenticated } = useAuth()
+  const { user, loading } = useAuth()
 
   useEffect(() => {
-    if (status !== "loading" && !isAuthenticated) {
-      router.push("/login")
+    if (!loading && !user) {
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)
     }
-  }, [status, isAuthenticated, router])
+  }, [loading, user, router])
 
-  if (status === "loading") {
+  if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return null
   }
 
