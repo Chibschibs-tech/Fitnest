@@ -24,22 +24,22 @@ export function Footer() {
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/meal-plans" className="text-gray-300 hover:text-green-400">
+                <Link href="/meal-plans" className="text-gray-300 hover:text-logo-green">
                   Meal Plans
                 </Link>
               </li>
               <li>
-                <Link href="/meals" className="text-gray-300 hover:text-green-400">
+                <Link href="/meals" className="text-gray-300 hover:text-logo-green">
                   Meals
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works" className="text-gray-300 hover:text-green-400">
+                <Link href="/how-it-works" className="text-gray-300 hover:text-logo-green">
                   How It Works
                 </Link>
               </li>
               <li>
-                <Link href="/order" className="text-gray-300 hover:text-green-400">
+                <Link href="/order" className="text-gray-300 hover:text-logo-green">
                   Order Now
                 </Link>
               </li>
@@ -49,22 +49,22 @@ export function Footer() {
             <h3 className="text-lg font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-gray-300 hover:text-green-400">
+                <Link href="/about" className="text-gray-300 hover:text-logo-green">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-300 hover:text-green-400">
+                <Link href="/contact" className="text-gray-300 hover:text-logo-green">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="/careers" className="text-gray-300 hover:text-green-400">
+                <Link href="/careers" className="text-gray-300 hover:text-logo-green">
                   Careers
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="text-gray-300 hover:text-green-400">
+                <Link href="/blog" className="text-gray-300 hover:text-logo-green">
                   Blog
                 </Link>
               </li>

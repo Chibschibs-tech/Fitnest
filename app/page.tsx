@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section - Updated to fill viewport height */}
-      <section className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white min-h-[calc(100vh-73px)] flex items-center">
+      <section className="bg-gradient-to-r from-logo-green to-logo-green/80 text-white min-h-[calc(100vh-73px)] flex items-center">
         <div className="container mx-auto px-4 text-center">
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
             Healthy Meals <span className="text-white">Delivered</span> To Your Door
@@ -16,10 +16,10 @@ export default function Home() {
           </p>
           <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
-              <Button className="bg-white text-emerald-600 hover:bg-gray-100">View Meal Plans</Button>
+              <Button className="bg-white text-logo-green hover:bg-gray-100">View Meal Plans</Button>
             </Link>
             <Link href="/how-it-works">
-              <Button variant="outline" className="border-white text-white hover:bg-emerald-600 hover:text-white">
+              <Button variant="outline" className="border-white text-white hover:bg-logo-green/80 hover:text-white">
                 How It Works
               </Button>
             </Link>
@@ -48,9 +48,11 @@ export default function Home() {
                   Calorie-controlled meals designed to help you lose weight while staying satisfied.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-emerald-600 font-bold">From 350 MAD/week</span>
+                  <span className="text-logo-green font-bold">From 350 MAD/week</span>
                   <Link href="/meal-plans/weight-loss">
-                    <Button size="sm">View Plan</Button>
+                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                      View Plan
+                    </Button>
                   </Link>
                 </div>
               </div>
@@ -67,9 +69,11 @@ export default function Home() {
                   Protein-rich meals to support muscle growth and recovery after workouts.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-emerald-600 font-bold">From 400 MAD/week</span>
+                  <span className="text-logo-green font-bold">From 400 MAD/week</span>
                   <Link href="/meal-plans/muscle-gain">
-                    <Button size="sm">View Plan</Button>
+                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                      View Plan
+                    </Button>
                   </Link>
                 </div>
               </div>
@@ -86,9 +90,11 @@ export default function Home() {
                   Low-carb, high-fat meals designed to help you achieve and maintain ketosis.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-emerald-600 font-bold">From 380 MAD/week</span>
+                  <span className="text-logo-green font-bold">From 380 MAD/week</span>
                   <Link href="/meal-plans/keto">
-                    <Button size="sm">View Plan</Button>
+                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                      View Plan
+                    </Button>
                   </Link>
                 </div>
               </div>
@@ -97,7 +103,7 @@ export default function Home() {
 
           <div className="mt-10 text-center">
             <Link href="/meal-plans">
-              <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
+              <Button variant="outline" className="border-logo-green text-logo-green hover:bg-gray-100">
                 View All Meal Plans
               </Button>
             </Link>
@@ -111,7 +117,7 @@ export default function Home() {
           <h2 className="mb-12 text-center text-3xl font-bold">Why Choose Fitnest.ma</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-logo-green/10 text-logo-green">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -133,7 +139,7 @@ export default function Home() {
               </p>
             </div>
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-logo-green/10 text-logo-green">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -153,7 +159,7 @@ export default function Home() {
               <p className="text-gray-600">Fresh ingredients, chef-prepared meals delivered right to your doorstep.</p>
             </div>
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-logo-green/10 text-logo-green">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -277,7 +283,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-emerald-600 py-20 text-white">
+      <section className="bg-logo-green py-20 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-6 text-3xl font-bold">Ready to Start Your Fitness Journey?</h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg">
@@ -285,7 +291,7 @@ export default function Home() {
             goals.
           </p>
           <Link href="/register">
-            <Button className="bg-white text-emerald-600 hover:bg-gray-100">Get Started Today</Button>
+            <Button className="bg-white text-logo-green hover:bg-gray-100">Get Started Today</Button>
           </Link>
         </div>
       </section>

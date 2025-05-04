@@ -19,7 +19,7 @@ export function MobileNav() {
       <SheetTrigger asChild>
         <Button
           variant="ghost"
-          className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
+          className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden text-logo-green"
         >
           <Menu className="h-6 w-6" />
           <span className="sr-only">Toggle Menu</span>
@@ -55,7 +55,7 @@ export function MobileNav() {
               </MobileLink>
               <Button
                 variant="ghost"
-                className="justify-start px-2"
+                className="justify-start px-2 text-logo-green hover:bg-gray-100"
                 onClick={() => {
                   setOpen(false)
                   // Add logout functionality here
@@ -69,7 +69,7 @@ export function MobileNav() {
               <MobileLink href="/login" onOpenChange={setOpen}>
                 Login
               </MobileLink>
-              <MobileLink href="/register" onOpenChange={setOpen}>
+              <MobileLink href="/register" onOpenChange={setOpen} className="text-logo-green font-medium">
                 Sign Up
               </MobileLink>
             </>
@@ -102,7 +102,7 @@ function MobileLink({ href, onOpenChange, className, children, ...props }: Mobil
       onClick={() => {
         onOpenChange?.(false)
       }}
-      className={`text-base ${className}`}
+      className={`text-base hover:text-logo-green ${className}`}
       {...props}
     >
       {children}
