@@ -1,111 +1,100 @@
 "use client"
 
-import type React from "react"
-
-import Link from "next/link"
-import Image from "next/image"
 import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/hooks/use-auth"
 
 export function MobileNav() {
-  const [open, setOpen] = useState(false)
-  const { isAuthenticated } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
+  const { user, isLoading } = useAuth()
+
+  const toggleMenu = () => {
+    setIsOpen(!isOpen)
+  }
+
+  const closeMenu = () => {
+    setIsOpen(false)
+  }
+
+  const navItems = [
+    { href: "/", label: "Home" },
+    { href: "/meal-plans", label: "Meal Plans" },
+    { href: "/meals", label: "Meals" },
+    { href: "/how-it-works", label: "How It Works" },
+    { href: "/blog", label: "Blog" },
+  ]
+
+  // Add Order link if user is logged in
+  if (user) {
+    navItems.push({ href: "/order", label: "Orders" })
+  }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden text-logo-green"
-        >
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="pr-0">
-        <MobileLink href="/" onOpenChange={setOpen} className="flex items-center">
-          <Image
-            src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-Vert-v412yUnhxctld0VkvDHD8wXh8H2GMQ.png"
-            alt="Fitnest.ma Logo"
-            width={120}
-            height={40}
-            className="h-10 w-auto"
-          />
-        </MobileLink>
-        <div className="flex flex-col space-y-3 pt-4">
-          <MobileLink href="/meal-plans" onOpenChange={setOpen}>
-            Meal Plans
-          </MobileLink>
-          <MobileLink href="/meals" onOpenChange={setOpen}>
-            Meals
-          </MobileLink>
-          <MobileLink href="/how-it-works" onOpenChange={setOpen}>
-            How It Works
-          </MobileLink>
-          {isAuthenticated ? (
-            <>
-              <MobileLink href="/dashboard" onOpenChange={setOpen}>
-                Dashboard
-              </MobileLink>
-              <MobileLink href="/order" onOpenChange={setOpen}>
-                Orders
-              </MobileLink>
-              <Button
-                variant="ghost"
-                className="justify-start px-2 text-logo-green hover:bg-gray-100"
-                onClick={() => {
-                  setOpen(false)
-                  // Add logout functionality here
-                }}
-              >
-                Logout
-              </Button>
-            </>
-          ) : (
-            <>
-              <MobileLink href="/login" onOpenChange={setOpen}>
-                Login
-              </MobileLink>
-              <MobileLink href="/register" onOpenChange={setOpen} className="text-logo-green font-medium">
-                Sign Up
-              </MobileLink>
-            </>
-          )}
+    <div className="md:hidden">
+      <Button variant="ghost" className="p-2 text-logo-green" onClick={toggleMenu} aria-label="Toggle menu">
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      </Button>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-white">
+          <div className="flex h-16 items-center justify-between px-4 border-b">
+            <Link href="/" className="text-xl font-bold text-logo-green" onClick={closeMenu}>
+              Fitnest.ma
+            </Link>
+            <Button variant="ghost" className="p-2 text-logo-green" onClick={toggleMenu} aria-label="Close menu">
+              <X size={24} />
+            </Button>
+          </div>
+          <nav className="p-4">
+            <ul className="space-y-4">
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`block py-2 text-lg ${
+                      pathname === item.href ? "font-medium text-logo-green" : "text-gray-600 hover:text-logo-green"
+                    }`}
+                    onClick={closeMenu}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 space-y-3">
+              {!user && !isLoading ? (
+                <>
+                  <Link href="/login" onClick={closeMenu}>
+                    <Button variant="outline" className="w-full border-logo-green text-logo-green">
+                      Log In
+                    </Button>
+                  </Link>
+                  <Link href="/register" onClick={closeMenu}>
+                    <Button className="w-full bg-logo-green hover:bg-logo-green/90 text-white">Sign Up</Button>
+                  </Link>
+                </>
+              ) : user ? (
+                <>
+                  <Link href="/dashboard" onClick={closeMenu}>
+                    <Button variant="outline" className="w-full border-logo-green text-logo-green">
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link href="/logout" onClick={closeMenu}>
+                    <Button variant="ghost" className="w-full text-gray-600">
+                      Log Out
+                    </Button>
+                  </Link>
+                </>
+              ) : null}
+            </div>
+          </nav>
         </div>
-        <Button
-          variant="ghost"
-          className="absolute right-4 top-4 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-          onClick={() => setOpen(false)}
-        >
-          <X className="h-6 w-6" />
-          <span className="sr-only">Close</span>
-        </Button>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-interface MobileLinkProps {
-  href: string
-  onOpenChange?: (open: boolean) => void
-  children: React.ReactNode
-  className?: string
-}
-
-function MobileLink({ href, onOpenChange, className, children, ...props }: MobileLinkProps) {
-  return (
-    <Link
-      href={href}
-      onClick={() => {
-        onOpenChange?.(false)
-      }}
-      className={`text-base hover:text-logo-green ${className}`}
-      {...props}
-    >
-      {children}
-    </Link>
+      )}
+    </div>
   )
 }
