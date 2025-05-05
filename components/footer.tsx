@@ -11,9 +11,9 @@ export function Footer() {
               <Image
                 src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
                 alt="Fitnest.ma Logo"
-                width={150}
-                height={50}
-                className="h-12 w-auto"
+                width={120}
+                height={40}
+                className="h-8 w-auto"
               />
             </Link>
             <p className="text-gray-300 mb-4">
@@ -41,6 +41,11 @@ export function Footer() {
               <li>
                 <Link href="/order" className="text-gray-300 hover:text-logo-green">
                   Order Now
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-gray-300 hover:text-logo-green">
+                  Blog
                 </Link>
               </li>
             </ul>

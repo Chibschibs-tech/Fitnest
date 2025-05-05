@@ -16,10 +16,10 @@ export default function Home() {
           </p>
           <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
-              <Button className="bg-white text-logo-green hover:bg-gray-100">View Meal Plans</Button>
+              <Button className="bg-gray-800 text-white hover:bg-gray-700">View Meal Plans</Button>
             </Link>
             <Link href="/how-it-works">
-              <Button variant="outline" className="border-white text-white hover:bg-logo-green/80 hover:text-white">
+              <Button variant="outline" className="border-white text-white hover:bg-white/20">
                 How It Works
               </Button>
             </Link>
@@ -297,7 +297,7 @@ export default function Home() {
             {/* Blog Post 1 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
-                <Image src="/blog-meal-prep.png" alt="Meal Prep Tips" fill className="object-cover" />
+                <Image src="/placeholder.svg?key=gzu7y" alt="Meal Prep Tips" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -324,7 +324,7 @@ export default function Home() {
             {/* Blog Post 2 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
-                <Image src="/blog-nutrition-myths.png" alt="Nutrition Myths" fill className="object-cover" />
+                <Image src="/placeholder.svg?key=ym4id" alt="Nutrition Myths" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -351,7 +351,7 @@ export default function Home() {
             {/* Blog Post 3 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
-                <Image src="/blog-weight-loss.png" alt="Weight Loss Plateau" fill className="object-cover" />
+                <Image src="/placeholder.svg?key=btq9k" alt="Weight Loss Plateau" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -398,7 +398,7 @@ export default function Home() {
             goals.
           </p>
           <Link href="/register">
-            <Button className="bg-white text-logo-green hover:bg-gray-100">Get Started Today</Button>
+            <Button className="bg-gray-800 text-white hover:bg-gray-700">Get Started Today</Button>
           </Link>
         </div>
       </section>
