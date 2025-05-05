@@ -36,7 +36,7 @@ export default function Home() {
             goals.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Weight Loss Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
@@ -50,6 +50,27 @@ export default function Home() {
                 <div className="flex justify-between items-center">
                   <span className="text-logo-green font-bold">From 350 MAD/week</span>
                   <Link href="/meal-plans/weight-loss">
+                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                      View Plan
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Stay Fit Plan */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
+              <div className="relative h-48">
+                <Image src="/vibrant-meal-prep.png" alt="Stay Fit Meal Plan" fill className="object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Stay Fit Plan</h3>
+                <p className="text-gray-600 mb-4">
+                  Balanced nutrition to maintain your weight and support an active lifestyle.
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="text-logo-green font-bold">From 320 MAD/week</span>
+                  <Link href="/meal-plans/stay-fit">
                     <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
                       View Plan
                     </Button>
@@ -285,15 +306,116 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Blog Section */}
+      {/* Blog Section - Updated for mobile horizontal scrolling */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="mb-2 text-center text-3xl font-bold">Latest from Our Blog</h2>
-          <p className="mb-12 text-center text-gray-600 max-w-2xl mx-auto">
+          <p className="mb-8 text-center text-gray-600 max-w-2xl mx-auto">
             Expert advice on nutrition, fitness, and healthy living to help you achieve your wellness goals.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Mobile Horizontal Scrolling Blog Posts */}
+          <div className="md:hidden relative">
+            <div className="flex overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
+              {/* Blog Post 1 */}
+              <div className="snap-start flex-shrink-0 w-80 mr-4">
+                <div className="bg-white rounded-lg overflow-hidden shadow-md h-full">
+                  <div className="relative h-48">
+                    <Image src="/placeholder.svg?key=gzu7y" alt="Meal Prep Tips" fill className="object-cover" />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                        Meal Prep
+                      </span>
+                      <span className="text-xs text-gray-500">5 min read</span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">10 Healthy Meal Prep Tips for Busy Professionals</h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      Learn how to efficiently prepare nutritious meals for the entire week, even with a busy schedule.
+                    </p>
+                    <Link href="/blog/healthy-meal-prep">
+                      <Button
+                        variant="outline"
+                        className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                      >
+                        Read More
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blog Post 2 */}
+              <div className="snap-start flex-shrink-0 w-80 mr-4">
+                <div className="bg-white rounded-lg overflow-hidden shadow-md h-full">
+                  <div className="relative h-48">
+                    <Image src="/placeholder.svg?key=ym4id" alt="Nutrition Myths" fill className="object-cover" />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                        Nutrition
+                      </span>
+                      <span className="text-xs text-gray-500">7 min read</span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">5 Common Nutrition Myths Debunked</h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      Separating fact from fiction: nutrition experts weigh in on popular diet claims and
+                      misconceptions.
+                    </p>
+                    <Link href="/blog/nutrition-myths">
+                      <Button
+                        variant="outline"
+                        className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                      >
+                        Read More
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blog Post 3 */}
+              <div className="snap-start flex-shrink-0 w-80">
+                <div className="bg-white rounded-lg overflow-hidden shadow-md h-full">
+                  <div className="relative h-48">
+                    <Image src="/placeholder.svg?key=btq9k" alt="Weight Loss Plateau" fill className="object-cover" />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                        Fitness
+                      </span>
+                      <span className="text-xs text-gray-500">8 min read</span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Breaking Through a Weight Loss Plateau</h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      Effective strategies to overcome stalled progress and continue your weight loss journey.
+                    </p>
+                    <Link href="/blog/weight-loss-plateau">
+                      <Button
+                        variant="outline"
+                        className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                      >
+                        Read More
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center mt-4 md:hidden">
+              <div className="flex space-x-2">
+                <span className="h-2 w-2 rounded-full bg-logo-green"></span>
+                <span className="h-2 w-2 rounded-full bg-gray-300"></span>
+                <span className="h-2 w-2 rounded-full bg-gray-300"></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Grid Layout */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Blog Post 1 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
