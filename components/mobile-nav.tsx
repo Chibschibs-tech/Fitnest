@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
@@ -11,6 +11,19 @@ export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const { user, isLoading } = useAuth()
+
+  // Prevent scrolling when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+
+    return () => {
+      document.body.style.overflow = "auto"
+    }
+  }, [isOpen])
 
   const toggleMenu = () => {
     setIsOpen(!isOpen)
@@ -49,7 +62,7 @@ export function MobileNav() {
               <X size={24} />
             </Button>
           </div>
-          <nav className="p-4">
+          <nav className="p-4 overflow-y-auto max-h-[calc(100vh-64px)]">
             <ul className="space-y-4">
               {navItems.map((item) => (
                 <li key={item.href}>

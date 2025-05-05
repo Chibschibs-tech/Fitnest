@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { ChevronRight } from "lucide-react"
 
 export default function Home() {
   return (
@@ -61,7 +62,7 @@ export default function Home() {
             {/* Stay Fit Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image src="/vibrant-meal-prep.png" alt="Stay Fit Meal Plan" fill className="object-cover" />
+                <Image src="/vibrant-nutrition-plate.png" alt="Stay Fit Meal Plan" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Stay Fit Plan</h3>
@@ -126,7 +127,7 @@ export default function Home() {
             <Link href="/meal-plans">
               <Button
                 variant="outline"
-                className="border-logo-green text-logo-green hover:bg-gray-100 hover:text-logo-green"
+                className="border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
               >
                 View All Meal Plans
               </Button>
@@ -306,7 +307,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Blog Section - Updated for mobile horizontal scrolling */}
+      {/* Blog Section - Improved mobile horizontal scrolling */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="mb-2 text-center text-3xl font-bold">Latest from Our Blog</h2>
@@ -315,111 +316,86 @@ export default function Home() {
           </p>
 
           {/* Mobile Horizontal Scrolling Blog Posts */}
-          <div className="md:hidden relative">
-            <div className="flex overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
-              {/* Blog Post 1 */}
-              <div className="snap-start flex-shrink-0 w-80 mr-4">
-                <div className="bg-white rounded-lg overflow-hidden shadow-md h-full">
-                  <div className="relative h-48">
-                    <Image src="/placeholder.svg?key=gzu7y" alt="Meal Prep Tips" fill className="object-cover" />
+          <div className="md:hidden">
+            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+              <div className="flex space-x-4 pb-6">
+                {/* Blog Post 1 */}
+                <div className="flex-shrink-0 w-[280px] bg-white rounded-lg overflow-hidden shadow-md">
+                  <div className="relative h-40">
+                    <Image src="/healthy-meal-prep.png" alt="Meal Prep Tips" fill className="object-cover" />
                   </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
                         Meal Prep
                       </span>
-                      <span className="text-xs text-gray-500">5 min read</span>
+                      <span className="text-xs text-gray-500">5 min</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">10 Healthy Meal Prep Tips for Busy Professionals</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      Learn how to efficiently prepare nutritious meals for the entire week, even with a busy schedule.
-                    </p>
-                    <Link href="/blog/healthy-meal-prep">
-                      <Button
-                        variant="outline"
-                        className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
-                      >
-                        Read More
-                      </Button>
+                    <h3 className="text-lg font-bold mb-2 line-clamp-2">
+                      10 Healthy Meal Prep Tips for Busy Professionals
+                    </h3>
+                    <Link
+                      href="/blog/healthy-meal-prep"
+                      className="text-logo-green font-medium text-sm flex items-center"
+                    >
+                      Read More <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </div>
                 </div>
-              </div>
 
-              {/* Blog Post 2 */}
-              <div className="snap-start flex-shrink-0 w-80 mr-4">
-                <div className="bg-white rounded-lg overflow-hidden shadow-md h-full">
-                  <div className="relative h-48">
-                    <Image src="/placeholder.svg?key=ym4id" alt="Nutrition Myths" fill className="object-cover" />
+                {/* Blog Post 2 */}
+                <div className="flex-shrink-0 w-[280px] bg-white rounded-lg overflow-hidden shadow-md">
+                  <div className="relative h-40">
+                    <Image src="/placeholder.svg?key=n1stn" alt="Nutrition Myths" fill className="object-cover" />
                   </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
                         Nutrition
                       </span>
-                      <span className="text-xs text-gray-500">7 min read</span>
+                      <span className="text-xs text-gray-500">7 min</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">5 Common Nutrition Myths Debunked</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      Separating fact from fiction: nutrition experts weigh in on popular diet claims and
-                      misconceptions.
-                    </p>
-                    <Link href="/blog/nutrition-myths">
-                      <Button
-                        variant="outline"
-                        className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
-                      >
-                        Read More
-                      </Button>
+                    <h3 className="text-lg font-bold mb-2 line-clamp-2">5 Common Nutrition Myths Debunked</h3>
+                    <Link
+                      href="/blog/nutrition-myths"
+                      className="text-logo-green font-medium text-sm flex items-center"
+                    >
+                      Read More <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </div>
                 </div>
-              </div>
 
-              {/* Blog Post 3 */}
-              <div className="snap-start flex-shrink-0 w-80">
-                <div className="bg-white rounded-lg overflow-hidden shadow-md h-full">
-                  <div className="relative h-48">
-                    <Image src="/placeholder.svg?key=btq9k" alt="Weight Loss Plateau" fill className="object-cover" />
+                {/* Blog Post 3 */}
+                <div className="flex-shrink-0 w-[280px] bg-white rounded-lg overflow-hidden shadow-md">
+                  <div className="relative h-40">
+                    <Image src="/placeholder.svg?key=4x05z" alt="Weight Loss Plateau" fill className="object-cover" />
                   </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
                         Fitness
                       </span>
-                      <span className="text-xs text-gray-500">8 min read</span>
+                      <span className="text-xs text-gray-500">8 min</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Breaking Through a Weight Loss Plateau</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      Effective strategies to overcome stalled progress and continue your weight loss journey.
-                    </p>
-                    <Link href="/blog/weight-loss-plateau">
-                      <Button
-                        variant="outline"
-                        className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
-                      >
-                        Read More
-                      </Button>
+                    <h3 className="text-lg font-bold mb-2 line-clamp-2">Breaking Through a Weight Loss Plateau</h3>
+                    <Link
+                      href="/blog/weight-loss-plateau"
+                      className="text-logo-green font-medium text-sm flex items-center"
+                    >
+                      Read More <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className="flex justify-center mt-4 md:hidden">
-              <div className="flex space-x-2">
-                <span className="h-2 w-2 rounded-full bg-logo-green"></span>
-                <span className="h-2 w-2 rounded-full bg-gray-300"></span>
-                <span className="h-2 w-2 rounded-full bg-gray-300"></span>
               </div>
             </div>
           </div>
 
-          {/* Desktop Grid Layout */}
+          {/* Desktop Blog Grid */}
           <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Blog Post 1 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
-                <Image src="/placeholder.svg?key=gzu7y" alt="Meal Prep Tips" fill className="object-cover" />
+                <Image src="/healthy-meal-prep.png" alt="Meal Prep Tips" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -446,7 +422,7 @@ export default function Home() {
             {/* Blog Post 2 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
-                <Image src="/placeholder.svg?key=ym4id" alt="Nutrition Myths" fill className="object-cover" />
+                <Image src="/placeholder.svg?key=urvr3" alt="Nutrition Myths" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -473,7 +449,7 @@ export default function Home() {
             {/* Blog Post 3 */}
             <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg">
               <div className="relative h-48">
-                <Image src="/placeholder.svg?key=btq9k" alt="Weight Loss Plateau" fill className="object-cover" />
+                <Image src="/placeholder.svg?key=4g2gc" alt="Weight Loss Plateau" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
@@ -500,12 +476,7 @@ export default function Home() {
 
           <div className="mt-10 text-center">
             <Link href="/blog">
-              <Button
-                variant="outline"
-                className="border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
-              >
-                View All Articles
-              </Button>
+              <Button className="bg-gray-800 text-white hover:bg-gray-700">View All Articles</Button>
             </Link>
           </div>
         </div>
