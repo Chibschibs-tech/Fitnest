@@ -22,7 +22,7 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/how-it-works">
-              <Button variant="outline" className="border-white text-white hover:bg-white/20 w-full sm:w-auto">
+              <Button className="bg-white/20 text-white border-white hover:bg-white/30 w-full sm:w-auto">
                 How It Works
               </Button>
             </Link>
@@ -52,7 +52,7 @@ export default function Home() {
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-fitnest-green font-bold">From 350 MAD/week</span>
-                  <Link href="/meals">
+                  <Link href="/meal-plans/weight-loss">
                     <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
@@ -73,7 +73,7 @@ export default function Home() {
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-fitnest-green font-bold">From 320 MAD/week</span>
-                  <Link href="/meals">
+                  <Link href="/meal-plans/balanced-nutrition">
                     <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
@@ -94,7 +94,7 @@ export default function Home() {
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-fitnest-green font-bold">From 400 MAD/week</span>
-                  <Link href="/meals">
+                  <Link href="/meal-plans/muscle-gain">
                     <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
@@ -115,7 +115,7 @@ export default function Home() {
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-fitnest-green font-bold">From 380 MAD/week</span>
-                  <Link href="/meals">
+                  <Link href="/meal-plans/keto">
                     <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>

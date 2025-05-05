@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation"
+import { OrderProcess } from "./order-process"
+
+// Force dynamic rendering to avoid prerendering issues
+export const dynamic = "force-dynamic"
 
 export default function OrderPage() {
-  // Redirect to the meals page
-  redirect("/meals")
+  return <OrderProcess />
 }

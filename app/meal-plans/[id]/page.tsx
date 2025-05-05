@@ -388,8 +388,8 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
                   Customize your {plan.title.toLowerCase()} and start enjoying delicious, nutritious meals delivered to
                   your door.
                 </p>
-                <Link href="/order">
-                  <Button className="w-full bg-green-600 hover:bg-green-700 mb-3">Order Now</Button>
+                <Link href={`/order?plan=${params.id}`}>
+                  <Button className="w-full bg-fitnest-orange hover:bg-fitnest-orange/90 mb-3">Order Now</Button>
                 </Link>
                 <p className="text-xs text-center text-gray-500">No commitment. Cancel or pause anytime.</p>
               </CardContent>
