@@ -48,17 +48,17 @@ export function MobileNav() {
 
   return (
     <div className="md:hidden">
-      <Button variant="ghost" className="p-2 text-logo-green" onClick={toggleMenu} aria-label="Toggle menu">
+      <Button variant="ghost" className="p-2 text-fitnest-green" onClick={toggleMenu} aria-label="Toggle menu">
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </Button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-white">
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <Link href="/" className="text-xl font-bold text-logo-green" onClick={closeMenu}>
+            <Link href="/" className="text-xl font-bold text-fitnest-green" onClick={closeMenu}>
               Fitnest.ma
             </Link>
-            <Button variant="ghost" className="p-2 text-logo-green" onClick={toggleMenu} aria-label="Close menu">
+            <Button variant="ghost" className="p-2 text-fitnest-green" onClick={toggleMenu} aria-label="Close menu">
               <X size={24} />
             </Button>
           </div>
@@ -69,7 +69,9 @@ export function MobileNav() {
                   <Link
                     href={item.href}
                     className={`block py-2 text-lg ${
-                      pathname === item.href ? "font-medium text-logo-green" : "text-gray-600 hover:text-logo-green"
+                      pathname === item.href
+                        ? "font-medium text-fitnest-green"
+                        : "text-gray-600 hover:text-fitnest-green"
                     }`}
                     onClick={closeMenu}
                   >
@@ -82,18 +84,18 @@ export function MobileNav() {
               {!user && !isLoading ? (
                 <>
                   <Link href="/login" onClick={closeMenu}>
-                    <Button variant="outline" className="w-full border-logo-green text-logo-green">
+                    <Button variant="outline" className="w-full border-fitnest-green text-fitnest-green">
                       Log In
                     </Button>
                   </Link>
                   <Link href="/register" onClick={closeMenu}>
-                    <Button className="w-full bg-logo-green hover:bg-logo-green/90 text-white">Sign Up</Button>
+                    <Button className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white">Sign Up</Button>
                   </Link>
                 </>
               ) : user ? (
                 <>
                   <Link href="/dashboard" onClick={closeMenu}>
-                    <Button variant="outline" className="w-full border-logo-green text-logo-green">
+                    <Button variant="outline" className="w-full border-fitnest-green text-fitnest-green">
                       Dashboard
                     </Button>
                   </Link>

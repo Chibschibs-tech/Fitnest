@@ -28,13 +28,20 @@ export default function Navbar() {
             />
           </Link>
 
+          {/* Mobile Order Now button */}
+          <Link href="/meals" className="md:hidden">
+            <Button size="sm" className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">
+              Order Now
+            </Button>
+          </Link>
+
           {/* Mobile menu button */}
           <div className="md:hidden">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-logo-green hover:bg-gray-100"
+              className="text-fitnest-green hover:bg-gray-100"
             >
               <Menu className="h-6 w-6" />
               <span className="sr-only">Open menu</span>
@@ -43,25 +50,26 @@ export default function Navbar() {
 
           {/* Desktop navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-600 hover:text-logo-green">
+            <Link href="/" className="text-gray-600 hover:text-fitnest-green">
               Home
             </Link>
-            <Link href="/meal-plans" className="text-gray-600 hover:text-logo-green">
+            <Link href="/meal-plans" className="text-gray-600 hover:text-fitnest-green">
               Meal Plans
             </Link>
-            <Link href="/meals" className="text-gray-600 hover:text-logo-green">
+            <Link href="/meals" className="text-gray-600 hover:text-fitnest-green">
               Meals
             </Link>
-            <Link href="/how-it-works" className="text-gray-600 hover:text-logo-green">
+            <Link href="/how-it-works" className="text-gray-600 hover:text-fitnest-green">
               How It Works
+            </Link>
+            <Link href="/blog" className="text-gray-600 hover:text-fitnest-green">
+              Blog
             </Link>
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/order" className="hidden md:block">
-              <Button variant="outline" className="border-logo-green text-logo-green hover:bg-gray-100">
-                Order Now
-              </Button>
+            <Link href="/meals" className="hidden md:block">
+              <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">Order Now</Button>
             </Link>
             <NavbarAuth />
           </div>
@@ -69,42 +77,42 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-gray-200">
-            <nav className="flex flex-col space-y-4">
+          <div className="md:hidden fixed top-[73px] left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-lg">
+            <nav className="flex flex-col space-y-4 p-4">
               <Link
                 href="/"
-                className="text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 href="/meal-plans"
-                className="text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Meal Plans
               </Link>
               <Link
                 href="/meals"
-                className="text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Meals
               </Link>
               <Link
                 href="/how-it-works"
-                className="text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >
                 How It Works
               </Link>
               <Link
-                href="/order"
-                className="text-logo-green font-medium px-2 py-1 rounded hover:bg-gray-100"
+                href="/blog"
+                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Order Now
+                Blog
               </Link>
               <div className="pt-2 border-t border-gray-100">
                 <NavbarAuth isMobile={true} onMenuClose={() => setIsMenuOpen(false)} />

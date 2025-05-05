@@ -62,7 +62,7 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
         <div className="space-y-2">
           <Link
             href="/dashboard"
-            className="flex items-center text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+            className="flex items-center text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
             onClick={onMenuClose}
           >
             <User className="h-4 w-4 mr-2" />
@@ -70,7 +70,7 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
           </Link>
           <Link
             href="/orders"
-            className="flex items-center text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+            className="flex items-center text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
             onClick={onMenuClose}
           >
             <ShoppingBag className="h-4 w-4 mr-2" />
@@ -78,7 +78,7 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
           </Link>
           <Link
             href="/blog"
-            className="flex items-center text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+            className="flex items-center text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
             onClick={onMenuClose}
           >
             <User className="h-4 w-4 mr-2" />
@@ -86,7 +86,7 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center w-full text-left text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+            className="flex items-center w-full text-left text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Logout
@@ -98,16 +98,16 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
     return (
       <div className="flex items-center space-x-4">
         <Link href="/dashboard">
-          <Button variant="ghost" className="text-logo-green hover:bg-gray-100">
+          <Button variant="ghost" className="text-fitnest-green hover:bg-gray-100">
             Dashboard
           </Button>
         </Link>
         <Link href="/orders">
-          <Button variant="ghost" className="text-logo-green hover:bg-gray-100">
+          <Button variant="ghost" className="text-fitnest-green hover:bg-gray-100">
             Orders
           </Button>
         </Link>
-        <Button variant="ghost" onClick={handleLogout} className="text-logo-green hover:bg-gray-100">
+        <Button variant="ghost" onClick={handleLogout} className="text-fitnest-green hover:bg-gray-100">
           Logout
         </Button>
       </div>
@@ -119,21 +119,21 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
       <div className="space-y-2">
         <Link
           href="/login"
-          className="block text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+          className="block text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
           onClick={onMenuClose}
         >
           Login
         </Link>
         <Link
           href="/register"
-          className="block text-logo-green font-medium px-2 py-1 rounded hover:bg-gray-100"
+          className="block text-fitnest-green font-medium px-2 py-1 rounded hover:bg-gray-100"
           onClick={onMenuClose}
         >
           Sign Up
         </Link>
         <Link
           href="/blog"
-          className="block text-gray-600 hover:text-logo-green px-2 py-1 rounded hover:bg-gray-100"
+          className="block text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
           onClick={onMenuClose}
         >
           Blog
@@ -145,12 +145,12 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
   return (
     <div className="flex items-center space-x-4">
       <Link href="/login">
-        <Button variant="ghost" className="text-logo-green hover:bg-gray-100">
+        <Button variant="ghost" className="text-fitnest-green hover:bg-gray-100">
           Login
         </Button>
       </Link>
       <Link href="/register">
-        <Button className="bg-logo-green hover:bg-logo-green/90 text-white">Sign Up</Button>
+        <Button className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">Sign Up</Button>
       </Link>
     </div>
   )

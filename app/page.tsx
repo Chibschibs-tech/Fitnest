@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section - Updated to fill viewport height */}
-      <section className="bg-gradient-to-r from-logo-green to-logo-green/80 text-white min-h-[calc(100vh-73px)] flex items-center">
+      <section className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 text-white min-h-[calc(100vh-73px)] flex items-center">
         <div className="container mx-auto px-4 text-center">
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
             Healthy Meals <span className="text-white">Delivered</span> To Your Door
@@ -17,10 +17,12 @@ export default function Home() {
           </p>
           <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
-              <Button className="bg-gray-800 text-white hover:bg-gray-700">View Meal Plans</Button>
+              <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 w-full sm:w-auto">
+                View Meal Plans
+              </Button>
             </Link>
             <Link href="/how-it-works">
-              <Button variant="outline" className="border-white text-white hover:bg-white/20">
+              <Button variant="outline" className="border-white text-white hover:bg-white/20 w-full sm:w-auto">
                 How It Works
               </Button>
             </Link>
@@ -37,7 +39,7 @@ export default function Home() {
             goals.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Weight Loss Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
@@ -49,9 +51,9 @@ export default function Home() {
                   Calorie-controlled meals designed to help you lose weight while staying satisfied.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-logo-green font-bold">From 350 MAD/week</span>
-                  <Link href="/meal-plans/weight-loss">
-                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                  <span className="text-fitnest-green font-bold">From 350 MAD/week</span>
+                  <Link href="/meals">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
                   </Link>
@@ -70,9 +72,9 @@ export default function Home() {
                   Balanced nutrition to maintain your weight and support an active lifestyle.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-logo-green font-bold">From 320 MAD/week</span>
-                  <Link href="/meal-plans/stay-fit">
-                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                  <span className="text-fitnest-green font-bold">From 320 MAD/week</span>
+                  <Link href="/meals">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
                   </Link>
@@ -91,9 +93,9 @@ export default function Home() {
                   Protein-rich meals to support muscle growth and recovery after workouts.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-logo-green font-bold">From 400 MAD/week</span>
-                  <Link href="/meal-plans/muscle-gain">
-                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                  <span className="text-fitnest-green font-bold">From 400 MAD/week</span>
+                  <Link href="/meals">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
                   </Link>
@@ -112,9 +114,9 @@ export default function Home() {
                   Low-carb, high-fat meals designed to help you achieve and maintain ketosis.
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="text-logo-green font-bold">From 380 MAD/week</span>
-                  <Link href="/meal-plans/keto">
-                    <Button size="sm" className="bg-logo-green hover:bg-logo-green/90 text-white">
+                  <span className="text-fitnest-green font-bold">From 380 MAD/week</span>
+                  <Link href="/meals">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
                       View Plan
                     </Button>
                   </Link>
@@ -127,7 +129,7 @@ export default function Home() {
             <Link href="/meal-plans">
               <Button
                 variant="outline"
-                className="border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                className="border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white"
               >
                 View All Meal Plans
               </Button>
@@ -140,9 +142,9 @@ export default function Home() {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="mb-12 text-center text-3xl font-bold">Why Choose Fitnest.ma</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:grid-cols-3">
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-logo-green/10 text-logo-green">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-fitnest-green/10 text-fitnest-green">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -164,7 +166,7 @@ export default function Home() {
               </p>
             </div>
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-logo-green/10 text-logo-green">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-fitnest-orange/10 text-fitnest-orange">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -184,7 +186,7 @@ export default function Home() {
               <p className="text-gray-600">Fresh ingredients, chef-prepared meals delivered right to your doorstep.</p>
             </div>
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-logo-green/10 text-logo-green">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-fitnest-green/10 text-fitnest-green">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -213,7 +215,7 @@ export default function Home() {
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <h2 className="mb-12 text-center text-3xl font-bold">What Our Customers Say</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* Testimonial 1 */}
             <div className="rounded-lg bg-white p-6 shadow-md">
               <div className="mb-4 flex items-center">
@@ -229,7 +231,7 @@ export default function Home() {
                 "I've lost 10kg in 3 months with Fitnest.ma's weight loss plan. The meals are delicious and I never feel
                 like I'm on a diet!"
               </p>
-              <div className="mt-4 flex text-yellow-400">
+              <div className="mt-4 flex text-fitnest-orange">
                 {[...Array(5)].map((_, i) => (
                   <svg
                     key={i}
@@ -259,7 +261,7 @@ export default function Home() {
                 "The muscle gain plan has been a game-changer for my fitness journey. High protein, tasty meals that
                 help me recover after workouts."
               </p>
-              <div className="mt-4 flex text-yellow-400">
+              <div className="mt-4 flex text-fitnest-orange">
                 {[...Array(5)].map((_, i) => (
                   <svg
                     key={i}
@@ -289,7 +291,7 @@ export default function Home() {
                 "The keto meals are amazing! I've been on the plan for 2 months and have more energy than ever. The
                 variety keeps me from getting bored."
               </p>
-              <div className="mt-4 flex text-yellow-400">
+              <div className="mt-4 flex text-fitnest-orange">
                 {[...Array(5)].map((_, i) => (
                   <svg
                     key={i}
@@ -326,7 +328,7 @@ export default function Home() {
                   </div>
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                      <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                         Meal Prep
                       </span>
                       <span className="text-xs text-gray-500">5 min</span>
@@ -336,7 +338,7 @@ export default function Home() {
                     </h3>
                     <Link
                       href="/blog/healthy-meal-prep"
-                      className="text-logo-green font-medium text-sm flex items-center"
+                      className="text-fitnest-orange font-medium text-sm flex items-center"
                     >
                       Read More <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
@@ -350,7 +352,7 @@ export default function Home() {
                   </div>
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                      <span className="text-xs font-semibold px-2 py-1 bg-fitnest-orange/10 text-fitnest-orange rounded-full">
                         Nutrition
                       </span>
                       <span className="text-xs text-gray-500">7 min</span>
@@ -358,7 +360,7 @@ export default function Home() {
                     <h3 className="text-lg font-bold mb-2 line-clamp-2">5 Common Nutrition Myths Debunked</h3>
                     <Link
                       href="/blog/nutrition-myths"
-                      className="text-logo-green font-medium text-sm flex items-center"
+                      className="text-fitnest-orange font-medium text-sm flex items-center"
                     >
                       Read More <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
@@ -372,7 +374,7 @@ export default function Home() {
                   </div>
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                      <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                         Fitness
                       </span>
                       <span className="text-xs text-gray-500">8 min</span>
@@ -380,7 +382,7 @@ export default function Home() {
                     <h3 className="text-lg font-bold mb-2 line-clamp-2">Breaking Through a Weight Loss Plateau</h3>
                     <Link
                       href="/blog/weight-loss-plateau"
-                      className="text-logo-green font-medium text-sm flex items-center"
+                      className="text-fitnest-orange font-medium text-sm flex items-center"
                     >
                       Read More <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
@@ -399,7 +401,7 @@ export default function Home() {
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                  <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                     Meal Prep
                   </span>
                   <span className="text-xs text-gray-500">5 min read</span>
@@ -411,7 +413,7 @@ export default function Home() {
                 <Link href="/blog/healthy-meal-prep">
                   <Button
                     variant="outline"
-                    className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                    className="w-full border-fitnest-orange text-fitnest-orange hover:bg-fitnest-orange hover:text-white"
                   >
                     Read More
                   </Button>
@@ -426,7 +428,7 @@ export default function Home() {
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                  <span className="text-xs font-semibold px-2 py-1 bg-fitnest-orange/10 text-fitnest-orange rounded-full">
                     Nutrition
                   </span>
                   <span className="text-xs text-gray-500">7 min read</span>
@@ -438,7 +440,7 @@ export default function Home() {
                 <Link href="/blog/nutrition-myths">
                   <Button
                     variant="outline"
-                    className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                    className="w-full border-fitnest-orange text-fitnest-orange hover:bg-fitnest-orange hover:text-white"
                   >
                     Read More
                   </Button>
@@ -453,7 +455,7 @@ export default function Home() {
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                  <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                     Fitness
                   </span>
                   <span className="text-xs text-gray-500">8 min read</span>
@@ -465,7 +467,7 @@ export default function Home() {
                 <Link href="/blog/weight-loss-plateau">
                   <Button
                     variant="outline"
-                    className="w-full border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                    className="w-full border-fitnest-orange text-fitnest-orange hover:bg-fitnest-orange hover:text-white"
                   >
                     Read More
                   </Button>
@@ -476,14 +478,14 @@ export default function Home() {
 
           <div className="mt-10 text-center">
             <Link href="/blog">
-              <Button className="bg-gray-800 text-white hover:bg-gray-700">View All Articles</Button>
+              <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90">View All Articles</Button>
             </Link>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-logo-green py-20 text-white">
+      <section className="bg-fitnest-green py-20 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-6 text-3xl font-bold">Ready to Start Your Fitness Journey?</h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg">
@@ -491,7 +493,7 @@ export default function Home() {
             goals.
           </p>
           <Link href="/register">
-            <Button className="bg-gray-800 text-white hover:bg-gray-700">Get Started Today</Button>
+            <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90">Get Started Today</Button>
           </Link>
         </div>
       </section>
