@@ -496,7 +496,15 @@ export function OrderProcess() {
                   </RadioGroup>
                 </div>
 
-                {/* Allergies Section */}
+                {/* Allergies Section - commented out for now */}
+                {/* 
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold mb-4">Allergies</h3>
+                </div>
+                */}
+
+                {/* Allergies Section - commented out for now */}
+                {/*
                 <div>
                   <Label className="text-base font-medium mb-3 block">Allergies & Dietary Restrictions</Label>
                   <p className="text-sm text-gray-500 mb-4">Select any allergies or dietary restrictions you have.</p>
@@ -532,6 +540,7 @@ export function OrderProcess() {
                     ))}
                   </div>
                 </div>
+                */}
 
                 {/* Days Selection */}
                 <div>
