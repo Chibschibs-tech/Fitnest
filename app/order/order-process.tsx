@@ -56,6 +56,16 @@ const snackOptions = [
   { id: "2-snacks", label: "2 Snacks / Day", description: "Two healthy snacks per day", multiplier: 0.35 },
 ]
 
+// Add allergies data after the snackOptions array
+const allergies = [
+  { id: "dairy", label: "Dairy", description: "Milk, cheese, yogurt" },
+  { id: "gluten", label: "Gluten", description: "Wheat, barley, rye" },
+  { id: "nuts", label: "Nuts", description: "Peanuts, tree nuts" },
+  { id: "shellfish", label: "Shellfish", description: "Shrimp, crab, lobster" },
+  { id: "eggs", label: "Eggs", description: "Chicken eggs" },
+  { id: "soy", label: "Soy", description: "Soybeans and products" },
+]
+
 const weekdays = [
   { id: "sunday", label: "S", fullLabel: "Sunday" },
   { id: "monday", label: "M", fullLabel: "Monday" },
@@ -119,6 +129,9 @@ export function OrderProcess() {
 
   // Selected snack option
   const [selectedSnacks, setSelectedSnacks] = useState("0-snacks")
+
+  // Add selectedAllergies state after the selectedSnacks state
+  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([])
 
   // Selected weekdays
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -231,6 +244,13 @@ export function OrderProcess() {
       // Toggle the selection
       return prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]
     })
+  }
+
+  // Add handleAllergyToggle function after the handleDayToggle function
+  const handleAllergyToggle = (allergyId: string) => {
+    setSelectedAllergies((prev) =>
+      prev.includes(allergyId) ? prev.filter((id) => id !== allergyId) : [...prev, allergyId],
+    )
   }
 
   // Handle meal selection for menu building
@@ -474,6 +494,43 @@ export function OrderProcess() {
                       </div>
                     ))}
                   </RadioGroup>
+                </div>
+
+                {/* Allergies Section */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Allergies & Dietary Restrictions</Label>
+                  <p className="text-sm text-gray-500 mb-4">Select any allergies or dietary restrictions you have.</p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {allergies.map((allergy) => (
+                      <div key={allergy.id} className="relative">
+                        <input
+                          type="checkbox"
+                          id={`allergy-${allergy.id}`}
+                          checked={selectedAllergies.includes(allergy.id)}
+                          onChange={() => handleAllergyToggle(allergy.id)}
+                          className="peer sr-only"
+                        />
+                        <label
+                          htmlFor={`allergy-${allergy.id}`}
+                          className={cn(
+                            "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 cursor-pointer",
+                            selectedAllergies.includes(allergy.id) ? "border-fitnest-green" : "",
+                          )}
+                        >
+                          {selectedAllergies.includes(allergy.id) && (
+                            <div className="absolute top-2 right-2 h-5 w-5 bg-fitnest-green rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          <div className="text-center">
+                            <h3 className="font-semibold">{allergy.label}</h3>
+                            <p className="text-sm text-gray-500">{allergy.description}</p>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Days Selection */}
@@ -920,6 +977,14 @@ export function OrderProcess() {
                         : selectedSnacks === "1-snack"
                           ? "1 snack"
                           : "2 snacks"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Allergies:</span>
+                    <span>
+                      {selectedAllergies.length > 0
+                        ? selectedAllergies.map((id) => allergies.find((a) => a.id === id)?.label).join(", ")
+                        : "None"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
