@@ -29,7 +29,7 @@ export default function Navbar() {
           </Link>
 
           {/* Mobile Order Now button */}
-          <Link href="/meal-plans" className="md:hidden">
+          <Link href="/order" className="md:hidden">
             <Button size="sm" className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">
               Order Now
             </Button>
@@ -68,7 +68,7 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/meal-plans" className="hidden md:block">
+            <Link href="/order" className="hidden md:block">
               <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">Order Now</Button>
             </Link>
             <NavbarAuth />

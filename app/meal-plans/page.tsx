@@ -136,7 +136,7 @@ export default function MealPlansPage() {
                     Learn More
                   </Button>
                 </Link>
-                <Link href="/order" className="flex-1">
+                <Link href={`/order?plan=${plan.id}`} className="flex-1">
                   <Button className="w-full bg-green-600 hover:bg-green-700">Order Now</Button>
                 </Link>
               </div>
