@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt"
+import bcrypt from "bcryptjs" // Changed from bcrypt to bcryptjs
 import { NextResponse } from "next/server"
 
 import prisma from "@/app/libs/prismadb"
