@@ -10,10 +10,11 @@ export default function Home() {
       <section className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 text-white min-h-[calc(100vh-73px)] flex items-center">
         <div className="container mx-auto px-4 text-center">
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
-            Healthy Meals <span className="text-white">Delivered</span> To Your Door
+            Making Healthy Eating <span className="text-white">Simple</span> & Enjoyable
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-200">
-            Custom meal plans designed for your fitness goals. Fresh ingredients, chef-prepared, and delivered to you.
+            Personalized, nutrient-rich meals delivered to your door. We empower you to take charge of your health—one
+            meal, one habit at a time.
           </p>
           <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
@@ -160,9 +161,9 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Customized Meal Plans</h3>
+              <h3 className="mb-2 text-xl font-semibold">Health First</h3>
               <p className="text-gray-600">
-                Personalized meal plans tailored to your dietary preferences and fitness goals.
+                Every meal is designed to fuel your body and promote long-term well-being.
               </p>
             </div>
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
@@ -182,8 +183,10 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Fresh & Convenient</h3>
-              <p className="text-gray-600">Fresh ingredients, chef-prepared meals delivered right to your doorstep.</p>
+              <h3 className="mb-2 text-xl font-semibold">Simplicity & Convenience</h3>
+              <p className="text-gray-600">
+                We remove barriers to healthy habits with personalized meals delivered to your door.
+              </p>
             </div>
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-fitnest-green/10 text-fitnest-green">
@@ -202,9 +205,9 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Track Your Progress</h3>
+              <h3 className="mb-2 text-xl font-semibold">Lifestyle Transformation</h3>
               <p className="text-gray-600">
-                Monitor your nutrition and fitness progress with our easy-to-use dashboard.
+                We support your entire wellness journey through balanced nutrition, education, and guidance.
               </p>
             </div>
           </div>
@@ -487,10 +490,10 @@ export default function Home() {
       {/* CTA Section */}
       <section className="bg-fitnest-green py-20 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="mb-6 text-3xl font-bold">Ready to Start Your Fitness Journey?</h2>
+          <h2 className="mb-6 text-3xl font-bold">Ready to Transform Your Lifestyle?</h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg">
-            Join thousands of satisfied customers who have transformed their eating habits and achieved their fitness
-            goals.
+            Join us in our mission to make healthy eating simple, enjoyable, and part of everyday life. Take the first
+            step toward a healthier you today.
           </p>
           <Link href="/register">
             <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90">Get Started Today</Button>

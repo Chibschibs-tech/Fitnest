@@ -14,64 +14,111 @@ export default function AboutPage() {
         <h1 className="text-4xl font-bold mb-6 text-center">About Fitnest</h1>
         <div className="max-w-3xl mx-auto">
           <p className="text-lg mb-6">
-            Fitnest is Morocco's premier meal prep delivery service dedicated to helping you achieve your health and
-            fitness goals through delicious, nutritionally balanced meals delivered right to your door.
-          </p>
-          <p className="text-lg mb-6">
-            Founded in 2023, we started with a simple mission: to make healthy eating convenient, delicious, and
-            accessible for everyone in Morocco.
+            Fitnest is Morocco's premier health-focused lifestyle brand dedicated to helping you achieve your wellness
+            goals through delicious, nutritionally balanced meals delivered right to your door.
           </p>
         </div>
       </section>
 
-      <section className="mb-16 bg-gray-50 py-12 rounded-lg">
+      {/* Vision Section */}
+      <section className="mb-16 bg-green-50 py-12 rounded-lg">
+        <div className="max-w-5xl mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8 text-center">Our Vision</h2>
+          <div className="text-center max-w-3xl mx-auto">
+            <p className="text-lg mb-4">
+              FitNest aims to become the leading health-focused lifestyle brand in Morocco, redefining how people eat,
+              move, and live.
+            </p>
+            <p className="text-lg">
+              We envision a future where healthy living is accessible, enjoyable, and deeply rooted in local
+              culture—from what people eat daily to how they take care of their bodies. Through personalized nutrition,
+              education, and sustainable food practices, FitNest aspires to shift long-term habits and become a symbol
+              of well-being and positive transformation.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Mission Section */}
+      <section className="mb-16">
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8 text-center">Our Mission</h2>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <p className="text-lg mb-4">
-                At Fitnest, we believe that good nutrition should be accessible to everyone. Our mission is to empower
-                people to live healthier lives by providing convenient, delicious, and nutritionally balanced meals.
-              </p>
-              <p className="text-lg">
-                We're committed to using fresh, high-quality ingredients to create meals that not only support your
-                health and fitness goals but also delight your taste buds.
-              </p>
-            </div>
-            <div className="relative h-80 rounded-lg overflow-hidden">
-              <Image src="/placeholder.svg?key=toven" alt="Fitnest kitchen" fill className="object-cover" />
-            </div>
+          <div className="text-center max-w-3xl mx-auto">
+            <p className="text-xl font-semibold mb-4">
+              To make healthy eating simple, enjoyable, and part of everyday life.
+            </p>
+            <p className="text-lg">
+              We deliver personalized, nutrient-rich meals straight to your door and support our customers with tools
+              and content that help them build healthier routines. With a focus on freshness, transparency, and
+              long-term wellness, FitNest empowers individuals to take charge of their health—one meal, one habit at a
+              time.
+            </p>
           </div>
         </div>
       </section>
 
+      {/* Brand Values Section */}
       <section className="mb-16">
         <h2 className="text-3xl font-bold mb-8 text-center">Our Values</h2>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold mb-3 text-green-600">Quality</h3>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-2">💚</span>
+              <h3 className="text-xl font-semibold text-green-600">Health First</h3>
+            </div>
             <p>
-              We never compromise on the quality of our ingredients or meals. Every dish is prepared with care using
-              fresh, high-quality ingredients.
+              We put health at the core of every product and service. Every meal, ingredient, and experience is designed
+              to fuel the body and promote long-term well-being.
             </p>
           </div>
+
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold mb-3 text-green-600">Nutrition</h3>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-2">🔥</span>
+              <h3 className="text-xl font-semibold text-green-600">Lifestyle-Driven</h3>
+            </div>
             <p>
-              Our meals are designed by nutrition experts to provide balanced nutrition that supports your health and
-              fitness goals.
+              We believe that healthy living is more than just eating well—it's a mindset. FitNest promotes a full
+              lifestyle transformation through balanced routines, movement, mindfulness, and education.
             </p>
           </div>
+
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold mb-3 text-green-600">Convenience</h3>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-2">🌱</span>
+              <h3 className="text-xl font-semibold text-green-600">Simplicity & Convenience</h3>
+            </div>
             <p>
-              We believe healthy eating should be easy. Our delivery service brings nutritious meals right to your door,
-              saving you time and effort.
+              We remove the barriers to healthy habits. From personalized meals to seamless delivery and clear guidance,
+              we make nutrition and wellness easier for everyone.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-2">📚</span>
+              <h3 className="text-xl font-semibold text-green-600">Empowerment Through Education</h3>
+            </div>
+            <p>
+              Knowledge drives change. Through clear content, expert insights, and practical tips, we help our community
+              make better choices and build sustainable habits.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-2">🌍</span>
+              <h3 className="text-xl font-semibold text-green-600">Sustainability & Responsibility</h3>
+            </div>
+            <p>
+              We care about the future. Our commitment to eco-friendly packaging, local sourcing, and self-sufficient
+              farming solutions reflects our responsibility toward people and the planet.
             </p>
           </div>
         </div>
       </section>
 
+      {/* Our Team Section */}
       <section className="mb-16">
         <h2 className="text-3xl font-bold mb-8 text-center">Our Team</h2>
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -99,6 +146,7 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* CTA Section */}
       <section>
         <h2 className="text-3xl font-bold mb-8 text-center">Join Us on Our Mission</h2>
         <div className="max-w-3xl mx-auto text-center">
