@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -43,24 +42,57 @@ const mealPlans = {
   },
 }
 
-const deliveryOptions = [
-  { id: "daily", label: "Daily Delivery", description: "Fresh meals delivered every day", multiplier: 1 },
-  { id: "3-days", label: "3 Days Package", description: "Meals for 3 days delivered twice a week", multiplier: 0.95 },
-  { id: "weekly", label: "Weekly Package", description: "All meals for the week delivered at once", multiplier: 0.9 },
-]
-
 const mealFrequencies = [
+  { id: "1-meal", label: "1 Meal / Day", description: "Lunch or Dinner", multiplier: 0.6 },
   { id: "2-meals", label: "2 Meals / Day", description: "Lunch and Dinner", multiplier: 1 },
   { id: "3-meals", label: "3 Meals / Day", description: "Breakfast, Lunch, and Dinner", multiplier: 1.4 },
-  { id: "4-meals", label: "4 Meals / Day", description: "Breakfast, Lunch, Dinner, and Snack", multiplier: 1.7 },
+]
+
+const snackOptions = [
+  { id: "0-snacks", label: "No Snacks", description: "No additional snacks", multiplier: 0 },
+  { id: "1-snack", label: "1 Snack / Day", description: "One healthy snack per day", multiplier: 0.2 },
+  { id: "2-snacks", label: "2 Snacks / Day", description: "Two healthy snacks per day", multiplier: 0.35 },
 ]
 
 const subscriptionPeriods = [
+  { id: "3-days", label: "3 Days", description: "Trial period", multiplier: 0.3 },
   { id: "1-week", label: "1 Week", description: "Try it out", multiplier: 1 },
   { id: "2-weeks", label: "2 Weeks", description: "Short commitment", multiplier: 0.97 },
   { id: "4-weeks", label: "4 Weeks", description: "Most popular", multiplier: 0.95, popular: true },
-  { id: "12-weeks", label: "12 Weeks", description: "Best value", multiplier: 0.9 },
 ]
+
+// Sample meals for menu building
+const sampleMeals = {
+  breakfast: [
+    { id: "b1", name: "Fluffy Protein Stack", image: "/fluffy-protein-stack.png", calories: 320 },
+    { id: "b2", name: "Layered Berry Parfait", image: "/layered-berry-parfait.png", calories: 280 },
+    { id: "b3", name: "Fluffy Egg White Omelette", image: "/fluffy-egg-white-omelette.png", calories: 250 },
+    { id: "b4", name: "Colorful Overnight Oats", image: "/colorful-overnight-oats.png", calories: 310 },
+  ],
+  lunch: [
+    {
+      id: "l1",
+      name: "Grilled Chicken Vegetable Medley",
+      image: "/grilled-chicken-vegetable-medley.png",
+      calories: 420,
+    },
+    { id: "l2", name: "Rainbow Grain Bowl", image: "/rainbow-grain-bowl.png", calories: 380 },
+    { id: "l3", name: "Fresh Tuna Avocado Wrap", image: "/fresh-tuna-avocado-wrap.png", calories: 450 },
+    { id: "l4", name: "Chicken Quinoa Power Bowl", image: "/chicken-quinoa-power-bowl.png", calories: 410 },
+  ],
+  dinner: [
+    { id: "d1", name: "Pan Seared Salmon Quinoa", image: "/pan-seared-salmon-quinoa.png", calories: 480 },
+    { id: "d2", name: "Savory Turkey Meatballs", image: "/savory-turkey-meatballs.png", calories: 420 },
+    { id: "d3", name: "Vibrant Vegetable Stir Fry", image: "/vibrant-vegetable-stir-fry.png", calories: 350 },
+    { id: "d4", name: "Classic Beef Broccoli", image: "/classic-beef-broccoli.png", calories: 460 },
+  ],
+  snack: [
+    { id: "s1", name: "Greek Yogurt with Berries", image: "/placeholder.svg?key=eepi7", calories: 150 },
+    { id: "s2", name: "Protein Energy Bites", image: "/placeholder.svg?key=g14cg", calories: 120 },
+    { id: "s3", name: "Mixed Nuts and Dried Fruits", image: "/placeholder.svg?key=e7zmo", calories: 180 },
+    { id: "s4", name: "Vegetable Sticks with Hummus", image: "/placeholder.svg?key=dguid", calories: 130 },
+  ],
+}
 
 export function OrderProcess() {
   const router = useRouter()
@@ -68,26 +100,94 @@ export function OrderProcess() {
   const planId = searchParams.get("plan") || "weight-loss"
   const plan = mealPlans[planId as keyof typeof mealPlans] || mealPlans["weight-loss"]
 
-  const [selectedDelivery, setSelectedDelivery] = useState(deliveryOptions[1].id)
-  const [selectedFrequency, setSelectedFrequency] = useState(mealFrequencies[0].id)
-  const [selectedPeriod, setSelectedPeriod] = useState(subscriptionPeriods[2].id)
+  const [selectedFrequency, setSelectedFrequency] = useState(mealFrequencies[1].id)
+  const [selectedSnacks, setSelectedSnacks] = useState(snackOptions[0].id)
+  const [selectedPeriod, setSelectedPeriod] = useState(subscriptionPeriods[3].id)
   const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2))
   const [step, setStep] = useState(1)
+
+  // Menu building state
+  const [menuDays, setMenuDays] = useState<any[]>([])
+
+  // Calculate number of days based on selected period
+  const getDaysCount = () => {
+    switch (selectedPeriod) {
+      case "3-days":
+        return 3
+      case "1-week":
+        return 7
+      case "2-weeks":
+        return 14
+      case "4-weeks":
+        return 28
+      default:
+        return 7
+    }
+  }
+
+  // Initialize menu days when period changes or when entering menu building step
+  const initializeMenuDays = () => {
+    const daysCount = getDaysCount()
+    const startDateObj = startDate || addDays(new Date(), 2)
+
+    const newMenuDays = []
+    for (let i = 0; i < daysCount; i++) {
+      const currentDate = addDays(startDateObj, i)
+      const dayName = format(currentDate, "EEEE")
+      const dateString = format(currentDate, "MMM d")
+
+      // Determine which meal types to include based on selected frequency
+      let mealTypes = []
+      if (selectedFrequency === "1-meal") {
+        mealTypes = ["lunch"]
+      } else if (selectedFrequency === "2-meals") {
+        mealTypes = ["lunch", "dinner"]
+      } else if (selectedFrequency === "3-meals") {
+        mealTypes = ["breakfast", "lunch", "dinner"]
+      }
+
+      // Add snacks if selected
+      if (selectedSnacks === "1-snack") {
+        mealTypes.push("snack")
+      } else if (selectedSnacks === "2-snacks") {
+        mealTypes.push("snack", "snack")
+      }
+
+      // Create day object with empty meal selections
+      const dayObj = {
+        day: i + 1,
+        dayName,
+        dateString,
+        meals: mealTypes.map((type) => ({
+          type,
+          selected: null,
+        })),
+      }
+
+      newMenuDays.push(dayObj)
+    }
+
+    setMenuDays(newMenuDays)
+  }
 
   // Calculate price
   const calculatePrice = () => {
     const basePrice = plan.basePrice
-    const deliveryMultiplier = deliveryOptions.find((option) => option.id === selectedDelivery)?.multiplier || 1
     const frequencyMultiplier = mealFrequencies.find((option) => option.id === selectedFrequency)?.multiplier || 1
+    const snackMultiplier = snackOptions.find((option) => option.id === selectedSnacks)?.multiplier || 0
     const periodMultiplier = subscriptionPeriods.find((option) => option.id === selectedPeriod)?.multiplier || 1
 
-    return Math.round(basePrice * deliveryMultiplier * frequencyMultiplier * periodMultiplier)
+    return Math.round(basePrice * (frequencyMultiplier + snackMultiplier) * periodMultiplier)
   }
 
   const totalPrice = calculatePrice()
 
   const handleNext = () => {
     if (step < 3) {
+      if (step === 1 && step + 1 === 3) {
+        // Initialize menu days when going from step 1 to step 3 (skipping step 2)
+        initializeMenuDays()
+      }
       setStep(step + 1)
       window.scrollTo(0, 0)
     } else {
@@ -103,6 +203,13 @@ export function OrderProcess() {
     } else {
       router.push(`/meal-plans/${planId}`)
     }
+  }
+
+  // Handle meal selection for menu building
+  const handleMealSelection = (dayIndex: number, mealIndex: number, meal: any) => {
+    const updatedMenuDays = [...menuDays]
+    updatedMenuDays[dayIndex].meals[mealIndex].selected = meal
+    setMenuDays(updatedMenuDays)
   }
 
   return (
@@ -132,15 +239,6 @@ export function OrderProcess() {
             >
               2
             </div>
-            <div className={cn("w-8 h-0.5", step >= 3 ? "bg-fitnest-green" : "bg-gray-200")} />
-            <div
-              className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full",
-                step >= 3 ? "bg-fitnest-green text-white" : "bg-gray-200 text-gray-500",
-              )}
-            >
-              3
-            </div>
           </div>
         </div>
       </div>
@@ -150,22 +248,22 @@ export function OrderProcess() {
           {step === 1 && (
             <Card>
               <CardHeader>
-                <CardTitle>Choose Your Delivery Options</CardTitle>
-                <CardDescription>Select how often you want your meals delivered</CardDescription>
+                <CardTitle>Choose Your Meal Options</CardTitle>
+                <CardDescription>Customize your meal plan to fit your needs</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label className="text-base font-medium mb-3 block">Delivery Frequency</Label>
+                  <Label className="text-base font-medium mb-3 block">Meals Per Day</Label>
                   <RadioGroup
-                    value={selectedDelivery}
-                    onValueChange={setSelectedDelivery}
+                    value={selectedFrequency}
+                    onValueChange={setSelectedFrequency}
                     className="grid gap-4 md:grid-cols-3"
                   >
-                    {deliveryOptions.map((option) => (
+                    {mealFrequencies.map((option) => (
                       <div key={option.id}>
-                        <RadioGroupItem value={option.id} id={`delivery-${option.id}`} className="peer sr-only" />
+                        <RadioGroupItem value={option.id} id={`frequency-${option.id}`} className="peer sr-only" />
                         <Label
-                          htmlFor={`delivery-${option.id}`}
+                          htmlFor={`frequency-${option.id}`}
                           className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
                         >
                           <div className="text-center">
@@ -179,17 +277,17 @@ export function OrderProcess() {
                 </div>
 
                 <div>
-                  <Label className="text-base font-medium mb-3 block">Meals Per Day</Label>
+                  <Label className="text-base font-medium mb-3 block">Additional Snacks</Label>
                   <RadioGroup
-                    value={selectedFrequency}
-                    onValueChange={setSelectedFrequency}
+                    value={selectedSnacks}
+                    onValueChange={setSelectedSnacks}
                     className="grid gap-4 md:grid-cols-3"
                   >
-                    {mealFrequencies.map((option) => (
+                    {snackOptions.map((option) => (
                       <div key={option.id}>
-                        <RadioGroupItem value={option.id} id={`frequency-${option.id}`} className="peer sr-only" />
+                        <RadioGroupItem value={option.id} id={`snack-${option.id}`} className="peer sr-only" />
                         <Label
-                          htmlFor={`frequency-${option.id}`}
+                          htmlFor={`snack-${option.id}`}
                           className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
                         >
                           <div className="text-center">
@@ -265,89 +363,15 @@ export function OrderProcess() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button onClick={handleNext} disabled={!startDate}>
-                  Continue
+                <Button
+                  onClick={() => {
+                    initializeMenuDays()
+                    setStep(3) // Skip step 2 and go directly to menu building
+                  }}
+                  disabled={!startDate}
+                >
+                  Continue to Menu Building
                 </Button>
-              </CardFooter>
-            </Card>
-          )}
-
-          {step === 2 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Dietary Preferences</CardTitle>
-                <CardDescription>Customize your meals to fit your dietary needs</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label className="text-base font-medium mb-3 block">Dietary Restrictions</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Nut-Free", "No Restrictions"].map(
-                      (option) => (
-                        <div key={option} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`diet-${option}`}
-                            className="rounded border-gray-300 text-fitnest-green focus:ring-fitnest-green"
-                          />
-                          <Label htmlFor={`diet-${option}`} className="text-sm font-normal">
-                            {option}
-                          </Label>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-base font-medium mb-3 block">Allergies</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {["Eggs", "Fish", "Shellfish", "Soy", "Wheat", "None"].map((option) => (
-                      <div key={option} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`allergy-${option}`}
-                          className="rounded border-gray-300 text-fitnest-green focus:ring-fitnest-green"
-                        />
-                        <Label htmlFor={`allergy-${option}`} className="text-sm font-normal">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-base font-medium mb-3 block">Calorie Target</Label>
-                  <div className="flex flex-col space-y-2">
-                    <Select defaultValue="default">
-                      <SelectTrigger className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Select calorie target" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default for {plan.title}</SelectItem>
-                        <SelectItem value="low">Low Calorie (1200-1500)</SelectItem>
-                        <SelectItem value="medium">Medium Calorie (1500-1800)</SelectItem>
-                        <SelectItem value="high">High Calorie (1800-2200)</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-base font-medium mb-3 block">Additional Notes</Label>
-                  <textarea
-                    className="w-full min-h-[100px] rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-fitnest-green"
-                    placeholder="Any specific preferences or instructions for our chefs..."
-                  ></textarea>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={handleBack}>
-                  Back
-                </Button>
-                <Button onClick={handleNext}>Continue</Button>
               </CardFooter>
             </Card>
           )}
@@ -355,59 +379,77 @@ export function OrderProcess() {
           {step === 3 && (
             <Card>
               <CardHeader>
-                <CardTitle>Review Your Order</CardTitle>
-                <CardDescription>Please review your order details before proceeding to checkout</CardDescription>
+                <CardTitle>Build Your Menu</CardTitle>
+                <CardDescription>Select your meals for each day of your subscription</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="relative h-20 w-20 overflow-hidden rounded-md">
-                    <Image src={plan.image || "/placeholder.svg"} alt={plan.title} fill className="object-cover" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{plan.title}</h3>
-                    <p className="text-sm text-gray-500">{plan.description}</p>
-                  </div>
-                </div>
+              <CardContent className="space-y-8">
+                {menuDays.map((day, dayIndex) => (
+                  <div key={dayIndex} className="border rounded-lg p-4">
+                    <h3 className="font-semibold text-lg mb-2">
+                      Day {day.day}: {day.dayName} ({day.dateString})
+                    </h3>
+                    <div className="space-y-4">
+                      {day.meals.map((meal: any, mealIndex: number) => (
+                        <div key={mealIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                          <h4 className="font-medium text-base mb-2 capitalize">
+                            {meal.type === "snack" && mealIndex > 0 && day.meals[mealIndex - 1].type === "snack"
+                              ? "Second Snack"
+                              : meal.type}
+                          </h4>
 
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Delivery Option:</span>
-                    <span className="font-medium">
-                      {deliveryOptions.find((option) => option.id === selectedDelivery)?.label}
-                    </span>
+                          {meal.selected ? (
+                            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                              <div className="flex items-center">
+                                <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                  <Image
+                                    src={meal.selected.image || "/placeholder.svg"}
+                                    alt={meal.selected.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                                <div>
+                                  <h5 className="font-medium">{meal.selected.name}</h5>
+                                  <p className="text-sm text-gray-500">{meal.selected.calories} calories</p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMealSelection(dayIndex, mealIndex, null)}
+                              >
+                                Change
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                              {sampleMeals[meal.type as keyof typeof sampleMeals].map((option) => (
+                                <div
+                                  key={option.id}
+                                  className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                  onClick={() => handleMealSelection(dayIndex, mealIndex, option)}
+                                >
+                                  <div className="relative h-32 w-full">
+                                    <Image
+                                      src={option.image || "/placeholder.svg"}
+                                      alt={option.name}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                  <div className="p-2">
+                                    <h5 className="font-medium text-sm">{option.name}</h5>
+                                    <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Meals Per Day:</span>
-                    <span className="font-medium">
-                      {mealFrequencies.find((option) => option.id === selectedFrequency)?.label}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Subscription Period:</span>
-                    <span className="font-medium">
-                      {subscriptionPeriods.find((option) => option.id === selectedPeriod)?.label}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Start Date:</span>
-                    <span className="font-medium">{startDate ? format(startDate, "PPP") : "Not selected"}</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total Price:</span>
-                    <span>{totalPrice} MAD / week</span>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Your subscription will automatically renew at the end of your selected period. You can cancel or
-                    pause anytime.
-                  </p>
-                </div>
+                ))}
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={handleBack}>
@@ -448,10 +490,14 @@ export function OrderProcess() {
                     <span>{plan.basePrice} MAD / week</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Delivery Option:</span>
+                    <span>Meals Per Day:</span>
                     <span>
-                      {deliveryOptions.find((option) => option.id === selectedDelivery)?.label || "Not selected"}
+                      {mealFrequencies.find((option) => option.id === selectedFrequency)?.label || "Not selected"}
                     </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Additional Snacks:</span>
+                    <span>{snackOptions.find((option) => option.id === selectedSnacks)?.label || "None"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Subscription Period:</span>
@@ -459,13 +505,17 @@ export function OrderProcess() {
                       {subscriptionPeriods.find((option) => option.id === selectedPeriod)?.label || "Not selected"}
                     </span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Start Date:</span>
+                    <span>{startDate ? format(startDate, "MMM d, yyyy") : "Not selected"}</span>
+                  </div>
                 </div>
 
                 <Separator />
 
                 <div className="flex justify-between font-semibold">
                   <span>Total:</span>
-                  <span>{totalPrice} MAD / week</span>
+                  <span>{totalPrice} MAD</span>
                 </div>
 
                 <div className="rounded-md bg-gray-50 p-3">
@@ -479,13 +529,22 @@ export function OrderProcess() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button
-                  onClick={handleNext}
-                  className="w-full bg-fitnest-orange hover:bg-fitnest-orange/90"
-                  disabled={step === 3}
-                >
-                  {step === 3 ? "Proceed to Checkout" : "Continue"}
-                </Button>
+                {step === 3 ? (
+                  <Button onClick={handleNext} className="w-full bg-fitnest-orange hover:bg-fitnest-orange/90">
+                    Proceed to Checkout
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      initializeMenuDays()
+                      setStep(3) // Skip step 2 and go directly to menu building
+                    }}
+                    className="w-full"
+                    disabled={!startDate}
+                  >
+                    Continue to Menu Building
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           </div>
