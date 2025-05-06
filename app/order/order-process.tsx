@@ -48,7 +48,12 @@ const mealTypes = [
   { id: "breakfast", label: "Breakfast", description: "Start your day right" },
   { id: "lunch", label: "Lunch", description: "Midday energy boost" },
   { id: "dinner", label: "Dinner", description: "Evening nourishment" },
-  { id: "snack", label: "Snack", description: "Healthy between-meal option" },
+]
+
+const snackOptions = [
+  { id: "0-snacks", label: "No Snacks", description: "No additional snacks", multiplier: 0 },
+  { id: "1-snack", label: "1 Snack / Day", description: "One healthy snack per day", multiplier: 0.2 },
+  { id: "2-snacks", label: "2 Snacks / Day", description: "Two healthy snacks per day", multiplier: 0.35 },
 ]
 
 const weekdays = [
@@ -103,11 +108,17 @@ const sampleMeals = {
 export function OrderProcess() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const planId = searchParams.get("plan") || "weight-loss"
-  const plan = mealPlans[planId as keyof typeof mealPlans] || mealPlans["weight-loss"]
+  const planIdFromUrl = searchParams.get("plan")
+
+  // Selected meal plan
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(planIdFromUrl || "")
+  const selectedPlan = selectedPlanId ? mealPlans[selectedPlanId as keyof typeof mealPlans] : null
 
   // Selected meal types
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>(["lunch", "dinner"])
+
+  // Selected snack option
+  const [selectedSnacks, setSelectedSnacks] = useState("0-snacks")
 
   // Selected weekdays
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -126,6 +137,7 @@ export function OrderProcess() {
 
   // Validation errors
   const [errors, setErrors] = useState<{
+    mealPlan?: string
     mealTypes?: string
     days?: string
     menu?: string
@@ -133,16 +145,20 @@ export function OrderProcess() {
 
   // Calculate base price per day
   const calculateDailyPrice = () => {
-    const basePrice = plan.basePrice / 7 // Convert weekly price to daily
+    if (!selectedPlan) return 0
+
+    const basePrice = selectedPlan.basePrice / 7 // Convert weekly price to daily
 
     // Calculate price based on selected meal types
     let mealTypeMultiplier = 0
     if (selectedMealTypes.includes("breakfast")) mealTypeMultiplier += 0.3
     if (selectedMealTypes.includes("lunch")) mealTypeMultiplier += 0.35
     if (selectedMealTypes.includes("dinner")) mealTypeMultiplier += 0.35
-    if (selectedMealTypes.includes("snack")) mealTypeMultiplier += 0.15
 
-    return Math.round(basePrice * mealTypeMultiplier * 10) / 10
+    // Add snack multiplier
+    const snackMultiplier = snackOptions.find((option) => option.id === selectedSnacks)?.multiplier || 0
+
+    return Math.round(basePrice * (mealTypeMultiplier + snackMultiplier) * 10) / 10
   }
 
   // Calculate total price
@@ -173,13 +189,23 @@ export function OrderProcess() {
 
     selectedDays.forEach((day) => {
       newMenuSelections[day] = {}
+
+      // Add meal types
       selectedMealTypes.forEach((mealType) => {
         newMenuSelections[day][mealType] = null
       })
+
+      // Add snacks based on selection
+      if (selectedSnacks === "1-snack") {
+        newMenuSelections[day]["snack1"] = null
+      } else if (selectedSnacks === "2-snacks") {
+        newMenuSelections[day]["snack1"] = null
+        newMenuSelections[day]["snack2"] = null
+      }
     })
 
     setMenuSelections(newMenuSelections)
-  }, [selectedDays, selectedMealTypes])
+  }, [selectedDays, selectedMealTypes, selectedSnacks])
 
   // Handle meal type selection
   const handleMealTypeToggle = (mealTypeId: string) => {
@@ -221,10 +247,19 @@ export function OrderProcess() {
   // Check if all meals are selected
   const isMenuComplete = () => {
     for (const day of selectedDays) {
+      // Check meal types
       for (const mealType of selectedMealTypes) {
         if (!menuSelections[day]?.[mealType]) {
           return false
         }
+      }
+
+      // Check snacks
+      if (selectedSnacks === "1-snack" && !menuSelections[day]?.["snack1"]) {
+        return false
+      }
+      if (selectedSnacks === "2-snacks" && (!menuSelections[day]?.["snack1"] || !menuSelections[day]?.["snack2"])) {
+        return false
       }
     }
     return true
@@ -233,12 +268,16 @@ export function OrderProcess() {
   // Validate current step
   const validateStep = () => {
     const newErrors: {
+      mealPlan?: string
       mealTypes?: string
       days?: string
       menu?: string
     } = {}
 
     if (step === 1) {
+      if (!selectedPlanId) {
+        newErrors.mealPlan = "Please select a meal plan"
+      }
       if (selectedMealTypes.length < 2) {
         newErrors.mealTypes = "Please select at least 2 meal types"
       }
@@ -274,7 +313,7 @@ export function OrderProcess() {
       setStep(step - 1)
       window.scrollTo(0, 0)
     } else {
-      router.push(`/meal-plans/${planId}`)
+      router.push(selectedPlanId ? `/meal-plans/${selectedPlanId}` : "/meal-plans")
     }
   }
 
@@ -304,7 +343,7 @@ export function OrderProcess() {
       <div className="mb-8">
         <Button variant="ghost" onClick={handleBack} className="mb-4">
           <ChevronLeft className="mr-2 h-4 w-4" />
-          {step === 1 ? "Back to Meal Plan" : "Back"}
+          {step === 1 ? "Back to Meal Plans" : "Back"}
         </Button>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl md:text-3xl font-bold">Customize Your Perfect Meal Plan</h1>
@@ -339,12 +378,46 @@ export function OrderProcess() {
                 <CardDescription>Customize your meal plan to fit your needs</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
+                {/* Meal Plan Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Choose your meal plan</Label>
+                  <RadioGroup
+                    value={selectedPlanId}
+                    onValueChange={setSelectedPlanId}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {Object.entries(mealPlans).map(([id, plan]) => (
+                      <div key={id}>
+                        <RadioGroupItem value={id} id={`plan-${id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`plan-${id}`}
+                          className="flex items-center space-x-4 rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                        >
+                          <div className="relative h-16 w-16 overflow-hidden rounded-md">
+                            <Image
+                              src={plan.image || "/placeholder.svg"}
+                              alt={plan.title}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{plan.title}</h3>
+                            <p className="text-sm text-gray-500">{plan.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                  {errors.mealPlan && <p className="text-red-500 text-sm mt-2">{errors.mealPlan}</p>}
+                </div>
+
                 {/* Meal Types Selection */}
                 <div>
                   <Label className="text-base font-medium mb-3 block">How many meals per day?</Label>
                   <p className="text-sm text-gray-500 mb-4">Select a minimum of 2 meals, including lunch or dinner.</p>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {mealTypes.map((mealType) => (
                       <div key={mealType.id} className="relative">
                         <input
@@ -376,6 +449,31 @@ export function OrderProcess() {
                   </div>
 
                   {errors.mealTypes && <p className="text-red-500 text-sm mt-2">{errors.mealTypes}</p>}
+                </div>
+
+                {/* Snacks Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">How many snacks per day?</Label>
+                  <RadioGroup
+                    value={selectedSnacks}
+                    onValueChange={setSelectedSnacks}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                  >
+                    {snackOptions.map((option) => (
+                      <div key={option.id}>
+                        <RadioGroupItem value={option.id} id={`snack-${option.id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`snack-${option.id}`}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                        >
+                          <div className="text-center">
+                            <h3 className="font-semibold">{option.label}</h3>
+                            <p className="text-sm text-gray-500">{option.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
                 </div>
 
                 {/* Days Selection */}
@@ -474,7 +572,7 @@ export function OrderProcess() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button onClick={handleNext} disabled={!startDate}>
+                <Button onClick={handleNext} disabled={!startDate || !selectedPlanId}>
                   Continue to Menu Building
                 </Button>
               </CardFooter>
@@ -505,7 +603,9 @@ export function OrderProcess() {
                             <span className="font-medium">{formatDay(day)}</span>
                           </div>
                           <div className="flex items-center">
-                            {selectedMealTypes.every((mealType) => menuSelections[day]?.[mealType]) ? (
+                            {Object.keys(menuSelections[day] || {}).every(
+                              (mealType) => menuSelections[day]?.[mealType],
+                            ) ? (
                               <span className="text-sm text-green-600 mr-2 flex items-center">
                                 <Check className="h-4 w-4 mr-1" /> Complete
                               </span>
@@ -517,6 +617,7 @@ export function OrderProcess() {
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-6 pt-2">
+                          {/* Meal Types */}
                           {selectedMealTypes.map((mealType) => (
                             <div key={`${day}-${mealType}`} className="border rounded-lg p-4">
                               <h4 className="font-medium text-base mb-4 capitalize">
@@ -575,6 +676,178 @@ export function OrderProcess() {
                               )}
                             </div>
                           ))}
+
+                          {/* Snacks */}
+                          {selectedSnacks === "1-snack" && (
+                            <div key={`${day}-snack1`} className="border rounded-lg p-4">
+                              <h4 className="font-medium text-base mb-4">Snack</h4>
+
+                              {menuSelections[day]?.["snack1"] ? (
+                                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                  <div className="flex items-center">
+                                    <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                      <Image
+                                        src={menuSelections[day]["snack1"].image || "/placeholder.svg"}
+                                        alt={menuSelections[day]["snack1"].name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <h5 className="font-medium">{menuSelections[day]["snack1"].name}</h5>
+                                      <p className="text-sm text-gray-500">
+                                        {menuSelections[day]["snack1"].calories} calories
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleMealSelection(day, "snack1", null)}
+                                  >
+                                    Change
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                  {sampleMeals["snack"].map((option) => (
+                                    <div
+                                      key={option.id}
+                                      className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                      onClick={() => handleMealSelection(day, "snack1", option)}
+                                    >
+                                      <div className="relative h-32 w-full">
+                                        <Image
+                                          src={option.image || "/placeholder.svg"}
+                                          alt={option.name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div className="p-2">
+                                        <h5 className="font-medium text-sm">{option.name}</h5>
+                                        <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {selectedSnacks === "2-snacks" && (
+                            <>
+                              <div key={`${day}-snack1`} className="border rounded-lg p-4">
+                                <h4 className="font-medium text-base mb-4">First Snack</h4>
+
+                                {menuSelections[day]?.["snack1"] ? (
+                                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                    <div className="flex items-center">
+                                      <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                        <Image
+                                          src={menuSelections[day]["snack1"].image || "/placeholder.svg"}
+                                          alt={menuSelections[day]["snack1"].name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div>
+                                        <h5 className="font-medium">{menuSelections[day]["snack1"].name}</h5>
+                                        <p className="text-sm text-gray-500">
+                                          {menuSelections[day]["snack1"].calories} calories
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleMealSelection(day, "snack1", null)}
+                                    >
+                                      Change
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                    {sampleMeals["snack"].map((option) => (
+                                      <div
+                                        key={option.id}
+                                        className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                        onClick={() => handleMealSelection(day, "snack1", option)}
+                                      >
+                                        <div className="relative h-32 w-full">
+                                          <Image
+                                            src={option.image || "/placeholder.svg"}
+                                            alt={option.name}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        </div>
+                                        <div className="p-2">
+                                          <h5 className="font-medium text-sm">{option.name}</h5>
+                                          <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div key={`${day}-snack2`} className="border rounded-lg p-4">
+                                <h4 className="font-medium text-base mb-4">Second Snack</h4>
+
+                                {menuSelections[day]?.["snack2"] ? (
+                                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                    <div className="flex items-center">
+                                      <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                        <Image
+                                          src={menuSelections[day]["snack2"].image || "/placeholder.svg"}
+                                          alt={menuSelections[day]["snack2"].name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div>
+                                        <h5 className="font-medium">{menuSelections[day]["snack2"].name}</h5>
+                                        <p className="text-sm text-gray-500">
+                                          {menuSelections[day]["snack2"].calories} calories
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleMealSelection(day, "snack2", null)}
+                                    >
+                                      Change
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                    {sampleMeals["snack"].map((option) => (
+                                      <div
+                                        key={option.id}
+                                        className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                        onClick={() => handleMealSelection(day, "snack2", option)}
+                                      >
+                                        <div className="relative h-32 w-full">
+                                          <Image
+                                            src={option.image || "/placeholder.svg"}
+                                            alt={option.name}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        </div>
+                                        <div className="p-2">
+                                          <h5 className="font-medium text-sm">{option.name}</h5>
+                                          <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -604,28 +877,50 @@ export function OrderProcess() {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-md">
-                    <Image src={plan.image || "/placeholder.svg"} alt={plan.title} fill className="object-cover" />
+                {selectedPlan && (
+                  <div className="flex items-center space-x-4">
+                    <div className="relative h-16 w-16 overflow-hidden rounded-md">
+                      <Image
+                        src={selectedPlan.image || "/placeholder.svg"}
+                        alt={selectedPlan.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{selectedPlan.title}</h3>
+                      <p className="text-sm text-gray-500">
+                        {selectedMealTypes.length} meals,{" "}
+                        {selectedSnacks !== "0-snacks"
+                          ? selectedSnacks === "1-snack"
+                            ? "1 snack"
+                            : "2 snacks"
+                          : "no snacks"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">{plan.title}</h3>
-                    <p className="text-sm text-gray-500">
-                      {selectedMealTypes.length} meals per day, {selectedDays.length} days per week
-                    </p>
-                  </div>
-                </div>
+                )}
 
                 <Separator />
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Meal Plan:</span>
-                    <span>{plan.title}</span>
+                    <span>{selectedPlan?.title || "Not selected"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Meals Per Day:</span>
                     <span>{selectedMealTypes.length} meals</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Snacks Per Day:</span>
+                    <span>
+                      {selectedSnacks === "0-snacks"
+                        ? "No snacks"
+                        : selectedSnacks === "1-snack"
+                          ? "1 snack"
+                          : "2 snacks"}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Days Per Week:</span>
@@ -677,7 +972,7 @@ export function OrderProcess() {
                   <Button
                     onClick={handleNext}
                     className="w-full"
-                    disabled={selectedDays.length < 2 || selectedMealTypes.length < 2 || !startDate}
+                    disabled={!selectedPlanId || selectedDays.length < 2 || selectedMealTypes.length < 2 || !startDate}
                   >
                     Continue to Menu Building
                   </Button>
