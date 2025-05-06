@@ -1,38 +1,29 @@
+import bcrypt from "bcrypt"
 import { NextResponse } from "next/server"
-import { hash } from "bcryptjs"
-import { db, users } from "@/lib/db"
-import { eq } from "drizzle-orm"
+
+import prisma from "@/app/libs/prismadb"
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json()
+    const body = await request.json()
+    const { email, name, password } = body
 
-    // Validate input
-    if (!name || !email || !password) {
-      return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
-    }
+    const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1)
-
-    if (existingUser.length > 0) {
-      return NextResponse.json({ message: "User with this email already exists" }, { status: 409 })
-    }
-
-    // Hash password
-    const hashedPassword = await hash(password, 10)
-
-    // Create user
-    await db.insert(users).values({
-      name,
-      email,
-      password: hashedPassword,
-      role: "customer",
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        hashedPassword,
+      },
     })
 
-    return NextResponse.json({ message: "User created successfully" }, { status: 201 })
-  } catch (error) {
-    console.error("Registration error:", error)
-    return NextResponse.json({ message: "Something went wrong" }, { status: 500 })
+    // Ensure proper response is returned
+    return NextResponse.json({ success: true, user }, { status: 201 })
+  } catch (error: any) {
+    // Check for any errors in the registration route handler
+    // Make sure the error handling is properly implemented
+    console.error("REGISTRATION_ERROR", error)
+    return new NextResponse("Internal Error", { status: 500 })
   }
 }
