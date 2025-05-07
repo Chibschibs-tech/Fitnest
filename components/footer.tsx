@@ -5,23 +5,23 @@ export function Footer() {
   return (
     <footer className="bg-green-800 text-white py-12">
       <div className="container mx-auto px-4">
-        {/* First row: 4 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        {/* First row: 4 columns - maintain on mobile */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
           {/* Logo column */}
-          <div>
+          <div className="col-span-2 sm:col-span-1 flex justify-center sm:justify-start">
             <Link href="/" className="inline-block mb-4">
               <Image
                 src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
                 alt="Fitnest Logo"
                 width={600}
                 height={250}
-                className="h-48 w-auto mb-2"
+                className="h-32 sm:h-48 w-auto mb-2"
               />
             </Link>
           </div>
 
           {/* Quick Links column */}
-          <div>
+          <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
@@ -53,7 +53,7 @@ export function Footer() {
           </div>
 
           {/* Company column */}
-          <div>
+          <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
               <li>
@@ -85,7 +85,7 @@ export function Footer() {
           </div>
 
           {/* Contact column */}
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <h3 className="text-lg font-semibold mb-4">Contact</h3>
             <p className="text-gray-300 mb-2">Email: contact@fitnest.ma</p>
             <p className="text-gray-300 mb-2">Phone: +212 522 123 456</p>
@@ -93,20 +93,20 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Second row: 2 columns with specific positioning */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Second row: maintain layout on mobile */}
+        <div className="grid grid-cols-4 gap-8">
           {/* Empty column (under Logo) */}
-          <div className="hidden md:block"></div>
+          <div className="hidden sm:block"></div>
 
           {/* Paragraph spanning 2 columns (under Quick Links and Company) */}
-          <div className="col-span-1 md:col-span-2">
+          <div className="col-span-3 sm:col-span-2">
             <p className="text-gray-300 mb-4">
               Healthy, delicious meals delivered to your door. Custom meal plans designed for your fitness goals.
             </p>
           </div>
 
           {/* Follow us section (under Contact) */}
-          <div>
+          <div className="col-span-1">
             <h4 className="text-lg font-semibold mb-3">Follow us</h4>
             <div className="flex space-x-4">
               <a
