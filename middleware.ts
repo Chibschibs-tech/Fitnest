@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-// Temporarily disable authentication checks to restore access
+// Completely disable middleware to ensure all pages are accessible
 export function middleware(request: NextRequest) {
-  // Allow all requests to pass through for now
+  // Allow all requests to pass through
   return NextResponse.next()
 }
 

@@ -2,7 +2,8 @@
 export const siteConfig = {
   name: "Fitnest",
   url: "https://fitnest.ma",
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || "https://fitnest.ma",
+  // This will now use the environment variable you've set
+  apiUrl: "/api", // Use relative URL to avoid any domain issues
   description: "Personalized, nutrient-rich meals delivered to your door.",
   contactEmail: "contact@fitnest.ma",
   social: {
