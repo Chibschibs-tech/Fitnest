@@ -11,9 +11,9 @@ export function Footer() {
               <Image
                 src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
                 alt="Fitnest Logo"
-                width={200}
-                height={80}
-                className="h-16 w-auto mb-2"
+                width={240}
+                height={100}
+                className="h-20 w-auto mb-2"
               />
             </Link>
             <p className="text-gray-300 mb-4">

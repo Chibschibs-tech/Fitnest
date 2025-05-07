@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { CheckCircle, Calendar } from "lucide-react"
+import { CheckCircle, Calendar, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/hooks/use-auth"
 
 export const dynamic = "force-dynamic"
 
@@ -16,19 +17,38 @@ type MealPlanSelections = {
   totalPrice: number
 }
 
+type DeliveryInfo = {
+  address: string
+  phone: string
+  notes: string
+}
+
 export default function OrderConfirmationPage() {
+  const { session } = useAuth()
   const [mealPlan, setMealPlan] = useState<MealPlanSelections | null>(null)
+  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null)
 
   useEffect(() => {
-    // Get meal plan selections from localStorage
+    // Get meal plan selections and delivery info from localStorage
     const savedSelections = localStorage.getItem("mealPlanSelections")
+    const savedDeliveryInfo = localStorage.getItem("deliveryInfo")
+
     if (savedSelections) {
       setMealPlan(JSON.parse(savedSelections))
     }
+
+    if (savedDeliveryInfo) {
+      setDeliveryInfo(JSON.parse(savedDeliveryInfo))
+    }
+
+    // Clear cart after successful order (optional)
+    // localStorage.removeItem("mealPlanSelections")
   }, [])
 
-  // In a real application, you would fetch the order details from the server
+  // Generate a random order number
   const orderNumber = "FN" + Math.floor(10000 + Math.random() * 90000)
+
+  // Calculate first delivery date (2 days from now)
   const deliveryDate = new Date()
   deliveryDate.setDate(deliveryDate.getDate() + 2)
 
@@ -38,23 +58,23 @@ export default function OrderConfirmationPage() {
 
   const formatDays = (days: string[] = []) => {
     const dayMap: Record<string, string> = {
-      sun: "Sunday",
-      mon: "Monday",
-      tue: "Tuesday",
-      wed: "Wednesday",
-      thu: "Thursday",
-      fri: "Friday",
-      sat: "Saturday",
+      sunday: "Sunday",
+      monday: "Monday",
+      tuesday: "Tuesday",
+      wednesday: "Wednesday",
+      thursday: "Thursday",
+      friday: "Friday",
+      saturday: "Saturday",
     }
 
     if (days.length === 7) return "Every day"
     if (
       days.length === 5 &&
-      days.includes("mon") &&
-      days.includes("tue") &&
-      days.includes("wed") &&
-      days.includes("thu") &&
-      days.includes("fri")
+      days.includes("monday") &&
+      days.includes("tuesday") &&
+      days.includes("wednesday") &&
+      days.includes("thursday") &&
+      days.includes("friday")
     ) {
       return "Weekdays (Mon-Fri)"
     }
@@ -106,8 +126,20 @@ export default function OrderConfirmationPage() {
 
           <div>
             <div className="text-sm text-gray-500">Delivery Address</div>
-            <div className="font-medium">123 Example Street, Casablanca, Morocco</div>
+            <div className="font-medium">{deliveryInfo?.address || "Not available"}</div>
           </div>
+
+          <div>
+            <div className="text-sm text-gray-500">Phone Number</div>
+            <div className="font-medium">{deliveryInfo?.phone || "Not available"}</div>
+          </div>
+
+          {deliveryInfo?.notes && (
+            <div>
+              <div className="text-sm text-gray-500">Delivery Notes</div>
+              <div className="font-medium">{deliveryInfo.notes}</div>
+            </div>
+          )}
 
           <div className="pt-4 border-t">
             <div className="flex justify-between mb-2">
@@ -133,6 +165,9 @@ export default function OrderConfirmationPage() {
               <span>Total</span>
               <span>{mealPlan ? mealPlan.totalPrice : 349} MAD</span>
             </div>
+            <div className="mt-2 text-sm text-gray-500">
+              <span>Payment Method: Cash on Delivery</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -140,7 +175,7 @@ export default function OrderConfirmationPage() {
       <Card className="mb-8 bg-green-50 border-green-200">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <Calendar className="h-6 w-6 text-green-600 mt-1" />
+            <Calendar className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
             <div>
               <h3 className="font-medium mb-1">What's Next?</h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -163,9 +198,19 @@ export default function OrderConfirmationPage() {
           If you have any questions about your order, please contact our customer support.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-          <Link href="/dashboard">
-            <Button className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">Go to My Account</Button>
-          </Link>
+          {session?.user ? (
+            <Link href="/dashboard">
+              <Button className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                Go to My Account <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/register">
+              <Button className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                Create an Account <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          )}
           <Link href="/">
             <Button variant="outline" className="w-full sm:w-auto">
               Return to Home
