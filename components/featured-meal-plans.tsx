@@ -28,7 +28,7 @@ export function FeaturedMealPlans() {
         const mockMealPlans = [
           {
             id: "1",
-            name: "Weight Loss Plan",
+            name: "Weight Loss",
             description: "Calorie-controlled meals designed to help you lose weight while staying satisfied.",
             price: 249,
             image: "/vibrant-weight-loss-meal.png",
@@ -36,19 +36,19 @@ export function FeaturedMealPlans() {
           },
           {
             id: "2",
-            name: "Muscle Gain Plan",
+            name: "Stay Fit",
+            description: "Well-balanced meals to maintain your health and energy throughout the day.",
+            price: 299,
+            image: "/vibrant-nutrition-plate.png",
+            category: "balanced-nutrition",
+          },
+          {
+            id: "3",
+            name: "Muscle Gain",
             description: "Protein-rich meals to support muscle growth and recovery after workouts.",
             price: 299,
             image: "/hearty-muscle-meal.png",
             category: "muscle-gain",
-          },
-          {
-            id: "3",
-            name: "Keto Plan",
-            description: "Low-carb, high-fat meals perfect for maintaining ketosis and steady energy.",
-            price: 279,
-            image: "/colorful-keto-plate.png",
-            category: "keto",
           },
         ]
 

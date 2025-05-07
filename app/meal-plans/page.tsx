@@ -23,9 +23,9 @@ const mealPlans = [
   },
   {
     id: "balanced-nutrition",
-    title: "Balanced Nutrition",
+    title: "Stay Fit",
     description: "Perfect for maintaining a healthy lifestyle with well-rounded nutrition.",
-    calories: "1800-2000 calories per day",
+    calories: "1600-1900 calories per day",
     price: "Starting from 160 MAD/week",
     features: [
       "Balanced macronutrients",
@@ -40,7 +40,7 @@ const mealPlans = [
     id: "muscle-gain",
     title: "Muscle Gain",
     description: "Fuel your workouts and recovery with protein-rich meals for muscle growth.",
-    calories: "2500-2800 calories per day",
+    calories: "2200-2500 calories per day",
     price: "Starting from 180 MAD/week",
     features: [
       "High protein content",
@@ -55,7 +55,7 @@ const mealPlans = [
     id: "keto",
     title: "Keto",
     description: "Low-carb, high-fat meals designed to help your body reach and maintain ketosis.",
-    calories: "1600-1800 calories per day",
+    calories: "1700-1900 calories per day",
     price: "Starting from 170 MAD/week",
     features: [
       "Low carb, high fat",

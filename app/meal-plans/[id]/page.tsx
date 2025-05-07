@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // Define meal plan data
 const mealPlans = {
   "weight-loss": {
-    title: "Weight Loss Meal Plan",
+    title: "Weight Loss",
     description:
       "Our Weight Loss meal plan is designed to help you achieve your weight goals without sacrificing taste or satisfaction. Each meal is carefully portioned and nutritionally balanced to support healthy, sustainable weight loss.",
     calories: "1200-1500 calories per day",
@@ -67,11 +67,11 @@ const mealPlans = {
     image: "/vibrant-weight-loss-meal.png",
     color: "#22c55e",
   },
-  "balanced-nutrition": {
-    title: "Balanced Nutrition Meal Plan",
+  "stay-fit": {
+    title: "Stay Fit",
     description:
-      "Our Balanced Nutrition plan provides well-rounded meals with optimal proportions of proteins, carbs, and healthy fats. Perfect for maintaining a healthy lifestyle with delicious, nutrient-rich foods.",
-    calories: "1800-2000 calories per day",
+      "Our Stay Fit plan provides well-rounded meals with optimal proportions of proteins, carbs, and healthy fats. Perfect for maintaining a healthy lifestyle with delicious, nutrient-rich foods.",
+    calories: "1600-1900 calories per day",
     price: "Starting from 160 MAD/week",
     features: [
       "Balanced macronutrients",
@@ -127,10 +127,10 @@ const mealPlans = {
     color: "#3b82f6",
   },
   "muscle-gain": {
-    title: "Muscle Gain Meal Plan",
+    title: "Muscle Gain",
     description:
       "Our Muscle Gain plan is protein-rich and calorie-dense to support muscle growth and recovery. Ideal for those looking to build lean muscle mass alongside their training regimen.",
-    calories: "2500-2800 calories per day",
+    calories: "2200-2500 calories per day",
     price: "Starting from 180 MAD/week",
     features: [
       "High protein content",
@@ -186,10 +186,10 @@ const mealPlans = {
     color: "#8b5cf6",
   },
   keto: {
-    title: "Keto Meal Plan",
+    title: "Keto",
     description:
       "Our Keto plan features low-carb, high-fat meals designed to help your body reach and maintain ketosis. Perfect for those following a ketogenic lifestyle for weight management or metabolic health.",
-    calories: "1600-1800 calories per day",
+    calories: "1700-1900 calories per day",
     price: "Starting from 170 MAD/week",
     features: [
       "Low carb, high fat",
