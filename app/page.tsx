@@ -495,7 +495,7 @@ export default function Home() {
             Join us in our mission to make healthy eating simple, enjoyable, and part of everyday life. Take the first
             step toward a healthier you today.
           </p>
-          <Link href="/register">
+          <Link href="/order">
             <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90">Get Started Today</Button>
           </Link>
         </div>
