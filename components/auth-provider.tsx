@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useState, useEffect, type ReactNode } from "react"
+import { siteConfig } from "@/lib/constants"
 
 type User = {
   id: number
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadUserFromSession() {
       try {
-        const res = await fetch("/api/auth/session")
+        const res = await fetch(`${siteConfig.apiUrl}/api/auth/session`)
         const data = await res.json()
 
         if (data.user) {
