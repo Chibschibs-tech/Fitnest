@@ -1,16 +1,9 @@
 "use client"
 
-import { createContext, useState, useEffect, type ReactNode } from "react"
+import { type ReactNode, createContext, useState, useEffect } from "react"
 
-type User = {
-  id: number
-  name: string
-  email: string
-  role: string
-} | null
-
-type AuthContextType = {
-  user: User
+interface AuthContextType {
+  user: any | null
   loading: boolean
 }
 
@@ -20,7 +13,7 @@ export const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(null)
+  const [user, setUser] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -44,3 +37,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
 }
+
+export default AuthProvider

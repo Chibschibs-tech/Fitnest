@@ -1,7 +1,6 @@
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
-import { siteConfig } from "./constants"
 
 const secretKey = process.env.JWT_SECRET || "fallback-secret-key-change-in-production"
 const key = new TextEncoder().encode(secretKey)
@@ -26,52 +25,48 @@ export async function decrypt(token: string) {
 }
 
 export async function login(formData: FormData) {
-  // Get email and password from form data
+  // Get email and password from form
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  // Validate input
-  if (!email || !password) {
-    return { success: false, message: "Email and password are required" }
-  }
+  // Here you would validate against your database
+  // For example:
+  const { neon } = require("@neondatabase/serverless")
+  const sql = neon(process.env.DATABASE_URL || "")
+  const bcrypt = require("bcryptjs")
 
   try {
-    // Make API request to login endpoint
-    const response = await fetch(`${siteConfig.apiUrl}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    })
+    const users = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`
 
-    const data = await response.json()
+    if (!users || users.length === 0) {
+      return { success: false, message: "Invalid credentials" }
+    }
 
-    if (!response.ok) {
-      return { success: false, message: data.message || "Login failed" }
+    const user = users[0]
+    const passwordMatch = await bcrypt.compare(password, user.password)
+
+    if (!passwordMatch) {
+      return { success: false, message: "Invalid credentials" }
     }
 
     // Create session
     const session = {
-      user: {
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role,
-      },
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role || "user",
     }
 
-    // Create token
+    // Create and set the cookie
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     const token = await encrypt(session)
 
-    // Save token in cookies
-    cookies().set({
-      name: "token",
-      value: token,
+    cookies().set("session", token, {
+      expires,
       httpOnly: true,
       path: "/",
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24, // 1 day
+      sameSite: "lax",
     })
 
     return { success: true, session }
@@ -82,60 +77,37 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  // Clear token cookie
-  cookies().set({
-    name: "token",
-    value: "",
-    httpOnly: true,
+  cookies().set("session", "", {
+    expires: new Date(0),
     path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 0,
   })
 }
 
 export async function getSession() {
-  const token = cookies().get("token")?.value
+  const session = cookies().get("session")?.value
 
-  if (!token) {
-    return null
-  }
+  if (!session) return null
 
-  const payload = await decrypt(token)
-
-  if (!payload) {
-    return null
-  }
-
-  return payload.user
+  return await decrypt(session)
 }
 
-export async function updateSession(request: NextRequest) {
-  const token = request.cookies.get("token")?.value
+export function updateSession(request: NextRequest) {
+  // Get the session cookie
+  const sessionCookie = request.cookies.get("session")?.value
 
-  if (!token) {
-    return null
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  const payload = await decrypt(token)
+  // Validate the session (you can add more validation here)
+  try {
+    // Verify and decrypt the session cookie
+    const session = decrypt(sessionCookie)
 
-  if (!payload) {
-    return null
+    // If session is valid, continue
+    return NextResponse.next()
+  } catch (error) {
+    // If session is invalid, redirect to login
+    return NextResponse.redirect(new URL("/login", request.url))
   }
-
-  // Refresh token
-  const session = { user: payload.user }
-  const newToken = await encrypt(session)
-
-  // Update token in cookies
-  const response = NextResponse.next()
-  response.cookies.set({
-    name: "token",
-    value: newToken,
-    httpOnly: true,
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24, // 1 day
-  })
-
-  return response
 }

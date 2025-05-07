@@ -1,29 +1,18 @@
 "use client"
 
-import type React from "react"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/use-auth"
 
-import { useRouter } from "next/navigation"
-import { siteConfig } from "@/lib/constants"
+interface LogoutButtonProps {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+}
 
-export function LogoutButton({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-
-  const handleLogout = async () => {
-    try {
-      await fetch(`${siteConfig.apiUrl}/api/auth/logout`, {
-        method: "POST",
-      })
-
-      router.push("/login")
-      router.refresh()
-    } catch (error) {
-      console.error("Logout error:", error)
-    }
-  }
+export function LogoutButton({ variant = "outline" }: LogoutButtonProps) {
+  const { logout } = useAuth()
 
   return (
-    <button onClick={handleLogout} className="text-sm font-medium text-gray-700 hover:text-gray-900">
-      {children}
-    </button>
+    <Button variant={variant} onClick={() => logout()}>
+      Logout
+    </Button>
   )
 }

@@ -1,26 +1,36 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 
 export function useSafeSession() {
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [session, setSession] = useState<any>(null)
+  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading")
 
   useEffect(() => {
-    async function getSession() {
+    async function fetchSession() {
       try {
         const res = await fetch("/api/auth/session")
         const data = await res.json()
-        setSession(data.user)
+
+        if (data.user) {
+          setSession({ user: data.user })
+          setStatus("authenticated")
+        } else {
+          setStatus("unauthenticated")
+        }
       } catch (error) {
         console.error("Failed to fetch session:", error)
-      } finally {
-        setLoading(false)
+        setStatus("unauthenticated")
       }
     }
 
-    getSession()
+    fetchSession()
   }, [])
 
-  return { session, loading }
+  return {
+    data: session,
+    status,
+  }
 }
+
+export default useSafeSession
