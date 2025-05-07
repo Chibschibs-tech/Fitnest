@@ -1,39 +1,80 @@
 import { NextResponse } from "next/server"
-import bcrypt from "bcryptjs" // Changed from bcrypt to bcryptjs
-import prisma from "@/app/libs/prismadb"
+import bcryptjs from "bcryptjs"
+import { db } from "@/lib/db"
+import { users } from "@/lib/db"
+import { eq } from "drizzle-orm"
+import { SignJWT } from "jose"
 
-export async function POST(req: Request) {
+// JWT secret key
+const secretKey = process.env.JWT_SECRET || "fallback-secret-key-change-in-production"
+const key = new TextEncoder().encode(secretKey)
+
+export async function POST(request: Request) {
   try {
-    const { email, password } = await req.json()
+    const { email, password } = await request.json()
 
-    // Find user with Prisma instead of MongoDB
-    const user = await prisma.user.findUnique({
-      where: {
-        email: email,
+    // Validate input
+    if (!email || !password) {
+      return NextResponse.json({ message: "Email and password are required" }, { status: 400 })
+    }
+
+    // Find user
+    const userResults = await db.select().from(users).where(eq(users.email, email)).limit(1)
+
+    if (userResults.length === 0) {
+      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
+    }
+
+    const user = userResults[0]
+
+    // Verify password
+    const passwordMatch = await bcryptjs.compare(password, user.password)
+
+    if (!passwordMatch) {
+      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
+    }
+
+    // Create session
+    const session = {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    }
+
+    // Create token
+    const token = await new SignJWT(session)
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("24h")
+      .sign(key)
+
+    // Create response
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
       },
     })
 
-    if (!user) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 400 })
-    }
+    // Set cookie
+    response.cookies.set({
+      name: "token",
+      value: token,
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24, // 1 day
+    })
 
-    // Check if hashedPassword exists (Prisma schema likely uses hashedPassword, not password)
-    if (!user.hashedPassword) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 400 })
-    }
-
-    // Compare password with hashedPassword
-    const passwordMatch = await bcrypt.compare(password, user.hashedPassword)
-
-    if (!passwordMatch) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 400 })
-    }
-
-    // Return user without the password
-    const { hashedPassword, ...userWithoutPassword } = user
-    return NextResponse.json({ success: true, user: userWithoutPassword }, { status: 200 })
+    return response
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ message: "An error occurred during login." }, { status: 500 })
+    return NextResponse.json({ message: "An error occurred during login" }, { status: 500 })
   }
 }
