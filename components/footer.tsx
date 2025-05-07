@@ -1,14 +1,15 @@
 import Image from "next/image"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export function Footer() {
   return (
     <footer className="bg-green-800 text-white py-12">
       <div className="container mx-auto px-4">
-        {/* First row: 4 columns - maintain on mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
+        {/* First row: Logo, Order Now, Meal Plans, Company, Contact */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
           {/* Logo column */}
-          <div className="col-span-2 sm:col-span-1 flex justify-center sm:justify-start">
+          <div className="col-span-2 md:col-span-1 flex flex-col items-center md:items-start">
             <Link href="/" className="inline-block mb-4">
               <Image
                 src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
@@ -18,35 +19,33 @@ export function Footer() {
                 className="h-32 sm:h-48 w-auto mb-2"
               />
             </Link>
+            <Link href="/order" className="mt-4">
+              <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">Order Now</Button>
+            </Link>
           </div>
 
-          {/* Quick Links column */}
+          {/* Meal Plans column */}
           <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-lg font-semibold mb-4">Meal Plans</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/meal-plans" className="text-gray-300 hover:text-white">
-                  Meal Plans
+                <Link href="/meal-plans/weight-loss" className="text-gray-300 hover:text-white">
+                  Weight Loss
                 </Link>
               </li>
               <li>
-                <Link href="/meals" className="text-gray-300 hover:text-white">
-                  Meals
+                <Link href="/meal-plans/stay-fit" className="text-gray-300 hover:text-white">
+                  Stay Fit
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works" className="text-gray-300 hover:text-white">
-                  How It Works
+                <Link href="/meal-plans/muscle-gain" className="text-gray-300 hover:text-white">
+                  Muscle Gain
                 </Link>
               </li>
               <li>
-                <Link href="/order" className="text-gray-300 hover:text-white">
-                  Order Now
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-gray-300 hover:text-white">
-                  Blog
+                <Link href="/meal-plans/keto" className="text-gray-300 hover:text-white">
+                  Keto
                 </Link>
               </li>
             </ul>
@@ -85,29 +84,16 @@ export function Footer() {
           </div>
 
           {/* Contact column */}
-          <div className="col-span-2 sm:col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <h3 className="text-lg font-semibold mb-4">Contact</h3>
             <p className="text-gray-300 mb-2">Email: contact@fitnest.ma</p>
             <p className="text-gray-300 mb-2">Phone: +212 522 123 456</p>
             <p className="text-gray-300">Address: 123 Nutrition St, Casablanca, Morocco</p>
           </div>
-        </div>
 
-        {/* Second row: maintain layout on mobile */}
-        <div className="grid grid-cols-4 gap-8">
-          {/* Empty column (under Logo) */}
-          <div className="hidden sm:block"></div>
-
-          {/* Paragraph spanning 2 columns (under Quick Links and Company) */}
-          <div className="col-span-3 sm:col-span-2">
-            <p className="text-gray-300 mb-4">
-              Healthy, delicious meals delivered to your door. Custom meal plans designed for your fitness goals.
-            </p>
-          </div>
-
-          {/* Follow us section (under Contact) */}
-          <div className="col-span-1">
-            <h4 className="text-lg font-semibold mb-3">Follow us</h4>
+          {/* Follow us section */}
+          <div className="col-span-2 md:col-span-1">
+            <h3 className="text-lg font-semibold mb-4">Follow us</h3>
             <div className="flex space-x-4">
               <a
                 href="https://instagram.com/fitnest.ma"
@@ -228,6 +214,13 @@ export function Footer() {
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Second row: Paragraph */}
+        <div className="mb-8">
+          <p className="text-gray-300">
+            Healthy, delicious meals delivered to your door. Custom meal plans designed for your fitness goals.
+          </p>
         </div>
 
         {/* Copyright section */}
