@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { format, addDays, getDay } from "date-fns"
+import { format, addDays, getDay, isBefore, addHours } from "date-fns"
 import { CalendarIcon, ChevronLeft, Info, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,29 +16,33 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 
-// Define meal plan data
+// Define meal plan data - UPDATED with Stay Fit instead of Balanced Nutrition
 const mealPlans = {
   "weight-loss": {
-    title: "Weight Loss Meal Plan",
-    description: "Calorie-controlled meals designed to help you lose weight while staying satisfied.",
+    title: "Weight Loss",
+    description:
+      "Calorie-controlled meals (1200-1500 calories per day) designed to help you lose weight while staying satisfied.",
     basePrice: 350,
     image: "/vibrant-weight-loss-meal.png",
   },
-  "balanced-nutrition": {
-    title: "Balanced Nutrition Meal Plan",
-    description: "Well-rounded meals with optimal proportions of proteins, carbs, and healthy fats.",
+  "stay-fit": {
+    title: "Stay Fit",
+    description:
+      "Well-rounded meals (1600-1900 calories per day) with optimal proportions of proteins, carbs, and healthy fats.",
     basePrice: 320,
     image: "/vibrant-nutrition-plate.png",
   },
   "muscle-gain": {
-    title: "Muscle Gain Meal Plan",
-    description: "Protein-rich meals to support muscle growth and recovery after workouts.",
+    title: "Muscle Gain",
+    description:
+      "Protein-rich meals (2200-2500 calories per day) to support muscle growth and recovery after workouts.",
     basePrice: 400,
     image: "/hearty-muscle-meal.png",
   },
   keto: {
-    title: "Keto Meal Plan",
-    description: "Low-carb, high-fat meals designed to help you achieve and maintain ketosis.",
+    title: "Keto",
+    description:
+      "Low-carb, high-fat meals (1700-1900 calories per day) designed to help you achieve and maintain ketosis.",
     basePrice: 380,
     image: "/colorful-keto-plate.png",
   },
@@ -66,14 +70,15 @@ const allergies = [
   { id: "soy", label: "Soy", description: "Soybeans and products" },
 ]
 
+// UPDATED: Reordered weekdays to start with Monday
 const weekdays = [
-  { id: "sunday", label: "S", fullLabel: "Sunday" },
   { id: "monday", label: "M", fullLabel: "Monday" },
   { id: "tuesday", label: "T", fullLabel: "Tuesday" },
   { id: "wednesday", label: "W", fullLabel: "Wednesday" },
   { id: "thursday", label: "T", fullLabel: "Thursday" },
   { id: "friday", label: "F", fullLabel: "Friday" },
   { id: "saturday", label: "S", fullLabel: "Saturday" },
+  { id: "sunday", label: "S", fullLabel: "Sunday" },
 ]
 
 const paymentCycles = [
@@ -120,8 +125,11 @@ export function OrderProcess() {
   const searchParams = useSearchParams()
   const planIdFromUrl = searchParams.get("plan")
 
+  // Map old plan ID to new plan ID if needed
+  const mappedPlanId = planIdFromUrl === "balanced-nutrition" ? "stay-fit" : planIdFromUrl
+
   // Selected meal plan
-  const [selectedPlanId, setSelectedPlanId] = useState<string>(planIdFromUrl || "")
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(mappedPlanId || "")
   const selectedPlan = selectedPlanId ? mealPlans[selectedPlanId as keyof typeof mealPlans] : null
 
   // Selected meal types
@@ -133,14 +141,56 @@ export function OrderProcess() {
   // Add selectedAllergies state after the selectedSnacks state
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([])
 
-  // Selected weekdays
-  const [selectedDays, setSelectedDays] = useState<string[]>([])
+  // UPDATED: Pre-select the first 3 days of the week (Monday, Tuesday, Wednesday)
+  const [selectedDays, setSelectedDays] = useState<string[]>(["monday", "tuesday", "wednesday"])
 
   // Payment cycle
   const [paymentCycle, setPaymentCycle] = useState("monthly")
 
-  // Start date
-  const [startDate, setStartDate] = useState<Date | undefined>(addDays(new Date(), 2))
+  // Calculate the minimum valid start date (48 hours from now)
+  const minStartDate = addHours(new Date(), 48)
+
+  // Helper function to find the next occurrence of a day
+  const getNextDayOccurrence = (dayId: string) => {
+    const today = new Date()
+    const dayIndex = weekdays.findIndex((day) => day.id === dayId)
+    const todayIndex = getDay(today) === 0 ? 6 : getDay(today) - 1 // Convert to 0 = Monday, 6 = Sunday
+
+    let daysToAdd = dayIndex - todayIndex
+    if (daysToAdd <= 0) daysToAdd += 7 // If the day has already passed this week, go to next week
+
+    return addDays(today, daysToAdd)
+  }
+
+  // Calculate the appropriate start date based on selected days
+  const calculateStartDate = () => {
+    if (selectedDays.length === 0) return addDays(minStartDate, 1)
+
+    // Sort days by their order in the week
+    const sortedDays = [...selectedDays].sort((a, b) => {
+      const aIndex = weekdays.findIndex((day) => day.id === a)
+      const bIndex = weekdays.findIndex((day) => day.id === b)
+      return aIndex - bIndex
+    })
+
+    // Get the next occurrence of the first selected day
+    const firstDayDate = getNextDayOccurrence(sortedDays[0])
+
+    // If it's less than 48 hours away, go to the next week
+    if (isBefore(firstDayDate, minStartDate)) {
+      return addDays(firstDayDate, 7)
+    }
+
+    return firstDayDate
+  }
+
+  // Start date - UPDATED to use the calculated start date
+  const [startDate, setStartDate] = useState<Date | undefined>(calculateStartDate())
+
+  // Update start date when selected days change
+  useEffect(() => {
+    setStartDate(calculateStartDate())
+  }, [selectedDays])
 
   // Current step
   const [step, setStep] = useState(1)
@@ -233,11 +283,11 @@ export function OrderProcess() {
     })
   }
 
-  // Handle day selection
+  // Handle day selection - UPDATED to require minimum 3 days
   const handleDayToggle = (dayId: string) => {
     setSelectedDays((prev) => {
-      // If trying to deselect and we would have less than 2 days, prevent it
-      if (prev.includes(dayId) && prev.length <= 2) {
+      // If trying to deselect and we would have less than 3 days, prevent it
+      if (prev.includes(dayId) && prev.length <= 3) {
         return prev
       }
 
@@ -285,7 +335,7 @@ export function OrderProcess() {
     return true
   }
 
-  // Validate current step
+  // Validate current step - UPDATED to require minimum 3 days
   const validateStep = () => {
     const newErrors: {
       mealPlan?: string
@@ -301,8 +351,8 @@ export function OrderProcess() {
       if (selectedMealTypes.length < 2) {
         newErrors.mealTypes = "Please select at least 2 meal types"
       }
-      if (selectedDays.length < 2) {
-        newErrors.days = "Please select at least 2 days"
+      if (selectedDays.length < 3) {
+        newErrors.days = "Please select at least 3 days"
       }
     } else if (step === 2) {
       if (!isMenuComplete()) {
@@ -496,56 +546,10 @@ export function OrderProcess() {
                   </RadioGroup>
                 </div>
 
-                {/* Allergies Section - commented out for now */}
-                {/* 
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold mb-4">Allergies</h3>
-                </div>
-                */}
-
-                {/* Allergies Section - commented out for now */}
-                {/*
-                <div>
-                  <Label className="text-base font-medium mb-3 block">Allergies & Dietary Restrictions</Label>
-                  <p className="text-sm text-gray-500 mb-4">Select any allergies or dietary restrictions you have.</p>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {allergies.map((allergy) => (
-                      <div key={allergy.id} className="relative">
-                        <input
-                          type="checkbox"
-                          id={`allergy-${allergy.id}`}
-                          checked={selectedAllergies.includes(allergy.id)}
-                          onChange={() => handleAllergyToggle(allergy.id)}
-                          className="peer sr-only"
-                        />
-                        <label
-                          htmlFor={`allergy-${allergy.id}`}
-                          className={cn(
-                            "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 cursor-pointer",
-                            selectedAllergies.includes(allergy.id) ? "border-fitnest-green" : "",
-                          )}
-                        >
-                          {selectedAllergies.includes(allergy.id) && (
-                            <div className="absolute top-2 right-2 h-5 w-5 bg-fitnest-green rounded-full flex items-center justify-center">
-                              <Check className="h-3 w-3 text-white" />
-                            </div>
-                          )}
-                          <div className="text-center">
-                            <h3 className="font-semibold">{allergy.label}</h3>
-                            <p className="text-sm text-gray-500">{allergy.description}</p>
-                          </div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                */}
-
-                {/* Days Selection */}
+                {/* Days Selection - UPDATED to require minimum 3 days */}
                 <div>
                   <Label className="text-base font-medium mb-3 block">How many days a week?</Label>
-                  <p className="text-sm text-gray-500 mb-4">Select a minimum of 2 days.</p>
+                  <p className="text-sm text-gray-500 mb-4">Select a minimum of 3 days.</p>
 
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                     {weekdays.map((day) => (
@@ -603,7 +607,7 @@ export function OrderProcess() {
                   </RadioGroup>
                 </div>
 
-                {/* Start Date */}
+                {/* Start Date - UPDATED with better explanation */}
                 <div>
                   <Label className="text-base font-medium mb-3 block">Start Date</Label>
                   <div className="flex flex-col space-y-2">
@@ -626,11 +630,14 @@ export function OrderProcess() {
                           selected={startDate}
                           onSelect={setStartDate}
                           initialFocus
-                          disabled={(date) => date < addDays(new Date(), 1)}
+                          disabled={(date) => isBefore(date, minStartDate)}
                         />
                       </PopoverContent>
                     </Popover>
-                    <p className="text-sm text-gray-500">We need at least 24 hours to prepare your first delivery.</p>
+                    <div className="text-sm text-gray-500 space-y-1">
+                      <p>We need at least 48 hours to prepare your first delivery.</p>
+                      <p>Your start date will be the next occurrence of your first selected day of the week.</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1046,7 +1053,7 @@ export function OrderProcess() {
                   <Button
                     onClick={handleNext}
                     className="w-full"
-                    disabled={!selectedPlanId || selectedDays.length < 2 || selectedMealTypes.length < 2 || !startDate}
+                    disabled={!selectedPlanId || selectedDays.length < 3 || selectedMealTypes.length < 2 || !startDate}
                   >
                     Continue to Menu Building
                   </Button>
