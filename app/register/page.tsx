@@ -37,6 +37,7 @@ export default function RegisterPage() {
     }
 
     try {
+      // Register the user
       const response = await fetch("/api/register", {
         method: "POST",
         headers: {
@@ -52,16 +53,20 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "Something went wrong")
+        throw new Error(data.message || "Registration failed")
       }
 
       // Auto-login after successful registration
-      const success = await login(email, password)
-
-      if (success) {
-        router.push(callbackUrl)
-      } else {
-        router.push(`/login?registered=true&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+      try {
+        // Directly redirect to login page with a success message
+        router.push(
+          `/login?registered=true&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(callbackUrl)}`,
+        )
+      } catch (loginError) {
+        console.error("Auto-login failed:", loginError)
+        router.push(
+          `/login?registered=true&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(callbackUrl)}`,
+        )
       }
     } catch (error) {
       if (error instanceof Error) {

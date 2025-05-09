@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -17,22 +17,45 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
-  const [email, setEmail] = useState("")
+  const registered = searchParams?.get("registered") === "true"
+  const emailFromParams = searchParams?.get("email") || ""
+
+  const [email, setEmail] = useState(emailFromParams)
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { login, error } = useAuth()
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    registered ? "Account created successfully! Please log in." : null,
+  )
+  const { login, error, setError } = useAuth()
+
+  useEffect(() => {
+    // Pre-fill email from URL params if available
+    if (emailFromParams) {
+      setEmail(emailFromParams)
+    }
+  }, [emailFromParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setSuccessMessage(null)
 
-    const success = await login(email, password)
-
-    if (success) {
-      router.push(callbackUrl)
+    if (setError) {
+      setError(null)
     }
 
-    setIsLoading(false)
+    try {
+      const success = await login(email, password)
+
+      if (success) {
+        // The login function will handle the redirect
+      } else {
+        setIsLoading(false)
+      }
+    } catch (err) {
+      console.error("Login submission error:", err)
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -43,11 +66,18 @@ export default function LoginPage() {
           <CardDescription>Enter your email and password to access your account</CardDescription>
         </CardHeader>
         <CardContent>
+          {successMessage && (
+            <Alert className="mb-4 bg-green-50 border-green-200">
+              <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
+            </Alert>
+          )}
+
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

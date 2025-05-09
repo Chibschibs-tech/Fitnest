@@ -5,6 +5,7 @@ import { type ReactNode, createContext, useState, useEffect } from "react"
 interface AuthContextType {
   user: any | null
   loading: boolean
+  setUser?: (user: any) => void
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUserFromSession()
   }, [])
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, setUser }}>{children}</AuthContext.Provider>
 }
 
 export default AuthProvider
