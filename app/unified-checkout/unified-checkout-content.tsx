@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useCart } from "@/contexts/cart-context"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,9 +22,22 @@ interface MealPlanSelections {
   totalPrice: number
 }
 
+interface CartItem {
+  id: number
+  product: {
+    id: number
+    name: string
+    price: number
+    salePrice?: number
+  }
+  quantity: number
+}
+
 export function UnifiedCheckoutContent() {
   const router = useRouter()
-  const { items, subtotal, isLoading: cartLoading } = useCart()
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [cartSubtotal, setCartSubtotal] = useState(0)
+  const [cartLoading, setCartLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [mealPlanSelections, setMealPlanSelections] = useState<MealPlanSelections | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,7 +73,25 @@ export function UnifiedCheckoutContent() {
       }
     }
 
+    // Fetch cart data
+    async function fetchCartData() {
+      try {
+        setCartLoading(true)
+        const response = await fetch("/api/cart")
+        if (response.ok) {
+          const data = await response.json()
+          setCartItems(data.items || [])
+          setCartSubtotal(data.subtotal || 0)
+        }
+      } catch (err) {
+        console.error("Error fetching cart data:", err)
+      } finally {
+        setCartLoading(false)
+      }
+    }
+
     fetchUserData()
+    fetchCartData()
 
     // Get meal plan selections from localStorage if they exist
     if (typeof window !== "undefined") {
@@ -80,12 +110,12 @@ export function UnifiedCheckoutContent() {
 
   // Determine if we have a mixed cart (both meal plans and express items)
   const hasMealPlan = !!mealPlanSelections
-  const hasExpressItems = items.length > 0
+  const hasExpressItems = cartItems.length > 0
   const hasMixedCart = hasMealPlan && hasExpressItems
 
   // Calculate total price
   const mealPlanTotal = mealPlanSelections?.totalPrice || 0
-  const expressTotal = subtotal
+  const expressTotal = cartSubtotal
   const totalPrice = mealPlanTotal + expressTotal
 
   const validateForm = () => {
@@ -374,7 +404,7 @@ export function UnifiedCheckoutContent() {
                   <div>
                     <h3 className="font-medium mb-2">Express Shop Items</h3>
                     <ul className="space-y-2 mb-3">
-                      {items.map((item) => (
+                      {cartItems.map((item) => (
                         <li key={item.id} className="flex justify-between text-sm">
                           <span>
                             {item.product.name} x{item.quantity}

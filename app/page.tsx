@@ -487,6 +487,109 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Express Shop Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="mb-2 text-center text-3xl font-bold">Express Shop</h2>
+          <p className="mb-12 text-center text-gray-600 max-w-2xl mx-auto">
+            Discover our selection of healthy snacks and supplements to complement your meal plans and keep you
+            energized throughout the day.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Protein Bar */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
+              <div className="relative h-48">
+                <Image src="/protein-bar.png" alt="Protein Power Bar" fill className="object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Protein Power Bars</h3>
+                <p className="text-gray-600 mb-4">
+                  High-protein bars perfect for post-workout recovery or a quick energy boost.
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="text-fitnest-green font-bold">From 25 MAD</span>
+                  <Link href="/express-shop?category=protein_bars">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
+                      Shop Now
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Granola */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
+              <div className="relative h-48">
+                <Image src="/honey-almond-granola.png" alt="Honey Almond Granola" fill className="object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Premium Granola</h3>
+                <p className="text-gray-600 mb-4">
+                  Crunchy granola with premium ingredients, perfect for breakfast or snacking.
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="text-fitnest-green font-bold">From 32 MAD</span>
+                  <Link href="/express-shop?category=granola">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
+                      Shop Now
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Energy Balls */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
+              <div className="relative h-48">
+                <Image src="/placeholder.svg?key=13fzw" alt="Energy Balls" fill className="object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Energy Balls</h3>
+                <p className="text-gray-600 mb-4">
+                  Natural energy balls made with dates, nuts, and superfoods for sustained energy.
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="text-fitnest-green font-bold">From 40 MAD</span>
+                  <Link href="/express-shop?category=energy_balls">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
+                      Shop Now
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Breakfast Mixes */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
+              <div className="relative h-48">
+                <Image src="/healthy-protein-pancake-mix.png" alt="Breakfast Mixes" fill className="object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-2">Breakfast Mixes</h3>
+                <p className="text-gray-600 mb-4">
+                  Quick and nutritious breakfast options including protein pancakes and overnight oats.
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="text-fitnest-green font-bold">From 50 MAD</span>
+                  <Link href="/express-shop?category=breakfast">
+                    <Button size="sm" className="bg-fitnest-green hover:bg-fitnest-green/90 text-white">
+                      Shop Now
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link href="/express-shop">
+              <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90">Visit Express Shop</Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-fitnest-green py-20 text-white">
         <div className="container mx-auto px-4 text-center">

@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { useCart } from "@/contexts/cart-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, ShoppingCart, Plus, Minus, ArrowLeft } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -30,7 +30,6 @@ interface ProductDetailContentProps {
 
 export function ProductDetailContent({ product, relatedProducts }: ProductDetailContentProps) {
   const router = useRouter()
-  const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
 
@@ -41,7 +40,32 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
   const handleAddToCart = async () => {
     setIsAddingToCart(true)
     try {
-      await addItem(product.id, quantity)
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId: product.id, quantity }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to add item to cart")
+      }
+
+      toast({
+        title: "Added to cart",
+        description: "Item has been added to your cart",
+      })
+
+      // Optionally redirect to shopping cart
+      // router.push("/shopping-cart")
+    } catch (error) {
+      console.error("Error adding item to cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+      })
     } finally {
       setIsAddingToCart(false)
     }

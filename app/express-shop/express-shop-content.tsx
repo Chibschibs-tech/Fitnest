@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useCart } from "@/contexts/cart-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "@/components/ui/use-toast"
 import { Loader2, ShoppingCart, Plus, Filter } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -24,7 +24,6 @@ interface Product {
 }
 
 export function ExpressShopContent() {
-  const { addItem } = useCart()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -61,7 +60,29 @@ export function ExpressShopContent() {
   const handleAddToCart = async (productId: number) => {
     setAddingToCart(productId)
     try {
-      await addItem(productId, 1)
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId, quantity: 1 }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to add item to cart")
+      }
+
+      toast({
+        title: "Added to cart",
+        description: "Item has been added to your cart",
+      })
+    } catch (error) {
+      console.error("Error adding item to cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+      })
     } finally {
       setAddingToCart(null)
     }

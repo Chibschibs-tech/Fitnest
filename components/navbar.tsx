@@ -78,6 +78,9 @@ export default function Navbar() {
             <Link href="/meals" className="text-gray-600 hover:text-fitnest-green">
               Meals
             </Link>
+            <Link href="/express-shop" className="text-gray-600 hover:text-fitnest-green">
+              Express Shop
+            </Link>
             <Link href="/how-it-works" className="text-gray-600 hover:text-fitnest-green">
               How It Works
             </Link>
@@ -119,6 +122,13 @@ export default function Navbar() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Meals
+              </Link>
+              <Link
+                href="/express-shop"
+                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Express Shop
               </Link>
               <Link
                 href="/how-it-works"

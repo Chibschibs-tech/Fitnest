@@ -33,10 +33,12 @@ export function MobileNav() {
     setIsOpen(false)
   }
 
+  // Update the navItems array to include Express Shop
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/meal-plans", label: "Meal Plans" },
     { href: "/meals", label: "Meals" },
+    { href: "/express-shop", label: "Express Shop" },
     { href: "/how-it-works", label: "How It Works" },
     { href: "/blog", label: "Blog" },
   ]
