@@ -1,6 +1,5 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -23,7 +22,7 @@ interface MealPlanSelections {
 
 export function CheckoutContent() {
   const router = useRouter()
-  const { session } = useAuth()
+  const [user, setUser] = useState<any>(null)
   const [selections, setSelections] = useState<MealPlanSelections | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -43,6 +42,22 @@ export function CheckoutContent() {
   })
 
   useEffect(() => {
+    // Fetch user data
+    async function fetchUserData() {
+      try {
+        const res = await fetch("/api/auth/session")
+        const data = await res.json()
+
+        if (data.user) {
+          setUser(data.user)
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err)
+      }
+    }
+
+    fetchUserData()
+
     // Get selections from localStorage
     if (typeof window !== "undefined") {
       const storedSelections = localStorage.getItem("mealPlanSelections")
@@ -173,11 +188,11 @@ export function CheckoutContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="block text-sm font-medium mb-1">Name</Label>
-                    <p className="p-2 bg-gray-50 rounded border">{session?.user?.name || "Not available"}</p>
+                    <p className="p-2 bg-gray-50 rounded border">{user?.name || "Not available"}</p>
                   </div>
                   <div>
                     <Label className="block text-sm font-medium mb-1">Email</Label>
-                    <p className="p-2 bg-gray-50 rounded border">{session?.user?.email || "Not available"}</p>
+                    <p className="p-2 bg-gray-50 rounded border">{user?.email || "Not available"}</p>
                   </div>
                 </div>
               </div>
