@@ -3,12 +3,12 @@
 import dynamic from "next/dynamic"
 
 // Loading component
-function CartLoading() {
+function CheckoutLoading() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-pulse text-center">
-          <p className="text-lg">Loading cart...</p>
+          <p className="text-lg">Loading checkout...</p>
         </div>
       </div>
     </div>
@@ -16,11 +16,11 @@ function CartLoading() {
 }
 
 // Dynamically import the client component with ssr disabled
-const ClientCart = dynamic(() => import("./client-cart"), {
+const ClientCheckout = dynamic(() => import("./client-checkout"), {
   ssr: false,
-  loading: () => <CartLoading />,
+  loading: () => <CheckoutLoading />,
 })
 
-export default function CartWrapper() {
-  return <ClientCart />
+export default function CheckoutWrapper() {
+  return <ClientCheckout />
 }
