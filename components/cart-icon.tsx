@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { useCart } from "@/contexts/cart-context"
 
-export function CartIcon() {
+export default function CartIcon() {
   const [mounted, setMounted] = useState(false)
   const { itemCount } = useCart()
 
@@ -17,7 +17,7 @@ export function CartIcon() {
   }, [])
 
   return (
-    <Link href="/cart">
+    <Link href="/shopping-cart">
       <Button variant="ghost" size="icon" className="relative">
         <ShoppingCart className="h-5 w-5" />
         {mounted && itemCount > 0 && (

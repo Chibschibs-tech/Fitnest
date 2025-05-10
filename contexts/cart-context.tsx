@@ -1,7 +1,11 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
+import { toast } from "@/components/ui/use-toast"
+
+// Check if we're in a browser environment
+const isBrowser = typeof window !== "undefined"
 
 interface Product {
   id: number
@@ -11,75 +15,88 @@ interface Product {
   salePrice?: number
   imageUrl?: string
   category: string
-  tags?: string
-  nutritionalInfo?: any
   stock: number
 }
 
 interface CartItem {
   id: number
-  product: Product
+  productId: number
   quantity: number
+  product: Product
 }
 
 interface CartContextType {
   items: CartItem[]
-  subtotal: number
   itemCount: number
+  subtotal: number
   isLoading: boolean
   addItem: (productId: number, quantity: number) => Promise<void>
   updateQuantity: (itemId: number, quantity: number) => Promise<void>
   removeItem: (itemId: number) => Promise<void>
   clearCart: () => Promise<void>
+  refreshCart: () => Promise<void>
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
+// Default values for the context when not in a browser
+const defaultCartContext: CartContextType = {
+  items: [],
+  itemCount: 0,
+  subtotal: 0,
+  isLoading: false,
+  addItem: async () => {},
+  updateQuantity: async () => {},
+  removeItem: async () => {},
+  clearCart: async () => {},
+  refreshCart: async () => {},
+}
+
+const CartContext = createContext<CartContextType>(defaultCartContext)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [itemCount, setItemCount] = useState(0)
+  const [subtotal, setSubtotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [isClient, setIsClient] = useState(false)
 
-  // Check if we're on the client side
+  // Fetch cart on initial load
   useEffect(() => {
-    setIsClient(true)
+    if (isBrowser) {
+      refreshCart()
+    }
   }, [])
 
-  // Calculate subtotal and item count
-  const subtotal = items.reduce(
-    (total, item) => total + (item.product.salePrice || item.product.price) * item.quantity,
-    0,
-  )
-  const itemCount = items.reduce((count, item) => count + item.quantity, 0)
-
-  // Fetch cart items on initial load
-  useEffect(() => {
-    if (!isClient) return
-
-    async function fetchCartItems() {
-      try {
-        setIsLoading(true)
-        const response = await fetch("/api/cart")
-        if (!response.ok) {
-          throw new Error("Failed to fetch cart items")
-        }
-        const data = await response.json()
-        setItems(data)
-      } catch (err) {
-        console.error("Error fetching cart items:", err)
-        // Initialize with empty cart on error
-        setItems([])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchCartItems()
-  }, [isClient])
-
-  // Add item to cart
-  const addItem = useCallback(async (productId: number, quantity: number) => {
+  const refreshCart = async () => {
     try {
+      setIsLoading(true)
+      const response = await fetch("/api/cart")
+
+      if (!response.ok) {
+        // If not authenticated or other error, initialize empty cart
+        setItems([])
+        setItemCount(0)
+        setSubtotal(0)
+        return
+      }
+
+      const data = await response.json()
+      setItems(data.items)
+      setItemCount(data.itemCount)
+      setSubtotal(data.subtotal)
+    } catch (error) {
+      console.error("Error fetching cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load your cart. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const addItem = async (productId: number, quantity: number) => {
+    try {
+      setIsLoading(true)
       const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
@@ -92,41 +109,60 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to add item to cart")
       }
 
-      const data = await response.json()
-      setItems(data)
-    } catch (err) {
-      console.error("Error adding item to cart:", err)
-      throw err
-    }
-  }, [])
+      toast({
+        title: "Added to cart",
+        description: "Item has been added to your cart",
+      })
 
-  // Update item quantity
-  const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
+      await refreshCart()
+    } catch (error) {
+      console.error("Error adding item to cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const updateQuantity = async (itemId: number, quantity: number) => {
     try {
-      const response = await fetch(`/api/cart/${itemId}`, {
+      setIsLoading(true)
+      // Find the item to get its productId
+      const item = items.find((i) => i.id === itemId)
+      if (!item) return
+
+      const response = await fetch("/api/cart", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ quantity }),
+        body: JSON.stringify({ itemId, quantity }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update item quantity")
+        throw new Error("Failed to update cart")
       }
 
-      const data = await response.json()
-      setItems(data)
-    } catch (err) {
-      console.error("Error updating item quantity:", err)
-      throw err
+      await refreshCart()
+    } catch (error) {
+      console.error("Error updating cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update cart. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
     }
-  }, [])
+  }
 
-  // Remove item from cart
-  const removeItem = useCallback(async (itemId: number) => {
+  const removeItem = async (itemId: number) => {
     try {
-      const response = await fetch(`/api/cart/${itemId}`, {
+      setIsLoading(true)
+      const response = await fetch(`/api/cart?id=${itemId}`, {
         method: "DELETE",
       })
 
@@ -134,18 +170,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to remove item from cart")
       }
 
-      const data = await response.json()
-      setItems(data)
-    } catch (err) {
-      console.error("Error removing item from cart:", err)
-      throw err
-    }
-  }, [])
+      toast({
+        title: "Item removed",
+        description: "Item has been removed from your cart",
+      })
 
-  // Clear cart
-  const clearCart = useCallback(async () => {
+      await refreshCart()
+    } catch (error) {
+      console.error("Error removing item from cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove item from cart. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const clearCart = async () => {
     try {
-      const response = await fetch("/api/cart", {
+      setIsLoading(true)
+      const response = await fetch("/api/cart?clearAll=true", {
         method: "DELETE",
       })
 
@@ -153,29 +199,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to clear cart")
       }
 
-      setItems([])
-    } catch (err) {
-      console.error("Error clearing cart:", err)
-      throw err
-    }
-  }, [])
+      toast({
+        title: "Cart cleared",
+        description: "Your cart has been cleared",
+      })
 
-  // Only provide the context if we're on the client side
-  if (!isClient) {
-    return <>{children}</>
+      setItems([])
+      setItemCount(0)
+      setSubtotal(0)
+    } catch (error) {
+      console.error("Error clearing cart:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to clear cart. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <CartContext.Provider
       value={{
         items,
-        subtotal,
         itemCount,
+        subtotal,
         isLoading,
         addItem,
         updateQuantity,
         removeItem,
         clearCart,
+        refreshCart,
       }}
     >
       {children}
@@ -184,28 +239,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useCart() {
-  const context = useContext(CartContext)
-
-  // Check if we're in a browser environment
-  const isBrowser = typeof window !== "undefined"
-
-  if (!context && isBrowser) {
-    throw new Error("useCart must be used within a CartProvider")
-  }
-
-  // Return a default value when not in browser to prevent SSR errors
+  // If not in a browser, return default context
   if (!isBrowser) {
-    return {
-      items: [],
-      subtotal: 0,
-      itemCount: 0,
-      isLoading: true,
-      addItem: async () => {},
-      updateQuantity: async () => {},
-      removeItem: async () => {},
-      clearCart: async () => {},
-    }
+    return defaultCartContext
   }
 
-  return context!
+  // Otherwise, use the context
+  return useContext(CartContext)
 }
