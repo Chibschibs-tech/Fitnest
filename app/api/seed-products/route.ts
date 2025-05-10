@@ -1,0 +1,257 @@
+import { NextResponse } from "next/server"
+import { db, products } from "@/lib/db"
+
+export async function GET() {
+  try {
+    // Check if products already exist
+    const existingProducts = await db.select({ count: { id: products.id } }).from(products)
+
+    if (existingProducts[0].count > 0) {
+      return NextResponse.json({ message: "Products already seeded", count: existingProducts[0].count })
+    }
+
+    // Sample products data
+    const sampleProducts = [
+      {
+        name: "Protein Power Bar",
+        description: "High protein bar with 20g of protein, perfect for post-workout recovery.",
+        price: 25,
+        salePrice: null,
+        imageUrl: "/protein-bar.png",
+        category: "protein_bars",
+        tags: "protein, workout, recovery",
+        nutritionalInfo: {
+          calories: 240,
+          protein: 20,
+          carbs: 15,
+          fat: 9,
+          fiber: 5,
+          sugar: 2,
+        },
+        stock: 100,
+        isActive: true,
+      },
+      {
+        name: "Chocolate Peanut Butter Protein Bar",
+        description: "Delicious chocolate and peanut butter flavored protein bar with 18g of protein.",
+        price: 28,
+        salePrice: 25,
+        imageUrl: "/placeholder.svg?key=7zbzm",
+        category: "protein_bars",
+        tags: "chocolate, peanut butter, protein",
+        nutritionalInfo: {
+          calories: 250,
+          protein: 18,
+          carbs: 20,
+          fat: 10,
+          fiber: 4,
+          sugar: 3,
+        },
+        stock: 85,
+        isActive: true,
+      },
+      {
+        name: "Vanilla Almond Protein Bar",
+        description: "Smooth vanilla flavor with crunchy almonds and 15g of protein.",
+        price: 26,
+        salePrice: null,
+        imageUrl: "/placeholder.svg?key=gaepl",
+        category: "protein_bars",
+        tags: "vanilla, almond, protein",
+        nutritionalInfo: {
+          calories: 220,
+          protein: 15,
+          carbs: 18,
+          fat: 8,
+          fiber: 3,
+          sugar: 2,
+        },
+        stock: 75,
+        isActive: true,
+      },
+      {
+        name: "Berry Blast Protein Bar",
+        description: "Mixed berry flavored protein bar with 16g of protein and antioxidants.",
+        price: 27,
+        salePrice: null,
+        imageUrl: "/berry-protein-bar.png",
+        category: "protein_bars",
+        tags: "berry, antioxidants, protein",
+        nutritionalInfo: {
+          calories: 230,
+          protein: 16,
+          carbs: 22,
+          fat: 7,
+          fiber: 4,
+          sugar: 5,
+        },
+        stock: 60,
+        isActive: true,
+      },
+      {
+        name: "Maple Pecan Granola",
+        description: "Crunchy granola with maple syrup and pecans, perfect for breakfast or snacking.",
+        price: 35,
+        salePrice: 30,
+        imageUrl: "/placeholder.svg?key=iuh5s",
+        category: "granola",
+        tags: "maple, pecan, breakfast",
+        nutritionalInfo: {
+          calories: 180,
+          protein: 5,
+          carbs: 25,
+          fat: 8,
+          fiber: 3,
+          sugar: 10,
+        },
+        stock: 50,
+        isActive: true,
+      },
+      {
+        name: "Honey Almond Granola",
+        description: "Sweet honey granola with sliced almonds and oats.",
+        price: 32,
+        salePrice: null,
+        imageUrl: "/honey-almond-granola.png",
+        category: "granola",
+        tags: "honey, almond, breakfast",
+        nutritionalInfo: {
+          calories: 170,
+          protein: 4,
+          carbs: 24,
+          fat: 7,
+          fiber: 3,
+          sugar: 9,
+        },
+        stock: 65,
+        isActive: true,
+      },
+      {
+        name: "Chocolate Chunk Granola",
+        description: "Chocolate lovers' granola with dark chocolate chunks and cocoa.",
+        price: 38,
+        salePrice: null,
+        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+granola",
+        category: "granola",
+        tags: "chocolate, breakfast, snack",
+        nutritionalInfo: {
+          calories: 190,
+          protein: 4,
+          carbs: 26,
+          fat: 9,
+          fiber: 3,
+          sugar: 12,
+        },
+        stock: 45,
+        isActive: true,
+      },
+      {
+        name: "Peanut Butter Energy Balls",
+        description: "No-bake peanut butter energy balls with oats and honey.",
+        price: 40,
+        salePrice: 35,
+        imageUrl: "/placeholder.svg?height=400&width=400&query=peanut+butter+energy+balls",
+        category: "energy_balls",
+        tags: "peanut butter, energy, snack",
+        nutritionalInfo: {
+          calories: 120,
+          protein: 5,
+          carbs: 15,
+          fat: 6,
+          fiber: 2,
+          sugar: 8,
+        },
+        stock: 80,
+        isActive: true,
+      },
+      {
+        name: "Coconut Date Energy Balls",
+        description: "Natural energy balls made with dates, coconut, and nuts.",
+        price: 42,
+        salePrice: null,
+        imageUrl: "/placeholder.svg?height=400&width=400&query=coconut+date+energy+balls",
+        category: "energy_balls",
+        tags: "coconut, dates, energy",
+        nutritionalInfo: {
+          calories: 110,
+          protein: 3,
+          carbs: 18,
+          fat: 5,
+          fiber: 3,
+          sugar: 12,
+        },
+        stock: 70,
+        isActive: true,
+      },
+      {
+        name: "Chocolate Chip Energy Balls",
+        description: "Delicious energy balls with dark chocolate chips and almond butter.",
+        price: 45,
+        salePrice: null,
+        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+chip+energy+balls",
+        category: "energy_balls",
+        tags: "chocolate, energy, snack",
+        nutritionalInfo: {
+          calories: 130,
+          protein: 4,
+          carbs: 16,
+          fat: 7,
+          fiber: 2,
+          sugar: 10,
+        },
+        stock: 60,
+        isActive: true,
+      },
+      {
+        name: "Protein Pancake Mix",
+        description: "Easy-to-make protein pancake mix with 15g of protein per serving.",
+        price: 55,
+        salePrice: 48,
+        imageUrl: "/placeholder.svg?height=400&width=400&query=protein+pancake+mix",
+        category: "breakfast",
+        tags: "pancake, protein, breakfast",
+        nutritionalInfo: {
+          calories: 200,
+          protein: 15,
+          carbs: 25,
+          fat: 3,
+          fiber: 2,
+          sugar: 5,
+        },
+        stock: 40,
+        isActive: true,
+      },
+      {
+        name: "Overnight Oats Mix",
+        description: "Convenient overnight oats mix with chia seeds and dried fruits.",
+        price: 50,
+        salePrice: null,
+        imageUrl: "/placeholder.svg?height=400&width=400&query=overnight+oats+mix",
+        category: "breakfast",
+        tags: "oats, breakfast, chia",
+        nutritionalInfo: {
+          calories: 180,
+          protein: 7,
+          carbs: 30,
+          fat: 4,
+          fiber: 5,
+          sugar: 8,
+        },
+        stock: 55,
+        isActive: true,
+      },
+    ]
+
+    // Insert products
+    const insertedProducts = await db.insert(products).values(sampleProducts).returning()
+
+    return NextResponse.json({
+      message: "Products seeded successfully",
+      count: insertedProducts.length,
+      products: insertedProducts,
+    })
+  } catch (error) {
+    console.error("Error seeding products:", error)
+    return NextResponse.json({ error: "Failed to seed products" }, { status: 500 })
+  }
+}

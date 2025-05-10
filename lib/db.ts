@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/neon-serverless"
-import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, date, unique } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, date, unique, jsonb } from "drizzle-orm/pg-core"
 import { getPool } from "./db-connection"
 
 // Create the schema
@@ -38,13 +38,18 @@ export const mealPlans = pgTable("meal_plans", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
+// New enum for order types
+export const orderTypeEnum = pgEnum("order_type", ["meal_plan", "express_shop", "mixed"])
+
 export const orderStatusEnum = pgEnum("order_status", ["pending", "processing", "delivered", "cancelled"])
 
+// Updated orders table with orderType field
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  planId: integer("plan_id").notNull(),
+  planId: integer("plan_id"), // Now optional since express orders won't have a plan
   status: orderStatusEnum("status").default("pending").notNull(),
+  orderType: orderTypeEnum("order_type").default("meal_plan").notNull(), // New field
   totalAmount: integer("total_amount").notNull(),
   deliveryAddress: text("delivery_address").notNull(),
   deliveryDate: timestamp("delivery_date").notNull(),
@@ -80,7 +85,46 @@ export const planMeals = pgTable("plan_meals", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// New tables added from the migration
+// New tables for the express shop
+
+// Products table for express shop items
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  price: integer("price").notNull(), // in cents/dirhams
+  salePrice: integer("sale_price"),
+  imageUrl: text("image_url"),
+  category: text("category").notNull(), // protein_bars, granola, energy_balls, etc.
+  tags: text("tags"), // Store as JSON string
+  nutritionalInfo: jsonb("nutritional_info"), // Store as JSON
+  stock: integer("stock").notNull().default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Cart items table
+export const cartItems = pgTable("cart_items", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  productId: integer("product_id").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Order items table for express shop orders
+export const orderItems = pgTable("order_items", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(),
+  productId: integer("product_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  priceAtPurchase: integer("price_at_purchase").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// Existing tables from the migration
 
 export const mealPreferences = pgTable(
   "meal_preferences",
