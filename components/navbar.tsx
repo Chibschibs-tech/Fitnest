@@ -6,7 +6,8 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useSafeSession } from "@/hooks/use-safe-session"
 import NavbarAuth from "./navbar-auth"
-import { Menu } from "lucide-react"
+import CartIcon from "./cart-icon"
+import { Menu, ShoppingCart } from "lucide-react"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -86,6 +87,7 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
+            {isAuthenticated && <CartIcon />}
             <Link href="/order" className="hidden md:block">
               <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">Order Now</Button>
             </Link>
@@ -132,6 +134,16 @@ export default function Navbar() {
               >
                 Blog
               </Link>
+              {isAuthenticated && (
+                <Link
+                  href="/shopping-cart"
+                  className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100 flex items-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Cart
+                </Link>
+              )}
               <div className="pt-2 border-t border-gray-100">
                 <NavbarAuth isMobile={true} onMenuClose={() => setIsMenuOpen(false)} />
               </div>

@@ -16,6 +16,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Exclude specific pages from static generation
+  unstable_excludeFiles: ['**/app/cart/**/*'],
 }
 
 export default nextConfig
