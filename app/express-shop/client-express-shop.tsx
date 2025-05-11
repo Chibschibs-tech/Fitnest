@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Plus, Filter, AlertCircle } from "lucide-react"
+import { Loader2, ShoppingCart, Plus, Filter, AlertCircle, Bug } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -24,10 +24,11 @@ interface Product {
   stock: number
 }
 
-export function ExpressShopContent() {
+export default function ClientExpressShop() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rawResponse, setRawResponse] = useState<any>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -36,19 +37,37 @@ export function ExpressShopContent() {
     async function fetchProducts() {
       try {
         setLoading(true)
-        const response = await fetch("/api/products")
+        console.log("Fetching products...")
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error("API error response:", errorData)
-          throw new Error(errorData.error || "Failed to fetch products")
+        const response = await fetch("/api/products")
+        console.log("Response status:", response.status)
+
+        // Store the raw text response for debugging
+        const responseText = await response.text()
+        console.log("Raw response:", responseText)
+
+        let responseData
+        try {
+          // Try to parse the response as JSON
+          responseData = JSON.parse(responseText)
+          console.log("Parsed response data:", responseData)
+          setRawResponse(responseData)
+        } catch (parseError) {
+          console.error("Error parsing JSON:", parseError)
+          throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
         }
 
-        const data = await response.json()
-        console.log("Products fetched:", data)
+        if (!response.ok) {
+          throw new Error(responseData.error || `API returned status ${response.status}`)
+        }
 
         // Ensure we have an array, even if empty
-        setProducts(Array.isArray(data) ? data : [])
+        if (!Array.isArray(responseData)) {
+          console.error("API did not return an array:", responseData)
+          throw new Error("API did not return an array of products")
+        }
+
+        setProducts(responseData)
       } catch (err) {
         console.error("Error fetching products:", err)
         setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
@@ -99,6 +118,7 @@ export function ExpressShopContent() {
 
   const handleRetry = () => {
     setError(null)
+    setRawResponse(null)
     setRetryCount((prev) => prev + 1)
   }
 
@@ -118,6 +138,16 @@ export function ExpressShopContent() {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+
+        {rawResponse && (
+          <div className="mb-6 rounded-md bg-gray-100 p-4">
+            <h3 className="mb-2 flex items-center text-sm font-medium">
+              <Bug className="mr-2 h-4 w-4" /> Debug Information
+            </h3>
+            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(rawResponse, null, 2)}</pre>
+          </div>
+        )}
+
         <div className="flex justify-center">
           <Button onClick={handleRetry}>Try Again</Button>
         </div>

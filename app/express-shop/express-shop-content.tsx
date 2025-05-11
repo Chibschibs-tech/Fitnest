@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Plus, Filter } from "lucide-react"
+import { Loader2, ShoppingCart, Plus, Filter, AlertCircle, Bug } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Product {
   id: number
@@ -27,29 +28,57 @@ export function ExpressShopContent() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rawResponse, setRawResponse] = useState<any>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     async function fetchProducts() {
       try {
         setLoading(true)
-        const response = await fetch("/api/products")
-        if (!response.ok) {
-          throw new Error("Failed to fetch products")
+        console.log("Fetching products...")
+
+        // Use the simplified API endpoint
+        const response = await fetch("/api/products-simple")
+        console.log("Response status:", response.status)
+
+        // Store the raw text response for debugging
+        const responseText = await response.text()
+        console.log("Raw response:", responseText)
+
+        let responseData
+        try {
+          // Try to parse the response as JSON
+          responseData = JSON.parse(responseText)
+          console.log("Parsed response data:", responseData)
+          setRawResponse(responseData)
+        } catch (parseError) {
+          console.error("Error parsing JSON:", parseError)
+          throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
         }
-        const data = await response.json()
-        setProducts(data)
+
+        if (!response.ok) {
+          throw new Error(responseData.error || `API returned status ${response.status}`)
+        }
+
+        // Ensure we have an array, even if empty
+        if (!Array.isArray(responseData)) {
+          console.error("API did not return an array:", responseData)
+          throw new Error("API did not return an array of products")
+        }
+
+        setProducts(responseData)
       } catch (err) {
         console.error("Error fetching products:", err)
-        setError("Failed to load products. Please try again.")
+        setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
       } finally {
         setLoading(false)
       }
     }
 
     fetchProducts()
-  }, [])
+  }, [retryCount])
 
   // Extract unique categories from products
   const categories = ["all", ...new Set(products.map((product) => product.category))]
@@ -88,6 +117,12 @@ export function ExpressShopContent() {
     }
   }
 
+  const handleRetry = () => {
+    setError(null)
+    setRawResponse(null)
+    setRetryCount((prev) => prev + 1)
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center">
@@ -99,7 +134,24 @@ export function ExpressShopContent() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="rounded-md bg-red-50 p-4 text-red-700">{error}</div>
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+
+        {rawResponse && (
+          <div className="mb-6 rounded-md bg-gray-100 p-4">
+            <h3 className="mb-2 flex items-center text-sm font-medium">
+              <Bug className="mr-2 h-4 w-4" /> Debug Information
+            </h3>
+            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(rawResponse, null, 2)}</pre>
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <Button onClick={handleRetry}>Try Again</Button>
+        </div>
       </div>
     )
   }
@@ -113,90 +165,98 @@ export function ExpressShopContent() {
         </p>
       </div>
 
-      <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
-        <div className="flex items-center justify-between">
-          <TabsList className="overflow-x-auto">
-            {categories.map((category) => (
-              <TabsTrigger key={category} value={category} className="capitalize">
-                {category.replace("_", " ")}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <Button variant="outline" size="sm" className="ml-4">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+      {products.length === 0 ? (
+        <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
+          <ShoppingCart className="h-16 w-16 text-gray-400" />
+          <h2 className="text-2xl font-semibold">No products available</h2>
+          <p className="text-gray-500">Check back soon for our new product lineup!</p>
         </div>
+      ) : (
+        <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
+          <div className="flex items-center justify-between">
+            <TabsList className="overflow-x-auto">
+              {categories.map((category) => (
+                <TabsTrigger key={category} value={category} className="capitalize">
+                  {category.replace("_", " ")}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <Button variant="outline" size="sm" className="ml-4">
+              <Filter className="mr-2 h-4 w-4" /> Filter
+            </Button>
+          </div>
 
-        {categories.map((category) => (
-          <TabsContent key={category} value={category} className="mt-6">
-            {filteredProducts.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center space-y-4 text-center">
-                <p className="text-lg font-medium">No products found</p>
-                <p className="text-sm text-gray-500">Try selecting a different category</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {filteredProducts.map((product) => (
-                  <Card key={product.id} className="overflow-hidden">
-                    <Link href={`/express-shop/${product.id}`}>
-                      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
-                        {product.imageUrl ? (
-                          <Image
-                            src={product.imageUrl || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className="object-cover transition-transform hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <ShoppingCart className="h-12 w-12 text-gray-300" />
-                          </div>
-                        )}
-                        {product.salePrice && <Badge className="absolute right-2 top-2 bg-green-600">Sale</Badge>}
-                      </div>
-                    </Link>
-                    <CardHeader className="p-4 pb-0">
-                      <CardTitle className="line-clamp-1 text-lg">{product.name}</CardTitle>
-                      <CardDescription className="line-clamp-2">{product.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          {product.salePrice ? (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-lg font-bold text-green-600">{product.salePrice} MAD</span>
-                              <span className="text-sm text-gray-500 line-through">{product.price} MAD</span>
-                            </div>
+          {categories.map((category) => (
+            <TabsContent key={category} value={category} className="mt-6">
+              {filteredProducts.length === 0 ? (
+                <div className="flex h-40 flex-col items-center justify-center space-y-4 text-center">
+                  <p className="text-lg font-medium">No products found</p>
+                  <p className="text-sm text-gray-500">Try selecting a different category</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {filteredProducts.map((product) => (
+                    <Card key={product.id} className="overflow-hidden">
+                      <Link href={`/express-shop/${product.id}`}>
+                        <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+                          {product.imageUrl ? (
+                            <Image
+                              src={product.imageUrl || "/placeholder.svg"}
+                              alt={product.name}
+                              fill
+                              className="object-cover transition-transform hover:scale-105"
+                            />
                           ) : (
-                            <span className="text-lg font-bold">{product.price} MAD</span>
+                            <div className="flex h-full w-full items-center justify-center">
+                              <ShoppingCart className="h-12 w-12 text-gray-300" />
+                            </div>
                           )}
+                          {product.salePrice && <Badge className="absolute right-2 top-2 bg-green-600">Sale</Badge>}
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {product.category.replace("_", " ")}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-4 pt-0">
-                      <Button
-                        className="w-full"
-                        onClick={() => handleAddToCart(product.id)}
-                        disabled={addingToCart === product.id}
-                      >
-                        {addingToCart === product.id ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Plus className="mr-2 h-4 w-4" />
-                        )}
-                        Add to Cart
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+                      </Link>
+                      <CardHeader className="p-4 pb-0">
+                        <CardTitle className="line-clamp-1 text-lg">{product.name}</CardTitle>
+                        <CardDescription className="line-clamp-2">{product.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            {product.salePrice ? (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg font-bold text-green-600">{product.salePrice} MAD</span>
+                                <span className="text-sm text-gray-500 line-through">{product.price} MAD</span>
+                              </div>
+                            ) : (
+                              <span className="text-lg font-bold">{product.price} MAD</span>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {product.category.replace("_", " ")}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-4 pt-0">
+                        <Button
+                          className="w-full"
+                          onClick={() => handleAddToCart(product.id)}
+                          disabled={addingToCart === product.id}
+                        >
+                          {addingToCart === product.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Plus className="mr-2 h-4 w-4" />
+                          )}
+                          Add to Cart
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   )
 }
