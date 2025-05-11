@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
-import { sql } from "@neondatabase/serverless"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET() {
   try {
+    // Initialize the Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
+
     // Test database connection
     const connectionTest = await sql`SELECT 1 as connection_test`
 
@@ -37,10 +40,10 @@ export async function GET() {
 
     return NextResponse.json({
       status: "Database connection successful",
-      connection: connectionTest.rows[0],
-      version: versionInfo.rows[0].version,
-      tables: tables.rows.map((row) => row.table_name),
-      user: currentUser.rows[0],
+      connection: connectionTest[0],
+      version: versionInfo[0].version,
+      tables: tables.map((row) => row.table_name),
+      user: currentUser[0],
       permissions: {
         canCreateTable,
       },

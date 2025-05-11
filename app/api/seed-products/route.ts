@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server"
-import { sql } from "@neondatabase/serverless"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET() {
   try {
     console.log("Starting product seeding process...")
 
+    // Initialize the Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
+
     // First, check if we can connect to the database
     try {
       const testConnection = await sql`SELECT 1 as test`
-      console.log("Database connection successful:", testConnection.rows[0])
+      console.log("Database connection successful:", testConnection[0])
     } catch (connectionError) {
       console.error("Database connection failed:", connectionError)
       return NextResponse.json(
@@ -30,9 +33,9 @@ export async function GET() {
         ) as exists
       `
 
-      console.log("Table check result:", tableExists.rows[0])
+      console.log("Table check result:", tableExists[0])
 
-      if (!tableExists.rows[0].exists) {
+      if (!tableExists[0].exists) {
         console.log("Products table does not exist, creating it...")
 
         // Create the products table
@@ -71,7 +74,7 @@ export async function GET() {
     // Check if products already exist
     try {
       const existingProductsResult = await sql`SELECT COUNT(*) FROM products`
-      const existingCount = Number.parseInt(existingProductsResult.rows[0].count)
+      const existingCount = Number.parseInt(existingProductsResult[0].count)
 
       if (existingCount > 0) {
         return NextResponse.json({ message: "Products already seeded", count: existingCount })
