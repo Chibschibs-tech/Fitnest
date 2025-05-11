@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server"
-import { db, products } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET() {
   try {
-    // Get all products regardless of isActive status
-    const allProducts = await db.select().from(products)
+    // Initialize the Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // First, check the table structure
+    const tableInfo = await sql`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
+    `
+
+    console.log("Table structure:", tableInfo)
+
+    // Get all products using raw SQL to avoid schema mismatches
+    const allProducts = await sql`SELECT * FROM products`
 
     // Count products by category
     const categories = {}
@@ -16,15 +28,18 @@ export async function GET() {
     })
 
     return NextResponse.json({
+      tableStructure: tableInfo,
       totalProducts: allProducts.length,
-      activeProducts: allProducts.filter((p) => p.isActive).length,
+      activeProducts: allProducts.filter((p) => p.is_active).length,
       categories,
       products: allProducts.map((p) => ({
         id: p.id,
         name: p.name,
         category: p.category,
         price: p.price,
-        isActive: p.isActive,
+        salePrice: p.sale_price,
+        imageUrl: p.image_url,
+        isActive: p.is_active,
       })),
     })
   } catch (error) {

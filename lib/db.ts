@@ -1,7 +1,6 @@
+import { drizzle } from "drizzle-orm/neon-serverless"
 import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, date, unique, jsonb } from "drizzle-orm/pg-core"
 import { getPool } from "./db-connection"
-import { neon, neonConfig } from "@neondatabase/serverless"
-import { drizzle as drizzleHttp } from "drizzle-orm/neon-http"
 
 // Create the schema
 export const userRoleEnum = pgEnum("user_role", ["admin", "customer"])
@@ -88,19 +87,19 @@ export const planMeals = pgTable("plan_meals", {
 
 // New tables for the express shop
 
-// Products table for express shop items
+// Products table for express shop items - UPDATED with snake_case column names
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   price: integer("price").notNull(), // in cents/dirhams
-  salePrice: integer("sale_price"),
-  imageUrl: text("image_url"),
+  salePrice: integer("sale_price"), // Changed to match database column name
+  imageUrl: text("image_url"), // Changed to match database column name
   category: text("category").notNull(), // protein_bars, granola, energy_balls, etc.
   tags: text("tags"), // Store as JSON string
-  nutritionalInfo: jsonb("nutritional_info"), // Store as JSON
+  nutritionalInfo: jsonb("nutritional_info"), // Changed to match database column name
   stock: integer("stock").notNull().default(0),
-  isActive: boolean("is_active").default(true).notNull(),
+  isActive: boolean("is_active").default(true).notNull(), // Changed to match database column name
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
@@ -213,10 +212,8 @@ export const notificationPreferences = pgTable(
   },
 )
 
-neonConfig.fetchConnectionCache = true
-
-const sql = neon(process.env.DATABASE_URL!)
-export const db = drizzleHttp(sql)
+// Create the db instance
+export const db = drizzle(getPool())
 
 // Add a helper function to check database connectivity
 export async function checkDatabaseConnection() {

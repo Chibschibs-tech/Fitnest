@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db, products } from "@/lib/db"
-import { eq } from "drizzle-orm"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize the Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
+
     const { searchParams } = new URL(request.url)
     const category = searchParams.get("category")
     const id = searchParams.get("id")
@@ -12,34 +14,70 @@ export async function GET(request: NextRequest) {
 
     if (id) {
       // Get a specific product by ID
-      productData = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, Number.parseInt(id)))
-        .limit(1)
+      productData = await sql`
+        SELECT * FROM products 
+        WHERE id = ${Number.parseInt(id)}
+        LIMIT 1
+      `
 
       if (productData.length === 0) {
         return NextResponse.json({ error: "Product not found" }, { status: 404 })
       }
 
-      return NextResponse.json(productData[0])
+      // Transform snake_case to camelCase for frontend consistency
+      const product = productData[0]
+      return NextResponse.json({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        salePrice: product.sale_price,
+        imageUrl: product.image_url,
+        category: product.category,
+        tags: product.tags,
+        nutritionalInfo: product.nutritional_info,
+        stock: product.stock,
+        isActive: product.is_active,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+      })
     } else if (category) {
       // Get products by category
-      productData = await db
-        .select()
-        .from(products)
-        .where(eq(products.category, category))
-        .where(eq(products.isActive, true))
+      productData = await sql`
+        SELECT * FROM products 
+        WHERE category = ${category}
+        AND is_active = true
+      `
     } else {
       // Get all active products
-      productData = await db.select().from(products).where(eq(products.isActive, true))
+      productData = await sql`
+        SELECT * FROM products 
+        WHERE is_active = true
+      `
     }
 
     // Add debugging
     console.log(`Found ${productData.length} products`)
 
+    // Transform snake_case to camelCase for frontend consistency
+    const transformedProducts = productData.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      salePrice: product.sale_price,
+      imageUrl: product.image_url,
+      category: product.category,
+      tags: product.tags,
+      nutritionalInfo: product.nutritional_info,
+      stock: product.stock,
+      isActive: product.is_active,
+      createdAt: product.created_at,
+      updatedAt: product.updated_at,
+    }))
+
     // Return empty array instead of undefined if no products found
-    return NextResponse.json(productData || [])
+    return NextResponse.json(transformedProducts || [])
   } catch (error) {
     console.error("Error fetching products:", error)
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 })
@@ -48,6 +86,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize the Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
+
     const data = await request.json()
 
     // Validate required fields
@@ -58,24 +99,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Insert the new product
-    const newProduct = await db
-      .insert(products)
-      .values({
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        salePrice: data.salePrice || null,
-        imageUrl: data.imageUrl || null,
-        category: data.category,
-        tags: data.tags || null,
-        nutritionalInfo: data.nutritionalInfo || null,
-        stock: data.stock || 0,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-      })
-      .returning()
+    // Insert the new product using snake_case column names
+    const newProduct = await sql`
+      INSERT INTO products 
+      (name, description, price, sale_price, image_url, category, tags, nutritional_info, stock, is_active)
+      VALUES 
+      (${data.name}, ${data.description}, ${data.price}, ${data.salePrice || null}, 
+       ${data.imageUrl || null}, ${data.category}, ${data.tags || null}, 
+       ${data.nutritionalInfo ? JSON.stringify(data.nutritionalInfo) : null}::jsonb, 
+       ${data.stock || 0}, ${data.isActive !== undefined ? data.isActive : true})
+      RETURNING *
+    `
 
-    return NextResponse.json(newProduct[0], { status: 201 })
+    // Transform snake_case to camelCase for frontend consistency
+    const product = newProduct[0]
+    return NextResponse.json(
+      {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        salePrice: product.sale_price,
+        imageUrl: product.image_url,
+        category: product.category,
+        tags: product.tags,
+        nutritionalInfo: product.nutritional_info,
+        stock: product.stock,
+        isActive: product.is_active,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+      },
+      { status: 201 },
+    )
   } catch (error) {
     console.error("Error creating product:", error)
     return NextResponse.json({ error: "Failed to create product" }, { status: 500 })
