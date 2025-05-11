@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
       productData = await db.select().from(products).where(eq(products.isActive, true))
     }
 
-    return NextResponse.json(productData)
+    // Add debugging
+    console.log(`Found ${productData.length} products`)
+
+    // Return empty array instead of undefined if no products found
+    return NextResponse.json(productData || [])
   } catch (error) {
     console.error("Error fetching products:", error)
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 })
