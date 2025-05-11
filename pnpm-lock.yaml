@@ -25,10 +25,10 @@ importers:
         version: 3.9.1(react-hook-form@7.54.1(react@19.0.0))
       '@libsql/client':
         specifier: latest
-        version: 0.15.4(bufferutil@4.0.9)
+        version: 0.15.5(bufferutil@4.0.9)
       '@libsql/client-wasm':
         specifier: latest
-        version: 0.15.4
+        version: 0.15.5
       '@neondatabase/serverless':
         specifier: latest
         version: 1.0.0
@@ -172,7 +172,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.43.1(189f9340d5fbafb355a71a334681b5da)
+        version: 0.43.1(d0a14f92fb46753bb11a3584f52631c0)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -1179,16 +1179,16 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@libsql/client-wasm@0.15.4':
-    resolution: {integrity: sha512-l83BkBHRonZz1oZioSn7Sz7TNW5uWUM531ozG1PKZ7fGxUCLJa69/9Gs1bX2OwIt/NJ0H0OPCdUPLx2CJBqJfw==}
+  '@libsql/client-wasm@0.15.5':
+    resolution: {integrity: sha512-JPjnGnLGQu36SPDskXSgyLoVBA0/IgcEC52MKnIa7/rKGIY1I4WKMIYrl2hkbw7+xYzWrGk6Vr8AZ9PeNEtgVA==}
     bundledDependencies:
       - '@libsql/libsql-wasm-experimental'
 
-  '@libsql/client@0.15.4':
-    resolution: {integrity: sha512-m8a7giWlhLdfKVIZFd3UlBptWTS+H0toSOL09BxbqzBeFHwuVC+5ewyi4LMBxoy2TLNQGE4lO8cwpsTWmu695w==}
+  '@libsql/client@0.15.5':
+    resolution: {integrity: sha512-bbTpLdIMH1GcJfvNoh/m0HlHV/RmCz8tt/QCld6pM0C0ttZTsVyZ+PLn42/UxEvyTe2QcNa9w8qHr8NmwKV+1g==}
 
-  '@libsql/core@0.15.4':
-    resolution: {integrity: sha512-NMvh6xnn3vrcd7DNehj0HiJcRWB2a8hHhJUTkOBej3Pf3KB21HOmdOUjXxJ5pGbjWXh4ezQBmHtF5ozFhocXaA==}
+  '@libsql/core@0.15.5':
+    resolution: {integrity: sha512-18hhESfHuOdBNAXIAqZbXfe1xskpOn+vEuYIbWgtbzq7On8lGBA1FASQ8LpzBsP+Xv8fK2JoiDKIFDTc8jQ3mg==}
 
   '@libsql/darwin-arm64@0.5.9':
     resolution: {integrity: sha512-gxvDYfp54CmsjfJ6o3XFyRS+FEikrDMiPwTD0eKUJHdwfMlO//C/TTr5gcLB7LHAaknaxS8w4XEMrL/MP2UQ7A==}
@@ -6774,14 +6774,14 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@libsql/client-wasm@0.15.4':
+  '@libsql/client-wasm@0.15.5':
     dependencies:
-      '@libsql/core': 0.15.4
+      '@libsql/core': 0.15.5
       js-base64: 3.7.7
 
-  '@libsql/client@0.15.4(bufferutil@4.0.9)':
+  '@libsql/client@0.15.5(bufferutil@4.0.9)':
     dependencies:
-      '@libsql/core': 0.15.4
+      '@libsql/core': 0.15.5
       '@libsql/hrana-client': 0.7.0(bufferutil@4.0.9)
       js-base64: 3.7.7
       libsql: 0.5.9
@@ -6790,7 +6790,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@libsql/core@0.15.4':
+  '@libsql/core@0.15.5':
     dependencies:
       js-base64: 3.7.7
 
@@ -8815,13 +8815,13 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.43.1(189f9340d5fbafb355a71a334681b5da):
+  drizzle-orm@0.43.1(d0a14f92fb46753bb11a3584f52631c0):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.806.0
       '@cloudflare/workers-types': 4.20250510.0
       '@electric-sql/pglite': 0.3.0
-      '@libsql/client': 0.15.4(bufferutil@4.0.9)
-      '@libsql/client-wasm': 0.15.4
+      '@libsql/client': 0.15.5(bufferutil@4.0.9)
+      '@libsql/client-wasm': 0.15.5
       '@neondatabase/serverless': 1.0.0
       '@op-engineering/op-sqlite': 13.0.1(react-native@0.79.2(@babel/core@7.27.1)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)
       '@opentelemetry/api': 1.9.0

@@ -1,14 +1,57 @@
 import { NextResponse } from "next/server"
-import { db, products } from "@/lib/db"
+import { sql } from "@neondatabase/serverless"
+
+// Define the products table if it doesn't exist in db.ts
+const products = {
+  id: "id",
+  name: "name",
+  description: "description",
+  price: "price",
+  salePrice: "salePrice",
+  imageUrl: "imageUrl",
+  category: "category",
+  tags: "tags",
+  nutritionalInfo: "nutritionalInfo",
+  stock: "stock",
+  isActive: "isActive",
+}
 
 export async function GET() {
   try {
-    // Check if products already exist
-    const existingProducts = await db.select({ count: { id: products.id } }).from(products)
+    console.log("Starting product seeding process...")
 
-    if (existingProducts[0].count > 0) {
-      return NextResponse.json({ message: "Products already seeded", count: existingProducts[0].count })
+    // First, check if the products table exists, if not create it
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS products (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          price INTEGER NOT NULL,
+          salePrice INTEGER,
+          imageUrl VARCHAR(255),
+          category VARCHAR(100),
+          tags TEXT,
+          nutritionalInfo JSONB,
+          stock INTEGER DEFAULT 0,
+          isActive BOOLEAN DEFAULT true
+        );
+      `
+      console.log("Products table verified or created")
+    } catch (tableError) {
+      console.error("Error creating products table:", tableError)
+      return NextResponse.json({ error: "Failed to create products table", details: tableError }, { status: 500 })
     }
+
+    // Check if products already exist
+    const existingProductsResult = await sql`SELECT COUNT(*) FROM products`
+    const existingCount = Number.parseInt(existingProductsResult.rows[0].count)
+
+    if (existingCount > 0) {
+      return NextResponse.json({ message: "Products already seeded", count: existingCount })
+    }
+
+    console.log("No existing products found, proceeding with seeding...")
 
     // Sample products data with more variety
     const sampleProducts = [
@@ -21,14 +64,14 @@ export async function GET() {
         imageUrl: "/protein-bar.png",
         category: "protein_bars",
         tags: "protein, workout, recovery, individual",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 240,
           protein: 20,
           carbs: 15,
           fat: 9,
           fiber: 5,
           sugar: 2,
-        },
+        }),
         stock: 100,
         isActive: true,
       },
@@ -40,14 +83,14 @@ export async function GET() {
         imageUrl: "/placeholder.svg?key=iicgj",
         category: "protein_bars",
         tags: "chocolate, peanut butter, protein, individual",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 250,
           protein: 18,
           carbs: 20,
           fat: 10,
           fiber: 4,
           sugar: 3,
-        },
+        }),
         stock: 85,
         isActive: true,
       },
@@ -59,14 +102,14 @@ export async function GET() {
         imageUrl: "/placeholder.svg?key=0zsw4",
         category: "protein_bars",
         tags: "vanilla, almond, protein, individual",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 220,
           protein: 15,
           carbs: 18,
           fat: 8,
           fiber: 3,
           sugar: 2,
-        },
+        }),
         stock: 75,
         isActive: true,
       },
@@ -78,14 +121,14 @@ export async function GET() {
         imageUrl: "/berry-protein-bar.png",
         category: "protein_bars",
         tags: "berry, antioxidants, protein, individual",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 230,
           protein: 16,
           carbs: 22,
           fat: 7,
           fiber: 4,
           sugar: 5,
-        },
+        }),
         stock: 60,
         isActive: true,
       },
@@ -99,14 +142,14 @@ export async function GET() {
         imageUrl: "/protein-bar-pack.png",
         category: "protein_bars",
         tags: "protein, workout, recovery, pack, value",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 240,
           protein: 20,
           carbs: 15,
           fat: 9,
           fiber: 5,
           sugar: 2,
-        },
+        }),
         stock: 50,
         isActive: true,
       },
@@ -115,17 +158,17 @@ export async function GET() {
         description: "Value pack of 6 chocolate and peanut butter flavored protein bars with 18g of protein each.",
         price: 150,
         salePrice: 140,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+peanut+butter+protein+bar+pack",
+        imageUrl: "/chocolate-peanut-butter-protein-bars.png",
         category: "protein_bars",
         tags: "chocolate, peanut butter, protein, pack, value",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 250,
           protein: 18,
           carbs: 20,
           fat: 10,
           fiber: 4,
           sugar: 3,
-        },
+        }),
         stock: 40,
         isActive: true,
       },
@@ -134,17 +177,17 @@ export async function GET() {
         description: "Variety pack with 3 bars each of our 4 popular flavors. Perfect for trying different options.",
         price: 280,
         salePrice: 260,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=protein+bar+variety+pack",
+        imageUrl: "/protein-bar-variety-pack.png",
         category: "protein_bars",
         tags: "variety, mixed flavors, protein, pack, value",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 235,
           protein: 17,
           carbs: 19,
           fat: 8,
           fiber: 4,
           sugar: 3,
-        },
+        }),
         stock: 30,
         isActive: true,
       },
@@ -155,17 +198,17 @@ export async function GET() {
         description: "Small pack of crunchy granola with maple syrup and pecans, perfect for breakfast or snacking.",
         price: 35,
         salePrice: 30,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=maple+pecan+granola",
+        imageUrl: "/placeholder.svg?key=c0pgy",
         category: "granola",
         tags: "maple, pecan, breakfast, small size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 180,
           protein: 5,
           carbs: 25,
           fat: 8,
           fiber: 3,
           sugar: 10,
-        },
+        }),
         stock: 50,
         isActive: true,
       },
@@ -174,17 +217,17 @@ export async function GET() {
         description: "Medium pack of crunchy granola with maple syrup and pecans, perfect for breakfast or snacking.",
         price: 65,
         salePrice: 60,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=maple+pecan+granola+medium+pack",
+        imageUrl: "/maple-pecan-granola-medium-pack.png",
         category: "granola",
         tags: "maple, pecan, breakfast, medium size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 180,
           protein: 5,
           carbs: 25,
           fat: 8,
           fiber: 3,
           sugar: 10,
-        },
+        }),
         stock: 40,
         isActive: true,
       },
@@ -194,17 +237,17 @@ export async function GET() {
           "Family size pack of crunchy granola with maple syrup and pecans, perfect for breakfast or snacking.",
         price: 120,
         salePrice: 110,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=maple+pecan+granola+large+pack",
+        imageUrl: "/maple-pecan-granola-large-pack.png",
         category: "granola",
         tags: "maple, pecan, breakfast, family size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 180,
           protein: 5,
           carbs: 25,
           fat: 8,
           fiber: 3,
           sugar: 10,
-        },
+        }),
         stock: 30,
         isActive: true,
       },
@@ -216,14 +259,14 @@ export async function GET() {
         imageUrl: "/honey-almond-granola.png",
         category: "granola",
         tags: "honey, almond, breakfast, small size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 170,
           protein: 4,
           carbs: 24,
           fat: 7,
           fiber: 3,
           sugar: 9,
-        },
+        }),
         stock: 65,
         isActive: true,
       },
@@ -235,14 +278,14 @@ export async function GET() {
         imageUrl: "/placeholder.svg?height=400&width=400&query=honey+almond+granola+medium+pack",
         category: "granola",
         tags: "honey, almond, breakfast, medium size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 170,
           protein: 4,
           carbs: 24,
           fat: 7,
           fiber: 3,
           sugar: 9,
-        },
+        }),
         stock: 45,
         isActive: true,
       },
@@ -254,17 +297,18 @@ export async function GET() {
         imageUrl: "/placeholder.svg?height=400&width=400&query=honey+almond+granola+large+pack",
         category: "granola",
         tags: "honey, almond, breakfast, family size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 170,
           protein: 4,
           carbs: 24,
           fat: 7,
           fiber: 3,
           sugar: 9,
-        },
+        }),
         stock: 35,
         isActive: true,
       },
+      // Add a few more products to keep the list manageable
       {
         name: "Chocolate Chunk Granola - 250g",
         description: "Small pack of chocolate lovers' granola with dark chocolate chunks and cocoa.",
@@ -273,57 +317,17 @@ export async function GET() {
         imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+granola",
         category: "granola",
         tags: "chocolate, breakfast, snack, small size",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 190,
           protein: 4,
           carbs: 26,
           fat: 9,
           fiber: 3,
           sugar: 12,
-        },
+        }),
         stock: 45,
         isActive: true,
       },
-      {
-        name: "Chocolate Chunk Granola - 500g",
-        description: "Medium pack of chocolate lovers' granola with dark chocolate chunks and cocoa.",
-        price: 70,
-        salePrice: 65,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+granola+medium+pack",
-        category: "granola",
-        tags: "chocolate, breakfast, snack, medium size",
-        nutritionalInfo: {
-          calories: 190,
-          protein: 4,
-          carbs: 26,
-          fat: 9,
-          fiber: 3,
-          sugar: 12,
-        },
-        stock: 35,
-        isActive: true,
-      },
-      {
-        name: "Chocolate Chunk Granola - 1kg",
-        description: "Family size pack of chocolate lovers' granola with dark chocolate chunks and cocoa.",
-        price: 130,
-        salePrice: 120,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+granola+large+pack",
-        category: "granola",
-        tags: "chocolate, breakfast, snack, family size",
-        nutritionalInfo: {
-          calories: 190,
-          protein: 4,
-          carbs: 26,
-          fat: 9,
-          fiber: 3,
-          sugar: 12,
-        },
-        stock: 25,
-        isActive: true,
-      },
-
-      // Energy Balls - Keep existing ones and add packs
       {
         name: "Peanut Butter Energy Balls",
         description: "No-bake peanut butter energy balls with oats and honey.",
@@ -332,14 +336,14 @@ export async function GET() {
         imageUrl: "/placeholder.svg?height=400&width=400&query=peanut+butter+energy+balls",
         category: "energy_balls",
         tags: "peanut butter, energy, snack",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 120,
           protein: 5,
           carbs: 15,
           fat: 6,
           fiber: 2,
           sugar: 8,
-        },
+        }),
         stock: 80,
         isActive: true,
       },
@@ -351,95 +355,17 @@ export async function GET() {
         imageUrl: "/placeholder.svg?height=400&width=400&query=peanut+butter+energy+balls+pack",
         category: "energy_balls",
         tags: "peanut butter, energy, snack, pack, value",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 120,
           protein: 5,
           carbs: 15,
           fat: 6,
           fiber: 2,
           sugar: 8,
-        },
+        }),
         stock: 40,
         isActive: true,
       },
-      {
-        name: "Coconut Date Energy Balls",
-        description: "Natural energy balls made with dates, coconut, and nuts.",
-        price: 42,
-        salePrice: null,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=coconut+date+energy+balls",
-        category: "energy_balls",
-        tags: "coconut, dates, energy",
-        nutritionalInfo: {
-          calories: 110,
-          protein: 3,
-          carbs: 18,
-          fat: 5,
-          fiber: 3,
-          sugar: 12,
-        },
-        stock: 70,
-        isActive: true,
-      },
-      {
-        name: "Coconut Date Energy Balls - Pack of 12",
-        description: "Value pack of 12 natural energy balls made with dates, coconut, and nuts.",
-        price: 115,
-        salePrice: 105,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=coconut+date+energy+balls+pack",
-        category: "energy_balls",
-        tags: "coconut, dates, energy, pack, value",
-        nutritionalInfo: {
-          calories: 110,
-          protein: 3,
-          carbs: 18,
-          fat: 5,
-          fiber: 3,
-          sugar: 12,
-        },
-        stock: 35,
-        isActive: true,
-      },
-      {
-        name: "Chocolate Chip Energy Balls",
-        description: "Delicious energy balls with dark chocolate chips and almond butter.",
-        price: 45,
-        salePrice: null,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+chip+energy+balls",
-        category: "energy_balls",
-        tags: "chocolate, energy, snack",
-        nutritionalInfo: {
-          calories: 130,
-          protein: 4,
-          carbs: 16,
-          fat: 7,
-          fiber: 2,
-          sugar: 10,
-        },
-        stock: 60,
-        isActive: true,
-      },
-      {
-        name: "Chocolate Chip Energy Balls - Pack of 12",
-        description: "Value pack of 12 delicious energy balls with dark chocolate chips and almond butter.",
-        price: 120,
-        salePrice: 110,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=chocolate+chip+energy+balls+pack",
-        category: "energy_balls",
-        tags: "chocolate, energy, snack, pack, value",
-        nutritionalInfo: {
-          calories: 130,
-          protein: 4,
-          carbs: 16,
-          fat: 7,
-          fiber: 2,
-          sugar: 10,
-        },
-        stock: 30,
-        isActive: true,
-      },
-
-      // Breakfast items - Keep existing ones
       {
         name: "Protein Pancake Mix",
         description: "Easy-to-make protein pancake mix with 15g of protein per serving.",
@@ -448,67 +374,47 @@ export async function GET() {
         imageUrl: "/placeholder.svg?height=400&width=400&query=protein+pancake+mix",
         category: "breakfast",
         tags: "pancake, protein, breakfast",
-        nutritionalInfo: {
+        nutritionalInfo: JSON.stringify({
           calories: 200,
           protein: 15,
           carbs: 25,
           fat: 3,
           fiber: 2,
           sugar: 5,
-        },
+        }),
         stock: 40,
-        isActive: true,
-      },
-      {
-        name: "Overnight Oats Mix",
-        description: "Convenient overnight oats mix with chia seeds and dried fruits.",
-        price: 50,
-        salePrice: null,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=overnight+oats+mix",
-        category: "breakfast",
-        tags: "oats, breakfast, chia",
-        nutritionalInfo: {
-          calories: 180,
-          protein: 7,
-          carbs: 30,
-          fat: 4,
-          fiber: 5,
-          sugar: 8,
-        },
-        stock: 55,
-        isActive: true,
-      },
-      {
-        name: "Protein Waffle Mix",
-        description: "High-protein waffle mix that's easy to prepare and delicious.",
-        price: 58,
-        salePrice: 52,
-        imageUrl: "/placeholder.svg?height=400&width=400&query=protein+waffle+mix",
-        category: "breakfast",
-        tags: "waffle, protein, breakfast",
-        nutritionalInfo: {
-          calories: 210,
-          protein: 16,
-          carbs: 24,
-          fat: 4,
-          fiber: 2,
-          sugar: 6,
-        },
-        stock: 35,
         isActive: true,
       },
     ]
 
-    // Insert products
-    const insertedProducts = await db.insert(products).values(sampleProducts).returning()
+    console.log(`Preparing to insert ${sampleProducts.length} products...`)
+
+    // Insert products using raw SQL for better control
+    for (const product of sampleProducts) {
+      await sql`
+        INSERT INTO products 
+        (name, description, price, salePrice, imageUrl, category, tags, nutritionalInfo, stock, isActive)
+        VALUES 
+        (${product.name}, ${product.description}, ${product.price}, ${product.salePrice}, 
+         ${product.imageUrl}, ${product.category}, ${product.tags}, ${product.nutritionalInfo}::jsonb, 
+         ${product.stock}, ${product.isActive})
+      `
+    }
+
+    console.log("Products inserted successfully")
 
     return NextResponse.json({
       message: "Products seeded successfully",
-      count: insertedProducts.length,
-      products: insertedProducts,
+      count: sampleProducts.length,
     })
   } catch (error) {
     console.error("Error seeding products:", error)
-    return NextResponse.json({ error: "Failed to seed products" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to seed products",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }

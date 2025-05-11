@@ -1,6 +1,7 @@
-import { drizzle } from "drizzle-orm/neon-serverless"
 import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, date, unique, jsonb } from "drizzle-orm/pg-core"
 import { getPool } from "./db-connection"
+import { neon, neonConfig } from "@neondatabase/serverless"
+import { drizzle as drizzleHttp } from "drizzle-orm/neon-http"
 
 // Create the schema
 export const userRoleEnum = pgEnum("user_role", ["admin", "customer"])
@@ -212,8 +213,10 @@ export const notificationPreferences = pgTable(
   },
 )
 
-// Create the db instance
-export const db = drizzle(getPool())
+neonConfig.fetchConnectionCache = true
+
+const sql = neon(process.env.DATABASE_URL!)
+export const db = drizzleHttp(sql)
 
 // Add a helper function to check database connectivity
 export async function checkDatabaseConnection() {
