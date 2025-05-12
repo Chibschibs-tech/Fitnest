@@ -19,7 +19,7 @@ importers:
         version: 4.20250510.0
       '@electric-sql/pglite':
         specifier: latest
-        version: 0.3.0
+        version: 0.3.1
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.9.1(react-hook-form@7.54.1(react@19.0.0))
@@ -172,7 +172,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.43.1(a220d3890723221227ae49cc37ea6476)
+        version: 0.43.1(3d5d4f9714413da0380715e717587037)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -907,8 +907,8 @@ packages:
   '@cloudflare/workers-types@4.20250510.0':
     resolution: {integrity: sha512-VLdSYUooX2QhdlzyBnnLAqa5B3xWyr5vdvya9NZk2BJNmRt2iblSLunj7iBKiW9J+SIBHz7c+kUzUJKoFLKRjg==}
 
-  '@electric-sql/pglite@0.3.0':
-    resolution: {integrity: sha512-ou1PA24kStSNpQVGdzDg1FGRzO7AQ3O6OX5FryupMdHkSfSswG2ZVXjCzzJKK88KLk+Q4QinKjZIUtmMeec5rg==}
+  '@electric-sql/pglite@0.3.1':
+    resolution: {integrity: sha512-Kpbd2FMXnM5I56ZpMnGKZhv+h31ipeimgyJVb1C+nWFTikp33z0TTwmksEtHpPinuqKiMJblH2OJM0RubKvJgg==}
 
   '@emnapi/runtime@1.4.3':
     resolution: {integrity: sha512-pBPWdu6MLKROBX05wSNKcNb++m5Er+KQ9QkB+WVM+pW2Kx9hoSrVTnu3BdkI5eBLZoKu/J6mW/B6i6bJB2ytXQ==}
@@ -6333,7 +6333,7 @@ snapshots:
 
   '@cloudflare/workers-types@4.20250510.0': {}
 
-  '@electric-sql/pglite@0.3.0': {}
+  '@electric-sql/pglite@0.3.1': {}
 
   '@emnapi/runtime@1.4.3':
     dependencies:
@@ -8827,11 +8827,11 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.43.1(a220d3890723221227ae49cc37ea6476):
+  drizzle-orm@0.43.1(3d5d4f9714413da0380715e717587037):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.806.0
       '@cloudflare/workers-types': 4.20250510.0
-      '@electric-sql/pglite': 0.3.0
+      '@electric-sql/pglite': 0.3.1
       '@libsql/client': 0.15.5(bufferutil@4.0.9)
       '@libsql/client-wasm': 0.15.5
       '@neondatabase/serverless': 1.0.0

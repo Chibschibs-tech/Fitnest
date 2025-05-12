@@ -38,22 +38,22 @@ export async function GET() {
       if (!tableExists[0].exists) {
         console.log("Products table does not exist, creating it...")
 
-        // Create the products table with snake_case column names
+        // Create the products table with consistent column names
         await sql`
           CREATE TABLE products (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             description TEXT,
             price INTEGER NOT NULL,
-            sale_price INTEGER,
-            image_url TEXT,
+            saleprice INTEGER,
+            imageurl TEXT,
             category TEXT,
             tags TEXT,
-            nutritional_info JSONB,
+            nutritionalinfo JSONB,
             stock INTEGER DEFAULT 0,
-            is_active BOOLEAN DEFAULT true,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            isactive BOOLEAN DEFAULT true,
+            createdat TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updatedat TIMESTAMP WITH TIME ZONE DEFAULT NOW()
           )
         `
         console.log("Products table created successfully")
@@ -142,7 +142,7 @@ export async function GET() {
       try {
         await sql`
           INSERT INTO products 
-          (name, description, price, sale_price, image_url, category, tags, nutritional_info, stock, is_active)
+          (name, description, price, saleprice, imageurl, category, tags, nutritionalinfo, stock, isactive)
           VALUES 
           (${product.name}, ${product.description}, ${product.price}, ${product.salePrice}, 
            ${product.imageUrl}, ${product.category}, ${product.tags}, ${JSON.stringify(product.nutritionalInfo)}::jsonb, 

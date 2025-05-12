@@ -87,21 +87,21 @@ export const planMeals = pgTable("plan_meals", {
 
 // New tables for the express shop
 
-// Products table for express shop items - UPDATED with snake_case column names
+// Products table for express shop items - UPDATED with column names without underscores
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   price: integer("price").notNull(), // in cents/dirhams
-  salePrice: integer("sale_price"), // Changed to match database column name
-  imageUrl: text("image_url"), // Changed to match database column name
+  salePrice: integer("saleprice"), // Changed to match database column name
+  imageUrl: text("imageurl"), // Changed to match database column name
   category: text("category").notNull(), // protein_bars, granola, energy_balls, etc.
   tags: text("tags"), // Store as JSON string
-  nutritionalInfo: jsonb("nutritional_info"), // Changed to match database column name
+  nutritionalInfo: jsonb("nutritionalinfo"), // Changed to match database column name
   stock: integer("stock").notNull().default(0),
-  isActive: boolean("is_active").default(true).notNull(), // Changed to match database column name
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  isActive: boolean("isactive").default(true).notNull(), // Changed to match database column name
+  createdAt: timestamp("createdat").defaultNow().notNull(),
+  updatedAt: timestamp("updatedat").defaultNow().notNull(),
 })
 
 // Cart items table

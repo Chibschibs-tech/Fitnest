@@ -24,56 +24,85 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Product not found" }, { status: 404 })
       }
 
-      // Transform snake_case to camelCase for frontend consistency
+      // Transform column names for frontend consistency
       const product = productData[0]
       return NextResponse.json({
         id: product.id,
         name: product.name,
         description: product.description,
         price: product.price,
-        salePrice: product.sale_price,
-        imageUrl: product.image_url,
+        salePrice:
+          product.saleprice !== undefined
+            ? product.saleprice
+            : product.sale_price !== undefined
+              ? product.sale_price
+              : null,
+        imageUrl:
+          product.imageurl !== undefined
+            ? product.imageurl
+            : product.image_url !== undefined
+              ? product.image_url
+              : null,
         category: product.category,
         tags: product.tags,
-        nutritionalInfo: product.nutritional_info,
+        nutritionalInfo:
+          product.nutritionalinfo !== undefined
+            ? product.nutritionalinfo
+            : product.nutritional_info !== undefined
+              ? product.nutritional_info
+              : null,
         stock: product.stock,
-        isActive: product.is_active,
-        createdAt: product.created_at,
-        updatedAt: product.updated_at,
+        isActive:
+          product.isactive !== undefined
+            ? product.isactive
+            : product.is_active !== undefined
+              ? product.is_active
+              : true,
       })
     } else if (category) {
-      // Get products by category
+      // Get products by category - without filtering by isactive/is_active
       productData = await sql`
         SELECT * FROM products 
         WHERE category = ${category}
-        AND is_active = true
       `
     } else {
-      // Get all active products
+      // Get all products - without filtering by isactive/is_active
       productData = await sql`
-        SELECT * FROM products 
-        WHERE is_active = true
+        SELECT * FROM products
       `
     }
 
     // Add debugging
     console.log(`Found ${productData.length} products`)
+    if (productData.length > 0) {
+      console.log("First product structure:", Object.keys(productData[0]))
+    }
 
-    // Transform snake_case to camelCase for frontend consistency
+    // Transform column names for frontend consistency
     const transformedProducts = productData.map((product) => ({
       id: product.id,
       name: product.name,
       description: product.description,
       price: product.price,
-      salePrice: product.sale_price,
-      imageUrl: product.image_url,
+      salePrice:
+        product.saleprice !== undefined
+          ? product.saleprice
+          : product.sale_price !== undefined
+            ? product.sale_price
+            : null,
+      imageUrl:
+        product.imageurl !== undefined ? product.imageurl : product.image_url !== undefined ? product.image_url : null,
       category: product.category,
       tags: product.tags,
-      nutritionalInfo: product.nutritional_info,
+      nutritionalInfo:
+        product.nutritionalinfo !== undefined
+          ? product.nutritionalinfo
+          : product.nutritional_info !== undefined
+            ? product.nutritional_info
+            : null,
       stock: product.stock,
-      isActive: product.is_active,
-      createdAt: product.created_at,
-      updatedAt: product.updated_at,
+      isActive:
+        product.isactive !== undefined ? product.isactive : product.is_active !== undefined ? product.is_active : true,
     }))
 
     // Return empty array instead of undefined if no products found
@@ -99,10 +128,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Insert the new product using snake_case column names
+    // Insert the new product using column names without underscores
     const newProduct = await sql`
       INSERT INTO products 
-      (name, description, price, sale_price, image_url, category, tags, nutritional_info, stock, is_active)
+      (name, description, price, saleprice, imageurl, category, tags, nutritionalinfo, stock, isactive)
       VALUES 
       (${data.name}, ${data.description}, ${data.price}, ${data.salePrice || null}, 
        ${data.imageUrl || null}, ${data.category}, ${data.tags || null}, 
@@ -111,7 +140,7 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `
 
-    // Transform snake_case to camelCase for frontend consistency
+    // Transform column names for frontend consistency
     const product = newProduct[0]
     return NextResponse.json(
       {
@@ -119,15 +148,33 @@ export async function POST(request: NextRequest) {
         name: product.name,
         description: product.description,
         price: product.price,
-        salePrice: product.sale_price,
-        imageUrl: product.image_url,
+        salePrice:
+          product.saleprice !== undefined
+            ? product.saleprice
+            : product.sale_price !== undefined
+              ? product.sale_price
+              : null,
+        imageUrl:
+          product.imageurl !== undefined
+            ? product.imageurl
+            : product.image_url !== undefined
+              ? product.image_url
+              : null,
         category: product.category,
         tags: product.tags,
-        nutritionalInfo: product.nutritional_info,
+        nutritionalInfo:
+          product.nutritionalinfo !== undefined
+            ? product.nutritionalinfo
+            : product.nutritional_info !== undefined
+              ? product.nutritional_info
+              : null,
         stock: product.stock,
-        isActive: product.is_active,
-        createdAt: product.created_at,
-        updatedAt: product.updated_at,
+        isActive:
+          product.isactive !== undefined
+            ? product.isactive
+            : product.is_active !== undefined
+              ? product.is_active
+              : true,
       },
       { status: 201 },
     )
