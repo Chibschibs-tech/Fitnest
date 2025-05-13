@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Plus, Filter, AlertCircle, Bug } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { Loader2, ShoppingCart, Plus, Filter, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import CartPreview from "@/components/cart-preview"
 
 interface Product {
   id: number
@@ -28,10 +29,20 @@ export function ExpressShopContent() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [rawResponse, setRawResponse] = useState<any>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [cartPreview, setCartPreview] = useState<{
+    show: boolean
+    product: any
+    quantity: number
+  }>({
+    show: false,
+    product: null,
+    quantity: 0,
+  })
+
+  const { toast } = useToast()
 
   useEffect(() => {
     async function fetchProducts() {
@@ -39,7 +50,6 @@ export function ExpressShopContent() {
         setLoading(true)
         console.log("Fetching products...")
 
-        // Use the simplified API endpoint
         const response = await fetch("/api/products-simple")
         console.log("Response status:", response.status)
 
@@ -52,7 +62,6 @@ export function ExpressShopContent() {
           // Try to parse the response as JSON
           responseData = JSON.parse(responseText)
           console.log("Parsed response data:", responseData)
-          setRawResponse(responseData)
         } catch (parseError) {
           console.error("Error parsing JSON:", parseError)
           throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
@@ -98,8 +107,23 @@ export function ExpressShopContent() {
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Error adding to cart:", errorText)
         throw new Error("Failed to add item to cart")
       }
+
+      const data = await response.json()
+      console.log("Added to cart:", data)
+
+      // Show cart preview
+      setCartPreview({
+        show: true,
+        product: data.product,
+        quantity: data.quantity,
+      })
+
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
 
       toast({
         title: "Added to cart",
@@ -119,7 +143,6 @@ export function ExpressShopContent() {
 
   const handleRetry = () => {
     setError(null)
-    setRawResponse(null)
     setRetryCount((prev) => prev + 1)
   }
 
@@ -140,15 +163,6 @@ export function ExpressShopContent() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
 
-        {rawResponse && (
-          <div className="mb-6 rounded-md bg-gray-100 p-4">
-            <h3 className="mb-2 flex items-center text-sm font-medium">
-              <Bug className="mr-2 h-4 w-4" /> Debug Information
-            </h3>
-            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(rawResponse, null, 2)}</pre>
-          </div>
-        )}
-
         <div className="flex justify-center">
           <Button onClick={handleRetry}>Try Again</Button>
         </div>
@@ -158,6 +172,14 @@ export function ExpressShopContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      {cartPreview.show && cartPreview.product && (
+        <CartPreview
+          product={cartPreview.product}
+          quantity={cartPreview.quantity}
+          onClose={() => setCartPreview({ show: false, product: null, quantity: 0 })}
+        />
+      )}
+
       <div className="mb-8 text-center">
         <h1 className="mb-2 text-4xl font-bold">Express Shop</h1>
         <p className="mx-auto max-w-2xl text-gray-600">
