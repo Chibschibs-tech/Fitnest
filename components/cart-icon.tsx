@@ -10,6 +10,7 @@ export default function CartIcon() {
   const [count, setCount] = useState(0)
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -33,15 +34,30 @@ export default function CartIcon() {
   const fetchCartCount = async () => {
     try {
       setIsLoading(true)
+      setError(null)
+
       const response = await fetch("/api/cart/count")
-      if (response.ok) {
-        const data = await response.json()
-        setCount(data.count)
-      } else {
-        console.error("Error fetching cart count:", await response.text())
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Error fetching cart count:", errorText)
+        setError("Failed to fetch cart count")
+        return
       }
+
+      const data = await response.json()
+      console.log("Cart count:", data)
+
+      if (data.error) {
+        console.error("Cart count error:", data.error)
+        setError(data.error)
+        return
+      }
+
+      setCount(data.count || 0)
     } catch (error) {
       console.error("Error fetching cart count:", error)
+      setError(error instanceof Error ? error.message : "Unknown error")
     } finally {
       setIsLoading(false)
     }

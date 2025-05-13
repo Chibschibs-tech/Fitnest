@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Trash2, AlertCircle, Plus, Minus } from "lucide-react"
+import { Loader2, ShoppingCart, Trash2, AlertCircle, Plus, Minus, Bug } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -29,6 +29,7 @@ export default function ShoppingCartPage() {
   const [subtotal, setSubtotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
   const [updatingItem, setUpdatingItem] = useState<number | null>(null)
   const { toast } = useToast()
 
@@ -39,7 +40,31 @@ export default function ShoppingCartPage() {
   const fetchCart = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/cart")
+
+      // First, run diagnostics
+      const diagnosticResponse = await fetch("/api/cart-diagnostic")
+      const diagnosticData = await diagnosticResponse.json()
+      setDebugInfo(diagnosticData)
+
+      console.log("Cart diagnostic:", diagnosticData)
+
+      // Check for authentication issues
+      if (!diagnosticData.authStatus.isAuthenticated) {
+        throw new Error("You must be logged in to view your cart")
+      }
+
+      // Check for database issues
+      if (diagnosticData.database.connectionStatus === "error") {
+        throw new Error(`Database connection error: ${diagnosticData.database.error}`)
+      }
+
+      // Check if cart table exists
+      if (!diagnosticData.cartTable.exists) {
+        throw new Error("Cart table does not exist. Please initialize the cart table.")
+      }
+
+      // Use the simplified cart API
+      const response = await fetch("/api/cart-simple")
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -174,8 +199,20 @@ export default function ShoppingCartPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
 
-        <div className="flex justify-center">
+        {debugInfo && (
+          <div className="mb-6 rounded-md bg-gray-100 p-4">
+            <h3 className="mb-2 flex items-center text-sm font-medium">
+              <Bug className="mr-2 h-4 w-4" /> Debug Information
+            </h3>
+            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
+        )}
+
+        <div className="flex justify-center space-x-4">
           <Button onClick={fetchCart}>Try Again</Button>
+          <Link href="/api/init-cart-table">
+            <Button variant="outline">Initialize Cart Table</Button>
+          </Link>
         </div>
       </div>
     )
@@ -245,7 +282,7 @@ export default function ShoppingCartPage() {
                         <div>
                           <h3 className="text-lg font-medium">{item.product.name}</h3>
                           <p className="mt-1 text-sm text-gray-500">
-                            Category: {item.product.category.replace("_", " ")}
+                            Category: {item.product.category?.replace("_", " ") || "Unknown"}
                           </p>
                         </div>
                         <div className="text-right">

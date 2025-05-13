@@ -14,6 +14,20 @@ export async function GET() {
     const userId = Number.parseInt(session.user.id as string)
     const sql = neon(process.env.DATABASE_URL!)
 
+    // First, check if the cart_items table exists
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `
+
+    const cartTableExists = tables.some((t) => t.table_name === "cart_items")
+
+    if (!cartTableExists) {
+      console.log("Cart table doesn't exist for count")
+      return NextResponse.json({ count: 0 })
+    }
+
     // Count cart items for the user
     const result = await sql`
       SELECT SUM(quantity) as count
