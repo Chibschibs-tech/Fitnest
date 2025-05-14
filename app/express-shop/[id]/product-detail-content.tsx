@@ -1,14 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { AlertDescription } from "@/components/ui/alert"
+
+import { AlertTitle } from "@/components/ui/alert"
+
+import { Alert } from "@/components/ui/alert"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, ShoppingCart, Plus, Minus, ArrowLeft } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 interface Product {
   id: number
@@ -30,19 +37,45 @@ interface ProductDetailContentProps {
 
 export function ProductDetailContent({ product, relatedProducts }: ProductDetailContentProps) {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(true) // Default to true, will be checked during add to cart
+  const { toast } = useToast()
+
+  // Ensure cart table exists on component mount
+  useEffect(() => {
+    async function ensureCartTable() {
+      try {
+        const response = await fetch("/api/ensure-cart-table")
+        const data = await response.json()
+        console.log("Cart table check:", data)
+      } catch (error) {
+        console.error("Error checking cart table:", error)
+      }
+    }
+
+    ensureCartTable()
+  }, [])
 
   const handleQuantityChange = (change: number) => {
     setQuantity(Math.max(1, quantity + change))
   }
 
   const handleAddToCart = async () => {
+    if (status !== "authenticated") {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to add items to your cart",
+      })
+      router.push(`/login?callbackUrl=/express-shop/${product.id}`)
+      return
+    }
+
     setIsAddingToCart(true)
     try {
-      // Try to add to cart using the direct API
-      const response = await fetch("/api/cart-direct", {
+      // Use the main cart API
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,34 +83,27 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
         body: JSON.stringify({ productId: product.id, quantity }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        if (response.status === 401) {
-          setIsAuthenticated(false)
-          toast({
-            variant: "destructive",
-            title: "Authentication Required",
-            description: "Please log in to add items to your cart",
-          })
-          return
-        }
-        throw new Error(data.error || "Failed to add item to cart")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `Failed to add item to cart (${response.status})`)
       }
 
-      toast({
-        title: "Added to cart",
-        description: "Item has been added to your cart",
-      })
+      const data = await response.json()
+      console.log("Added to cart:", data)
 
       // Dispatch custom event to update cart count
       window.dispatchEvent(new CustomEvent("cart:updated"))
+
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
+      })
     } catch (error) {
       console.error("Error adding item to cart:", error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add item to cart. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add item to cart. Please try again.",
       })
     } finally {
       setIsAddingToCart(false)
@@ -150,6 +176,7 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
                   size="icon"
                   className="h-10 w-10 rounded-none"
                   onClick={() => handleQuantityChange(-1)}
+                  disabled={quantity <= 1}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -170,7 +197,7 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
           <Button
             className="w-full py-6 text-lg"
             onClick={handleAddToCart}
-            disabled={isAddingToCart || product.stock <= 0}
+            disabled={isAddingToCart || product.stock <= 0 || status !== "authenticated"}
           >
             {isAddingToCart ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -179,6 +206,19 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
             )}
             {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
           </Button>
+
+          {status !== "authenticated" && (
+            <Alert>
+              <AlertTitle>Authentication Required</AlertTitle>
+              <AlertDescription>
+                Please{" "}
+                <Link href={`/login?callbackUrl=/express-shop/${product.id}`} className="font-medium underline">
+                  log in
+                </Link>{" "}
+                to add items to your cart.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Nutritional Information */}
           {nutritionalInfo && (

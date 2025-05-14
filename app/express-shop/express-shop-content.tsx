@@ -10,6 +10,7 @@ import { Loader2, ShoppingCart, Plus, Filter, AlertCircle, Bug } from "lucide-re
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useSession } from "next-auth/react"
 
 interface Product {
   id: number
@@ -25,6 +26,7 @@ interface Product {
 }
 
 export function ExpressShopContent() {
+  const { data: session, status } = useSession()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,6 +35,21 @@ export function ExpressShopContent() {
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const { toast } = useToast()
+
+  // Ensure cart table exists on component mount
+  useEffect(() => {
+    async function ensureCartTable() {
+      try {
+        const response = await fetch("/api/ensure-cart-table")
+        const data = await response.json()
+        console.log("Cart table check:", data)
+      } catch (error) {
+        console.error("Error checking cart table:", error)
+      }
+    }
+
+    ensureCartTable()
+  }, [])
 
   useEffect(() => {
     async function fetchProducts() {
@@ -86,20 +103,19 @@ export function ExpressShopContent() {
     activeCategory === "all" ? products : products.filter((product) => product.category === activeCategory)
 
   const handleAddToCart = async (productId: number) => {
+    if (status !== "authenticated") {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to add items to your cart",
+      })
+      return
+    }
+
     setAddingToCart(productId)
     try {
-      // First, check authentication status
-      const authResponse = await fetch("/api/cart-diagnostic")
-      const authData = await authResponse.json()
-
-      if (!authData.authStatus.isAuthenticated) {
-        throw new Error("You must be logged in to add items to your cart")
-      }
-
-      setDebugInfo(authData)
-
-      // Use the simplified cart API
-      const response = await fetch("/api/cart-simple", {
+      // Use the main cart API
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,20 +124,22 @@ export function ExpressShopContent() {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Error adding to cart:", errorText)
-        throw new Error("Failed to add item to cart")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `Failed to add item to cart (${response.status})`)
       }
 
       const data = await response.json()
       console.log("Added to cart:", data)
+
+      // Find the product to display in toast
+      const product = products.find((p) => p.id === productId)
 
       // Dispatch custom event to update cart count
       window.dispatchEvent(new CustomEvent("cart:updated"))
 
       toast({
         title: "Added to cart",
-        description: `${data.product.name} has been added to your cart`,
+        description: `${product?.name || "Item"} has been added to your cart`,
       })
     } catch (error) {
       console.error("Error adding item to cart:", error)
@@ -182,6 +200,20 @@ export function ExpressShopContent() {
           Browse our selection of healthy snacks, protein bars, and more for quick delivery.
         </p>
       </div>
+
+      {status !== "authenticated" && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>
+            Please{" "}
+            <Link href="/login?callbackUrl=/express-shop" className="font-medium underline">
+              log in
+            </Link>{" "}
+            to add items to your cart.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
@@ -257,7 +289,7 @@ export function ExpressShopContent() {
                         <Button
                           className="w-full"
                           onClick={() => handleAddToCart(product.id)}
-                          disabled={addingToCart === product.id}
+                          disabled={addingToCart === product.id || status !== "authenticated"}
                         >
                           {addingToCart === product.id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

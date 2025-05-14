@@ -3,6 +3,41 @@ import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
+// Helper function to ensure cart table exists
+async function ensureCartTableExists() {
+  try {
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Check if cart_items table exists
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `
+
+    const cartTableExists = tables.some((t) => t.table_name === "cart_items")
+
+    if (!cartTableExists) {
+      console.log("Creating cart_items table...")
+      await sql`
+        CREATE TABLE cart_items (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `
+      console.log("cart_items table created successfully")
+    }
+    return true
+  } catch (error) {
+    console.error("Error checking/creating cart table:", error)
+    return false
+  }
+}
+
 // Helper function to get user ID from session
 async function getUserId() {
   const session = await getServerSession(authOptions)
@@ -16,6 +51,9 @@ export async function GET(request: NextRequest) {
   try {
     const userId = await getUserId()
     const sql = neon(process.env.DATABASE_URL!)
+
+    // Ensure cart table exists
+    await ensureCartTableExists()
 
     console.log("Fetching cart for user:", userId)
 
@@ -72,8 +110,11 @@ export async function POST(request: NextRequest) {
 
     console.log("Adding to cart:", data)
 
+    // Ensure cart table exists
+    await ensureCartTableExists()
+
     // Validate required fields
-    if (!data.productId || !data.quantity) {
+    if (!data.productId || data.quantity === undefined) {
       return NextResponse.json(
         { error: "Missing required fields: productId and quantity are required" },
         { status: 400 },
@@ -93,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Check if item already exists in cart
     const existingItem = await sql`
-      SELECT id FROM cart_items
+      SELECT id, quantity FROM cart_items
       WHERE user_id = ${userId} AND product_id = ${data.productId}
       LIMIT 1
     `
@@ -102,9 +143,10 @@ export async function POST(request: NextRequest) {
 
     if (existingItem.length > 0) {
       // Update quantity if item already exists
+      const newQuantity = existingItem[0].quantity + data.quantity
       result = await sql`
         UPDATE cart_items
-        SET quantity = ${data.quantity}, updated_at = NOW()
+        SET quantity = ${newQuantity}, updated_at = NOW()
         WHERE id = ${existingItem[0].id}
         RETURNING id, product_id as "productId", quantity
       `
@@ -159,6 +201,9 @@ export async function DELETE(request: NextRequest) {
     const clearAll = searchParams.get("clearAll")
     const sql = neon(process.env.DATABASE_URL!)
 
+    // Ensure cart table exists
+    await ensureCartTableExists()
+
     console.log("Delete cart request:", { itemId, clearAll })
 
     if (clearAll === "true") {
@@ -203,10 +248,13 @@ export async function PUT(request: NextRequest) {
     const data = await request.json()
     const sql = neon(process.env.DATABASE_URL!)
 
+    // Ensure cart table exists
+    await ensureCartTableExists()
+
     console.log("Updating cart item:", data)
 
     // Validate required fields
-    if (!data.itemId || !data.quantity) {
+    if (!data.itemId || data.quantity === undefined) {
       return NextResponse.json({ error: "Missing required fields: itemId and quantity are required" }, { status: 400 })
     }
 
