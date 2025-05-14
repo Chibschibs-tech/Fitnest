@@ -188,10 +188,13 @@ export async function GET() {
 export async function POST(request) {
   try {
     const data = await request.json()
+    console.log("Cart POST data:", data)
+
     let userId
 
     try {
       userId = await getUserId()
+      console.log("User ID:", userId)
     } catch (error) {
       console.error("Error getting user ID:", error)
       return NextResponse.json(
@@ -205,12 +208,12 @@ export async function POST(request) {
     const sql = neon(process.env.DATABASE_URL!)
 
     // Validate required fields
-    if (!data.productId || !data.quantity) {
-      return NextResponse.json(
-        { error: "Missing required fields: productId and quantity are required" },
-        { status: 400 },
-      )
+    if (!data.productId) {
+      return NextResponse.json({ error: "Missing required field: productId is required" }, { status: 400 })
     }
+
+    // Set default quantity if not provided
+    const quantity = data.quantity || 1
 
     // Check if product exists
     const productExists = await sql`
@@ -223,9 +226,32 @@ export async function POST(request) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
+    // First, check if the cart_items table exists
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `
+
+    const cartTableExists = tables.some((t) => t.table_name === "cart_items")
+
+    if (!cartTableExists) {
+      // Create the cart_items table
+      await sql`
+        CREATE TABLE IF NOT EXISTS cart_items (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `
+    }
+
     // Check if item already exists in cart
     const existingItem = await sql`
-      SELECT id FROM cart_items
+      SELECT id, quantity FROM cart_items
       WHERE user_id = ${userId} AND product_id = ${data.productId}
       LIMIT 1
     `
@@ -234,9 +260,11 @@ export async function POST(request) {
 
     if (existingItem.length > 0) {
       // Update quantity if item already exists
+      const newQuantity = existingItem[0].quantity + quantity
+
       result = await sql`
         UPDATE cart_items
-        SET quantity = ${data.quantity}, updated_at = NOW()
+        SET quantity = ${newQuantity}, updated_at = NOW()
         WHERE id = ${existingItem[0].id}
         RETURNING id, product_id as "productId", quantity
       `
@@ -244,7 +272,7 @@ export async function POST(request) {
       // Add new item to cart
       result = await sql`
         INSERT INTO cart_items (user_id, product_id, quantity)
-        VALUES (${userId}, ${data.productId}, ${data.quantity})
+        VALUES (${userId}, ${data.productId}, ${quantity})
         RETURNING id, product_id as "productId", quantity
       `
     }
@@ -300,6 +328,136 @@ export async function POST(request) {
     return NextResponse.json(
       {
         error: "Failed to update cart",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
+  }
+}
+
+// Add PUT and DELETE methods for updating and removing cart items
+export async function PUT(request) {
+  try {
+    const data = await request.json()
+    let userId
+
+    try {
+      userId = await getUserId()
+    } catch (error) {
+      console.error("Error getting user ID:", error)
+      return NextResponse.json(
+        {
+          error: "Not authenticated",
+        },
+        { status: 401 },
+      )
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Validate required fields
+    if (!data.itemId || !data.quantity) {
+      return NextResponse.json({ error: "Missing required fields: itemId and quantity are required" }, { status: 400 })
+    }
+
+    // Check if the item exists and belongs to the user
+    const existingItem = await sql`
+      SELECT id FROM cart_items
+      WHERE id = ${data.itemId} AND user_id = ${userId}
+      LIMIT 1
+    `
+
+    if (existingItem.length === 0) {
+      return NextResponse.json({ error: "Cart item not found" }, { status: 404 })
+    }
+
+    // Update the item quantity
+    const result = await sql`
+      UPDATE cart_items
+      SET quantity = ${data.quantity}, updated_at = NOW()
+      WHERE id = ${data.itemId}
+      RETURNING id, product_id as "productId", quantity
+    `
+
+    return NextResponse.json({
+      ...result[0],
+      message: "Cart updated",
+    })
+  } catch (error) {
+    console.error("Error updating cart item:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to update cart item",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const itemId = searchParams.get("id")
+    const clearAll = searchParams.get("clearAll")
+
+    let userId
+
+    try {
+      userId = await getUserId()
+    } catch (error) {
+      console.error("Error getting user ID:", error)
+      return NextResponse.json(
+        {
+          error: "Not authenticated",
+        },
+        { status: 401 },
+      )
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
+
+    if (clearAll === "true") {
+      // Clear all items from the cart
+      await sql`
+        DELETE FROM cart_items
+        WHERE user_id = ${userId}
+      `
+
+      return NextResponse.json({
+        message: "Cart cleared",
+      })
+    }
+
+    if (!itemId) {
+      return NextResponse.json({ error: "Missing required parameter: id" }, { status: 400 })
+    }
+
+    // Check if the item exists and belongs to the user
+    const existingItem = await sql`
+      SELECT id FROM cart_items
+      WHERE id = ${itemId} AND user_id = ${userId}
+      LIMIT 1
+    `
+
+    if (existingItem.length === 0) {
+      return NextResponse.json({ error: "Cart item not found" }, { status: 404 })
+    }
+
+    // Delete the item
+    await sql`
+      DELETE FROM cart_items
+      WHERE id = ${itemId}
+    `
+
+    return NextResponse.json({
+      message: "Item removed from cart",
+    })
+  } catch (error) {
+    console.error("Error removing cart item:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to remove cart item",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },

@@ -96,19 +96,20 @@ export async function GET() {
           updated_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
       `
+
       return NextResponse.json({ count: 0 })
     }
 
-    // Get the count of items in the cart
+    // Get the total number of items in the cart
     const result = await sql`
-      SELECT SUM(quantity) as count
+      SELECT SUM(quantity) as total
       FROM cart_items
       WHERE user_id = ${userId}
     `
 
-    const count = result[0]?.count || 0
+    const count = result[0]?.total || 0
 
-    return NextResponse.json({ count: Number.parseInt(count) })
+    return NextResponse.json({ count })
   } catch (error) {
     console.error("Error fetching cart count:", error)
     return NextResponse.json({

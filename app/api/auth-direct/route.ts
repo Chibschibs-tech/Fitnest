@@ -5,28 +5,21 @@ import { decrypt } from "@/lib/jwt"
 
 export async function GET() {
   try {
-    // Get all cookies for debugging
     const cookieStore = cookies()
-    const allCookies = cookieStore.getAll()
-    const cookieNames = allCookies.map((cookie) => cookie.name)
-
-    // Check for specific auth cookies
-    const hasNextAuthSession = cookieStore.has("next-auth.session-token")
-    const hasNextAuthCallbackUrl = cookieStore.has("next-auth.callback-url")
-    const hasNextAuthCsrfToken = cookieStore.has("next-auth.csrf-token")
-    const hasJWT = cookieStore.has("session")
-
-    // Try to get the session token from either auth method
+    const cookieNames = cookieStore.getAll().map((cookie) => cookie.name)
     const nextAuthToken = cookieStore.get("next-auth.session-token")?.value
+    const nextAuthCallbackUrl = cookieStore.get("next-auth.callback-url")?.value
+    const nextAuthCsrfToken = cookieStore.get("next-auth.csrf-token")?.value
     const jwtToken = cookieStore.get("session")?.value
 
-    // Initialize user as null
+    const sql = neon(process.env.DATABASE_URL!)
+
     let user = null
+    let isAuthenticated = false
+    let authMethod = null
 
-    // Try NextAuth first if the token exists
+    // Try NextAuth first
     if (nextAuthToken) {
-      const sql = neon(process.env.DATABASE_URL!)
-
       // Check if the sessions table exists
       const tables = await sql`
         SELECT table_name 
@@ -44,6 +37,7 @@ export async function GET() {
 
         if (sessions.length > 0) {
           const session = sessions[0]
+
           // Get the user from the users table
           const users = await sql`
             SELECT * FROM users WHERE id = ${session.user_id} LIMIT 1
@@ -54,22 +48,22 @@ export async function GET() {
               id: users[0].id,
               name: users[0].name,
               email: users[0].email,
-              role: users[0].role,
             }
+            isAuthenticated = true
+            authMethod = "nextauth"
           }
         }
       }
     }
 
     // If NextAuth didn't work, try custom JWT
-    if (!user && jwtToken) {
+    if (!isAuthenticated && jwtToken) {
       try {
         // Decrypt the JWT token
         const payload = await decrypt(jwtToken)
 
         if (payload && payload.id) {
           // Verify the user exists in the database
-          const sql = neon(process.env.DATABASE_URL!)
           const users = await sql`
             SELECT * FROM users WHERE id = ${payload.id} LIMIT 1
           `
@@ -79,8 +73,9 @@ export async function GET() {
               id: users[0].id,
               name: users[0].name,
               email: users[0].email,
-              role: users[0].role,
             }
+            isAuthenticated = true
+            authMethod = "jwt"
           }
         }
       } catch (jwtError) {
@@ -92,22 +87,23 @@ export async function GET() {
       status: "success",
       cookies: {
         names: cookieNames,
-        hasNextAuthSession,
-        hasNextAuthCallbackUrl,
-        hasNextAuthCsrfToken,
-        hasJWT,
+        hasNextAuthSession: !!nextAuthToken,
+        hasNextAuthCallbackUrl: !!nextAuthCallbackUrl,
+        hasNextAuthCsrfToken: !!nextAuthCsrfToken,
+        hasJWT: !!jwtToken,
         sessionToken: nextAuthToken ? "[REDACTED]" : null,
         jwtToken: jwtToken ? "[REDACTED]" : null,
       },
       user,
-      isAuthenticated: !!user,
+      isAuthenticated,
+      authMethod,
     })
   } catch (error) {
-    console.error("Auth direct error:", error)
+    console.error("Error checking authentication:", error)
     return NextResponse.json({
       status: "error",
-      message: "Failed to check authentication directly",
       error: error instanceof Error ? error.message : String(error),
+      isAuthenticated: false,
     })
   }
 }

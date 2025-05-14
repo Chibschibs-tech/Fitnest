@@ -33,6 +33,7 @@ export default function ClientExpressShop() {
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   useEffect(() => {
     // Check authentication status
@@ -46,7 +47,9 @@ export default function ClientExpressShop() {
     try {
       const response = await fetch("/api/auth-direct")
       const data = await response.json()
+      console.log("Auth status:", data)
       setIsAuthenticated(data.isAuthenticated)
+      setDebugInfo(data)
     } catch (error) {
       console.error("Error checking auth status:", error)
       setIsAuthenticated(false)
@@ -113,6 +116,9 @@ export default function ClientExpressShop() {
 
     setAddingToCart(productId)
     try {
+      console.log("Adding product to cart:", productId)
+
+      // Use the direct cart API
       const response = await fetch("/api/cart-direct", {
         method: "POST",
         headers: {
@@ -121,9 +127,21 @@ export default function ClientExpressShop() {
         body: JSON.stringify({ productId, quantity: 1 }),
       })
 
+      console.log("Cart API response status:", response.status)
+
+      const responseText = await response.text()
+      console.log("Cart API response:", responseText)
+
+      let responseData
+      try {
+        responseData = JSON.parse(responseText)
+      } catch (e) {
+        console.error("Failed to parse response as JSON:", e)
+        throw new Error("Invalid response from server")
+      }
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to add item to cart")
+        throw new Error(responseData.error || responseData.details || "Failed to add item to cart")
       }
 
       toast({
@@ -138,7 +156,7 @@ export default function ClientExpressShop() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add item to cart. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add item to cart. Please try again.",
       })
     } finally {
       setAddingToCart(null)
@@ -192,6 +210,29 @@ export default function ClientExpressShop() {
           Browse our selection of healthy snacks, protein bars, and more for quick delivery.
         </p>
       </div>
+
+      {!isAuthenticated && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>
+            Please{" "}
+            <Link href="/login" className="font-medium underline">
+              log in
+            </Link>{" "}
+            to add items to your cart.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {debugInfo && (
+        <div className="mb-6 rounded-md bg-gray-100 p-4">
+          <h3 className="mb-2 flex items-center text-sm font-medium">
+            <Bug className="mr-2 h-4 w-4" /> Auth Debug Information
+          </h3>
+          <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
+        </div>
+      )}
 
       {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
@@ -267,7 +308,7 @@ export default function ClientExpressShop() {
                         <Button
                           className="w-full"
                           onClick={() => handleAddToCart(product.id)}
-                          disabled={addingToCart === product.id}
+                          disabled={addingToCart === product.id || !isAuthenticated}
                         >
                           {addingToCart === product.id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
