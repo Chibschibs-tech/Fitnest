@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { neon } from "@neondatabase/serverless"
+import { decrypt } from "@/lib/jwt"
 
 export async function GET() {
   try {
@@ -13,17 +14,20 @@ export async function GET() {
     const hasNextAuthSession = cookieStore.has("next-auth.session-token")
     const hasNextAuthCallbackUrl = cookieStore.has("next-auth.callback-url")
     const hasNextAuthCsrfToken = cookieStore.has("next-auth.csrf-token")
-    const hasJWT = cookieStore.has("jwt")
+    const hasJWT = cookieStore.has("session")
 
-    // Try to get the session token
-    const sessionToken = cookieStore.get("next-auth.session-token")?.value
+    // Try to get the session token from either auth method
+    const nextAuthToken = cookieStore.get("next-auth.session-token")?.value
+    const jwtToken = cookieStore.get("session")?.value
 
-    // If we have a session token, try to get the user from the database
+    // Initialize user as null
     let user = null
-    if (sessionToken) {
+
+    // Try NextAuth first if the token exists
+    if (nextAuthToken) {
       const sql = neon(process.env.DATABASE_URL!)
 
-      // First check if the sessions table exists
+      // Check if the sessions table exists
       const tables = await sql`
         SELECT table_name 
         FROM information_schema.tables 
@@ -35,7 +39,7 @@ export async function GET() {
       if (hasSessionsTable) {
         // Try to get the user from the sessions table
         const sessions = await sql`
-          SELECT * FROM sessions WHERE session_token = ${sessionToken} LIMIT 1
+          SELECT * FROM sessions WHERE session_token = ${nextAuthToken} LIMIT 1
         `
 
         if (sessions.length > 0) {
@@ -57,6 +61,33 @@ export async function GET() {
       }
     }
 
+    // If NextAuth didn't work, try custom JWT
+    if (!user && jwtToken) {
+      try {
+        // Decrypt the JWT token
+        const payload = await decrypt(jwtToken)
+
+        if (payload && payload.id) {
+          // Verify the user exists in the database
+          const sql = neon(process.env.DATABASE_URL!)
+          const users = await sql`
+            SELECT * FROM users WHERE id = ${payload.id} LIMIT 1
+          `
+
+          if (users.length > 0) {
+            user = {
+              id: users[0].id,
+              name: users[0].name,
+              email: users[0].email,
+              role: users[0].role,
+            }
+          }
+        }
+      } catch (jwtError) {
+        console.error("JWT decryption error:", jwtError)
+      }
+    }
+
     return NextResponse.json({
       status: "success",
       cookies: {
@@ -65,7 +96,8 @@ export async function GET() {
         hasNextAuthCallbackUrl,
         hasNextAuthCsrfToken,
         hasJWT,
-        sessionToken: sessionToken ? "[REDACTED]" : null,
+        sessionToken: nextAuthToken ? "[REDACTED]" : null,
+        jwtToken: jwtToken ? "[REDACTED]" : null,
       },
       user,
       isAuthenticated: !!user,

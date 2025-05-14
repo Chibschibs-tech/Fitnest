@@ -12,10 +12,24 @@ import { Menu, ShoppingCart } from "lucide-react"
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { data: session, status } = useSafeSession()
-  const isAuthenticated = status === "authenticated"
 
   useEffect(() => {
+    // Check authentication status
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth-direct")
+        const data = await response.json()
+        setIsAuthenticated(data.isAuthenticated)
+      } catch (error) {
+        console.error("Error checking auth status:", error)
+        setIsAuthenticated(false)
+      }
+    }
+
+    checkAuth()
+
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setIsScrolled(true)
@@ -90,7 +104,7 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated && <CartIcon />}
+            <CartIcon />
             <Link href="/order" className="hidden md:block">
               <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">Order Now</Button>
             </Link>

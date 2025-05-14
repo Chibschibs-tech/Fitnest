@@ -32,52 +32,68 @@ export default function ClientExpressShop() {
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setLoading(true)
-        console.log("Fetching products...")
+    // Check authentication status
+    checkAuthStatus()
 
-        const response = await fetch("/api/products")
-        console.log("Response status:", response.status)
-
-        // Store the raw text response for debugging
-        const responseText = await response.text()
-        console.log("Raw response:", responseText)
-
-        let responseData
-        try {
-          // Try to parse the response as JSON
-          responseData = JSON.parse(responseText)
-          console.log("Parsed response data:", responseData)
-          setRawResponse(responseData)
-        } catch (parseError) {
-          console.error("Error parsing JSON:", parseError)
-          throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
-        }
-
-        if (!response.ok) {
-          throw new Error(responseData.error || `API returned status ${response.status}`)
-        }
-
-        // Ensure we have an array, even if empty
-        if (!Array.isArray(responseData)) {
-          console.error("API did not return an array:", responseData)
-          throw new Error("API did not return an array of products")
-        }
-
-        setProducts(responseData)
-      } catch (err) {
-        console.error("Error fetching products:", err)
-        setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
-      } finally {
-        setLoading(false)
-      }
-    }
-
+    // Fetch products
     fetchProducts()
   }, [retryCount])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch("/api/auth-direct")
+      const data = await response.json()
+      setIsAuthenticated(data.isAuthenticated)
+    } catch (error) {
+      console.error("Error checking auth status:", error)
+      setIsAuthenticated(false)
+    }
+  }
+
+  async function fetchProducts() {
+    try {
+      setLoading(true)
+      console.log("Fetching products...")
+
+      const response = await fetch("/api/products")
+      console.log("Response status:", response.status)
+
+      // Store the raw text response for debugging
+      const responseText = await response.text()
+      console.log("Raw response:", responseText)
+
+      let responseData
+      try {
+        // Try to parse the response as JSON
+        responseData = JSON.parse(responseText)
+        console.log("Parsed response data:", responseData)
+        setRawResponse(responseData)
+      } catch (parseError) {
+        console.error("Error parsing JSON:", parseError)
+        throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
+      }
+
+      if (!response.ok) {
+        throw new Error(responseData.error || `API returned status ${response.status}`)
+      }
+
+      // Ensure we have an array, even if empty
+      if (!Array.isArray(responseData)) {
+        console.error("API did not return an array:", responseData)
+        throw new Error("API did not return an array of products")
+      }
+
+      setProducts(responseData)
+    } catch (err) {
+      console.error("Error fetching products:", err)
+      setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Extract unique categories from products
   const categories = ["all", ...new Set(products.map((product) => product.category))]
@@ -86,9 +102,18 @@ export default function ClientExpressShop() {
     activeCategory === "all" ? products : products.filter((product) => product.category === activeCategory)
 
   const handleAddToCart = async (productId: number) => {
+    if (!isAuthenticated) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to add items to your cart",
+      })
+      return
+    }
+
     setAddingToCart(productId)
     try {
-      const response = await fetch("/api/cart", {
+      const response = await fetch("/api/cart-direct", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,13 +122,17 @@ export default function ClientExpressShop() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to add item to cart")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add item to cart")
       }
 
       toast({
         title: "Added to cart",
         description: "Item has been added to your cart",
       })
+
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error adding item to cart:", error)
       toast({

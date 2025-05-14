@@ -10,17 +10,20 @@ export default function CartIcon() {
   const [count, setCount] = useState(0)
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     setIsClient(true)
 
-    // Fetch cart count on initial load
-    fetchCartCount()
+    // Check authentication status first
+    checkAuthStatus()
 
-    // Set up interval to refresh cart count
-    const interval = setInterval(fetchCartCount, 30000) // Refresh every 30 seconds
+    // Set up interval to refresh auth status and cart count
+    const interval = setInterval(() => {
+      checkAuthStatus()
+    }, 30000) // Refresh every 30 seconds
 
     // Listen for custom events from add-to-cart actions
     window.addEventListener("cart:updated", fetchCartCount)
@@ -30,6 +33,26 @@ export default function CartIcon() {
       window.removeEventListener("cart:updated", fetchCartCount)
     }
   }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch("/api/auth-direct")
+      const data = await response.json()
+
+      setIsAuthenticated(data.isAuthenticated)
+
+      if (data.isAuthenticated) {
+        fetchCartCount()
+      } else {
+        setCount(0)
+        setIsLoading(false)
+      }
+    } catch (error) {
+      console.error("Error checking auth status:", error)
+      setIsAuthenticated(false)
+      setIsLoading(false)
+    }
+  }
 
   const fetchCartCount = async () => {
     try {
@@ -66,6 +89,9 @@ export default function CartIcon() {
 
   // Don't render anything on the server to prevent hydration mismatch
   if (!isClient) return null
+
+  // Don't render if not authenticated
+  if (!isAuthenticated) return null
 
   return (
     <Link href="/shopping-cart" className="relative">
