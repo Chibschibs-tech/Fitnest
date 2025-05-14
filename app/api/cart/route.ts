@@ -3,11 +3,23 @@ import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
-// Helper function to ensure cart table exists
-async function ensureCartTableExists() {
+// Helper function to get user ID from session
+async function getUserId() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      throw new Error("User not authenticated")
+    }
+    return Number.parseInt(session.user.id as string)
+  } catch (error) {
+    console.error("Error getting user ID:", error)
+    throw new Error("User not authenticated")
+  }
+}
 
+// Helper function to ensure cart table exists
+async function ensureCartTableExists(sql: any) {
+  try {
     // Check if cart_items table exists
     const tables = await sql`
       SELECT table_name 
@@ -15,7 +27,7 @@ async function ensureCartTableExists() {
       WHERE table_schema = 'public'
     `
 
-    const cartTableExists = tables.some((t) => t.table_name === "cart_items")
+    const cartTableExists = tables.some((t: any) => t.table_name === "cart_items")
 
     if (!cartTableExists) {
       console.log("Creating cart_items table...")
@@ -38,24 +50,13 @@ async function ensureCartTableExists() {
   }
 }
 
-// Helper function to get user ID from session
-async function getUserId() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    throw new Error("User not authenticated")
-  }
-  return Number.parseInt(session.user.id as string)
-}
-
 export async function GET(request: NextRequest) {
   try {
     const userId = await getUserId()
     const sql = neon(process.env.DATABASE_URL!)
 
     // Ensure cart table exists
-    await ensureCartTableExists()
-
-    console.log("Fetching cart for user:", userId)
+    await ensureCartTableExists(sql)
 
     // Get all cart items for the user with product details
     const cartItems = await sql`
@@ -73,8 +74,6 @@ export async function GET(request: NextRequest) {
       LEFT JOIN products p ON ci.product_id = p.id
       WHERE ci.user_id = ${userId}
     `
-
-    console.log("Cart items fetched:", cartItems.length)
 
     // Calculate totals
     const subtotal = cartItems.reduce((sum: number, item: any) => {
@@ -108,10 +107,8 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     const sql = neon(process.env.DATABASE_URL!)
 
-    console.log("Adding to cart:", data)
-
     // Ensure cart table exists
-    await ensureCartTableExists()
+    await ensureCartTableExists(sql)
 
     // Validate required fields
     if (!data.productId || data.quantity === undefined) {
@@ -121,7 +118,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if product exists and is active
+    // Check if product exists
     const productExists = await sql`
       SELECT id FROM products 
       WHERE id = ${data.productId}
@@ -202,9 +199,7 @@ export async function DELETE(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!)
 
     // Ensure cart table exists
-    await ensureCartTableExists()
-
-    console.log("Delete cart request:", { itemId, clearAll })
+    await ensureCartTableExists(sql)
 
     if (clearAll === "true") {
       // Clear entire cart
@@ -241,7 +236,6 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Add PUT method to update cart item quantity
 export async function PUT(request: NextRequest) {
   try {
     const userId = await getUserId()
@@ -249,9 +243,7 @@ export async function PUT(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!)
 
     // Ensure cart table exists
-    await ensureCartTableExists()
-
-    console.log("Updating cart item:", data)
+    await ensureCartTableExists(sql)
 
     // Validate required fields
     if (!data.itemId || data.quantity === undefined) {
