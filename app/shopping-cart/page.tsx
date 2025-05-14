@@ -41,39 +41,22 @@ export default function ShoppingCartPage() {
     try {
       setLoading(true)
 
-      // First, run diagnostics
-      const diagnosticResponse = await fetch("/api/cart-diagnostic")
-      const diagnosticData = await diagnosticResponse.json()
-      setDebugInfo(diagnosticData)
+      // First, check direct authentication
+      const authResponse = await fetch("/api/auth-direct")
+      const authData = await authResponse.json()
+      setDebugInfo(authData)
 
-      console.log("Cart diagnostic:", diagnosticData)
+      console.log("Auth direct:", authData)
 
-      // Check for authentication issues
-      if (!diagnosticData.authStatus.isAuthenticated) {
-        throw new Error("You must be logged in to view your cart")
-      }
-
-      // Check for database issues
-      if (diagnosticData.database.connectionStatus === "error") {
-        throw new Error(`Database connection error: ${diagnosticData.database.error}`)
-      }
-
-      // Check if cart table exists
-      if (!diagnosticData.cartTable.exists) {
-        throw new Error("Cart table does not exist. Please initialize the cart table.")
-      }
-
-      // Use the simplified cart API
-      const response = await fetch("/api/cart-simple")
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Error fetching cart:", errorText)
-        throw new Error("Failed to load cart")
-      }
-
+      // Use the direct cart API
+      const response = await fetch("/api/cart-direct")
       const data = await response.json()
+
       console.log("Cart data:", data)
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
 
       setCartItems(data.items || [])
       setSubtotal(data.subtotal || 0)
@@ -90,7 +73,7 @@ export default function ShoppingCartPage() {
 
     setUpdatingItem(itemId)
     try {
-      const response = await fetch("/api/cart", {
+      const response = await fetch("/api/cart-direct", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -121,7 +104,7 @@ export default function ShoppingCartPage() {
   const removeItem = async (itemId: number) => {
     setUpdatingItem(itemId)
     try {
-      const response = await fetch(`/api/cart?id=${itemId}`, {
+      const response = await fetch(`/api/cart-direct?id=${itemId}`, {
         method: "DELETE",
       })
 
@@ -152,7 +135,7 @@ export default function ShoppingCartPage() {
 
   const clearCart = async () => {
     try {
-      const response = await fetch(`/api/cart?clearAll=true`, {
+      const response = await fetch(`/api/cart-direct?clearAll=true`, {
         method: "DELETE",
       })
 

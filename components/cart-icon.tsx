@@ -36,7 +36,8 @@ export default function CartIcon() {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetch("/api/cart/count")
+      // Try the direct API first
+      const response = await fetch("/api/cart-direct/count")
 
       if (!response.ok) {
         const errorText = await response.text()
