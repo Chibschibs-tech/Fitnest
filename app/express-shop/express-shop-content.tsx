@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Plus, Filter, AlertCircle, Bug } from "lucide-react"
+import { Loader2, ShoppingCart, Plus, Filter, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useSession } from "next-auth/react"
 
 interface Product {
   id: number
@@ -25,10 +26,10 @@ interface Product {
 }
 
 export function ExpressShopContent() {
+  const { data: session, status } = useSession()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -41,25 +42,13 @@ export function ExpressShopContent() {
         console.log("Fetching products...")
 
         const response = await fetch("/api/products-simple")
-        console.log("Response status:", response.status)
-
-        // Store the raw text response for debugging
-        const responseText = await response.text()
-        console.log("Raw response:", responseText)
-
-        let responseData
-        try {
-          // Try to parse the response as JSON
-          responseData = JSON.parse(responseText)
-          console.log("Parsed response data:", responseData)
-        } catch (parseError) {
-          console.error("Error parsing JSON:", parseError)
-          throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
-        }
 
         if (!response.ok) {
-          throw new Error(responseData.error || `API returned status ${response.status}`)
+          const errorText = await response.text()
+          throw new Error(`API error: ${errorText}`)
         }
+
+        const responseData = await response.json()
 
         // Ensure we have an array, even if empty
         if (!Array.isArray(responseData)) {
@@ -86,20 +75,18 @@ export function ExpressShopContent() {
     activeCategory === "all" ? products : products.filter((product) => product.category === activeCategory)
 
   const handleAddToCart = async (productId: number) => {
+    if (status !== "authenticated") {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to add items to your cart",
+      })
+      return
+    }
+
     setAddingToCart(productId)
     try {
-      // First, check authentication status
-      const authResponse = await fetch("/api/cart-diagnostic")
-      const authData = await authResponse.json()
-
-      if (!authData.authStatus.isAuthenticated) {
-        throw new Error("You must be logged in to add items to your cart")
-      }
-
-      setDebugInfo(authData)
-
-      // Use the simplified cart API
-      const response = await fetch("/api/cart-simple", {
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,21 +95,20 @@ export function ExpressShopContent() {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Error adding to cart:", errorText)
-        throw new Error("Failed to add item to cart")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add item to cart")
       }
 
       const data = await response.json()
-      console.log("Added to cart:", data)
-
-      // Dispatch custom event to update cart count
-      window.dispatchEvent(new CustomEvent("cart:updated"))
+      const product = products.find((p) => p.id === productId)
 
       toast({
         title: "Added to cart",
-        description: `${data.product.name} has been added to your cart`,
+        description: `${product?.name || "Item"} has been added to your cart`,
       })
+
+      // Trigger cart update event
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error adding item to cart:", error)
       toast({
@@ -137,7 +123,6 @@ export function ExpressShopContent() {
 
   const handleRetry = () => {
     setError(null)
-    setDebugInfo(null)
     setRetryCount((prev) => prev + 1)
   }
 
@@ -158,15 +143,6 @@ export function ExpressShopContent() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
 
-        {debugInfo && (
-          <div className="mb-6 rounded-md bg-gray-100 p-4">
-            <h3 className="mb-2 flex items-center text-sm font-medium">
-              <Bug className="mr-2 h-4 w-4" /> Debug Information
-            </h3>
-            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
-          </div>
-        )}
-
         <div className="flex justify-center">
           <Button onClick={handleRetry}>Try Again</Button>
         </div>
@@ -182,6 +158,20 @@ export function ExpressShopContent() {
           Browse our selection of healthy snacks, protein bars, and more for quick delivery.
         </p>
       </div>
+
+      {status !== "authenticated" && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>
+            Please{" "}
+            <Link href="/login?callbackUrl=/express-shop" className="font-medium underline">
+              log in
+            </Link>{" "}
+            to add items to your cart.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
@@ -257,7 +247,7 @@ export function ExpressShopContent() {
                         <Button
                           className="w-full"
                           onClick={() => handleAddToCart(product.id)}
-                          disabled={addingToCart === product.id}
+                          disabled={addingToCart === product.id || status !== "authenticated"}
                         >
                           {addingToCart === product.id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
