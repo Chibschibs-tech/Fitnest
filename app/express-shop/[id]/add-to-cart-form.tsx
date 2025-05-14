@@ -8,6 +8,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
   const [quantity, setQuantity] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number.parseInt(e.target.value)
@@ -20,9 +21,10 @@ export function AddToCartForm({ productId }: { productId: number }) {
     e.preventDefault()
     setIsLoading(true)
     setMessage("")
+    setError("")
 
     try {
-      const response = await fetch("/api/cart-simple", {
+      const response = await fetch("/api/cart/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,10 +41,17 @@ export function AddToCartForm({ productId }: { productId: number }) {
         setMessage("Added to cart!")
         setTimeout(() => setMessage(""), 2000)
       } else {
-        setMessage(data.error || "Failed to add to cart")
+        setError(data.error || "Failed to add to cart")
+
+        // If not authenticated, redirect to login
+        if (response.status === 401) {
+          setTimeout(() => {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname)
+          }, 1500)
+        }
       }
     } catch (error) {
-      setMessage("Error adding to cart")
+      setError("Error adding to cart. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -89,17 +98,9 @@ export function AddToCartForm({ productId }: { productId: number }) {
         {isLoading ? "Adding to Cart..." : "Add to Cart"}
       </button>
 
-      {message && (
-        <div
-          className={`mt-2 rounded p-2 text-center ${
-            message.includes("Error") || message.includes("Failed")
-              ? "bg-red-100 text-red-700"
-              : "bg-green-100 text-green-700"
-          }`}
-        >
-          {message}
-        </div>
-      )}
+      {message && <div className="mt-2 rounded bg-green-100 p-2 text-center text-green-700">{message}</div>}
+
+      {error && <div className="mt-2 rounded bg-red-100 p-2 text-center text-red-700">{error}</div>}
     </form>
   )
 }

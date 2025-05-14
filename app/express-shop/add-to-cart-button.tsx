@@ -5,13 +5,15 @@ import { useState } from "react"
 export function AddToCartButton({ productId }: { productId: number }) {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
 
   const addToCart = async () => {
     setIsLoading(true)
     setMessage("")
+    setError("")
 
     try {
-      const response = await fetch("/api/cart-simple", {
+      const response = await fetch("/api/cart/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -28,12 +30,17 @@ export function AddToCartButton({ productId }: { productId: number }) {
         setMessage("Added to cart!")
         setTimeout(() => setMessage(""), 2000)
       } else {
-        setMessage(data.error || "Failed to add to cart")
-        setTimeout(() => setMessage(""), 3000)
+        setError(data.error || "Failed to add to cart")
+
+        // If not authenticated, redirect to login
+        if (response.status === 401) {
+          setTimeout(() => {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname)
+          }, 1500)
+        }
       }
     } catch (error) {
-      setMessage("Error adding to cart")
-      setTimeout(() => setMessage(""), 3000)
+      setError("Error adding to cart. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -44,14 +51,20 @@ export function AddToCartButton({ productId }: { productId: number }) {
       <button
         onClick={addToCart}
         disabled={isLoading}
-        className="rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-blue-400"
+        className="rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:bg-green-400"
       >
-        {isLoading ? "Adding..." : "Add"}
+        {isLoading ? "Adding..." : "Add to Cart"}
       </button>
 
       {message && (
-        <div className="absolute right-0 top-full mt-1 w-32 rounded bg-gray-800 p-1 text-center text-xs text-white">
+        <div className="absolute right-0 top-full mt-1 w-32 rounded bg-green-600 p-1 text-center text-xs text-white">
           {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="absolute right-0 top-full mt-1 w-48 rounded bg-red-600 p-1 text-center text-xs text-white">
+          {error}
         </div>
       )}
     </div>
