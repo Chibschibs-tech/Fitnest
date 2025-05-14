@@ -59,6 +59,19 @@ async function getUserId() {
   throw new Error("User not authenticated")
 }
 
+// Helper function to get column names
+async function getTableColumns(tableName) {
+  const sql = neon(process.env.DATABASE_URL!)
+
+  const columns = await sql`
+    SELECT column_name 
+    FROM information_schema.columns 
+    WHERE table_name = ${tableName}
+  `
+
+  return columns.map((col) => col.column_name)
+}
+
 export async function GET() {
   try {
     let userId
@@ -100,22 +113,55 @@ export async function GET() {
       `
     }
 
+    // Get product table columns to determine correct column names
+    const productColumns = await getTableColumns("products")
+    console.log("Product table columns:", productColumns)
+
+    // Determine the correct column names
+    const hasSalePrice = productColumns.includes("sale_price")
+    const hasSaleprice = productColumns.includes("saleprice")
+    const hasImageUrl = productColumns.includes("image_url")
+    const hasImageurl = productColumns.includes("imageurl")
+
+    // Build the SQL query dynamically based on the column names
+    const salePriceColumn = hasSalePrice ? "sale_price" : hasSaleprice ? "saleprice" : null
+    const imageUrlColumn = hasImageUrl ? "image_url" : hasImageurl ? "imageurl" : null
+
     // Get all cart items for the user with product details
-    const cartItems = await sql`
-      SELECT 
-        ci.id, 
-        ci.product_id as "productId", 
-        ci.quantity,
-        p.name,
-        p.description,
-        p.price,
-        p.saleprice as "salePrice",
-        p.imageurl as "imageUrl",
-        p.category
-      FROM cart_items ci
-      LEFT JOIN products p ON ci.product_id = p.id
-      WHERE ci.user_id = ${userId}
-    `
+    let cartItems
+
+    if (salePriceColumn && imageUrlColumn) {
+      cartItems = await sql`
+        SELECT 
+          ci.id, 
+          ci.product_id as "productId", 
+          ci.quantity,
+          p.name,
+          p.description,
+          p.price,
+          p.${sql(salePriceColumn)} as "salePrice",
+          p.${sql(imageUrlColumn)} as "imageUrl",
+          p.category
+        FROM cart_items ci
+        LEFT JOIN products p ON ci.product_id = p.id
+        WHERE ci.user_id = ${userId}
+      `
+    } else {
+      // Fallback query without problematic columns
+      cartItems = await sql`
+        SELECT 
+          ci.id, 
+          ci.product_id as "productId", 
+          ci.quantity,
+          p.name,
+          p.description,
+          p.price,
+          p.category
+        FROM cart_items ci
+        LEFT JOIN products p ON ci.product_id = p.id
+        WHERE ci.user_id = ${userId}
+      `
+    }
 
     // Calculate totals
     const subtotal = cartItems.reduce((sum, item) => {
@@ -203,17 +249,44 @@ export async function POST(request) {
       `
     }
 
+    // Get product table columns to determine correct column names
+    const productColumns = await getTableColumns("products")
+
+    // Determine the correct column names
+    const hasSalePrice = productColumns.includes("sale_price")
+    const hasSaleprice = productColumns.includes("saleprice")
+    const hasImageUrl = productColumns.includes("image_url")
+    const hasImageurl = productColumns.includes("imageurl")
+
+    // Build the SQL query dynamically based on the column names
+    const salePriceColumn = hasSalePrice ? "sale_price" : hasSaleprice ? "saleprice" : null
+    const imageUrlColumn = hasImageUrl ? "image_url" : hasImageurl ? "imageurl" : null
+
     // Get product details for the response
-    const product = await sql`
-      SELECT 
-        name, 
-        price, 
-        saleprice as "salePrice", 
-        imageurl as "imageUrl"
-      FROM products 
-      WHERE id = ${data.productId}
-      LIMIT 1
-    `
+    let product
+
+    if (salePriceColumn && imageUrlColumn) {
+      product = await sql`
+        SELECT 
+          name, 
+          price, 
+          ${sql(salePriceColumn)} as "salePrice", 
+          ${sql(imageUrlColumn)} as "imageUrl"
+        FROM products 
+        WHERE id = ${data.productId}
+        LIMIT 1
+      `
+    } else {
+      // Fallback query without problematic columns
+      product = await sql`
+        SELECT 
+          name, 
+          price
+        FROM products 
+        WHERE id = ${data.productId}
+        LIMIT 1
+      `
+    }
 
     const response = {
       ...result[0],

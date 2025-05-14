@@ -32,6 +32,7 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
   const router = useRouter()
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Default to true, will be checked during add to cart
 
   const handleQuantityChange = (change: number) => {
     setQuantity(Math.max(1, quantity + change))
@@ -40,7 +41,8 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
   const handleAddToCart = async () => {
     setIsAddingToCart(true)
     try {
-      const response = await fetch("/api/cart", {
+      // Try to add to cart using the direct API
+      const response = await fetch("/api/cart-direct", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,8 +50,19 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
         body: JSON.stringify({ productId: product.id, quantity }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to add item to cart")
+        if (response.status === 401) {
+          setIsAuthenticated(false)
+          toast({
+            variant: "destructive",
+            title: "Authentication Required",
+            description: "Please log in to add items to your cart",
+          })
+          return
+        }
+        throw new Error(data.error || "Failed to add item to cart")
       }
 
       toast({
@@ -57,8 +70,8 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
         description: "Item has been added to your cart",
       })
 
-      // Optionally redirect to shopping cart
-      // router.push("/shopping-cart")
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error adding item to cart:", error)
       toast({

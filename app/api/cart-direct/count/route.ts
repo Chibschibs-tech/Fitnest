@@ -67,7 +67,10 @@ export async function GET() {
       userId = await getUserId()
     } catch (error) {
       console.error("Error getting user ID:", error)
-      return NextResponse.json({ count: 0 })
+      return NextResponse.json({
+        count: 0,
+        error: "Not authenticated",
+      })
     }
 
     const sql = neon(process.env.DATABASE_URL!)
@@ -82,21 +85,35 @@ export async function GET() {
     const cartTableExists = tables.some((t) => t.table_name === "cart_items")
 
     if (!cartTableExists) {
+      // Create the cart_items table
+      await sql`
+        CREATE TABLE IF NOT EXISTS cart_items (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `
       return NextResponse.json({ count: 0 })
     }
 
-    // Count cart items for the user
+    // Get the count of items in the cart
     const result = await sql`
       SELECT SUM(quantity) as count
       FROM cart_items
       WHERE user_id = ${userId}
     `
 
-    const count = Number(result[0]?.count || 0)
+    const count = result[0]?.count || 0
 
-    return NextResponse.json({ count })
+    return NextResponse.json({ count: Number.parseInt(count) })
   } catch (error) {
-    console.error("Error fetching cart count directly:", error)
-    return NextResponse.json({ count: 0 })
+    console.error("Error fetching cart count:", error)
+    return NextResponse.json({
+      count: 0,
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 }
