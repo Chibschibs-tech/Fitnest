@@ -1,11 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
@@ -14,8 +12,9 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = Number.parseInt(session.user.id as string)
+    const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if the cart_items table exists
+    // First, check if the cart_items table exists
     const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
@@ -25,6 +24,7 @@ export async function GET(request: NextRequest) {
     const cartTableExists = tables.some((t) => t.table_name === "cart_items")
 
     if (!cartTableExists) {
+      console.log("Cart table doesn't exist for count")
       return NextResponse.json({ count: 0 })
     }
 
@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ count })
   } catch (error) {
     console.error("Error fetching cart count:", error)
-    return NextResponse.json({ count: 0 })
+    return NextResponse.json({
+      count: 0,
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 }

@@ -1,29 +1,94 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
+import { Loader2, ShoppingCart, Trash2, AlertCircle, Plus, Minus, Bug } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useCart } from "@/contexts/cart-context"
-import { useSession } from "next-auth/react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+interface CartItem {
+  id: number
+  productId: number
+  quantity: number
+  product: {
+    name: string
+    description: string
+    price: number
+    salePrice?: number
+    imageUrl?: string
+    category: string
+  }
+}
+
 export default function ShoppingCartPage() {
-  const { data: session, status } = useSession()
-  const { items, subtotal, isLoading, error, updateItem, removeItem, clearCart } = useCart()
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [subtotal, setSubtotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
   const [updatingItem, setUpdatingItem] = useState<number | null>(null)
   const { toast } = useToast()
 
-  const handleUpdateQuantity = async (itemId: number, quantity: number) => {
+  useEffect(() => {
+    fetchCart()
+  }, [])
+
+  const fetchCart = async () => {
+    try {
+      setLoading(true)
+
+      // First, check direct authentication
+      const authResponse = await fetch("/api/auth-direct")
+      const authData = await authResponse.json()
+      setDebugInfo(authData)
+
+      console.log("Auth direct:", authData)
+
+      // Use the direct cart API
+      const response = await fetch("/api/cart-direct")
+      const data = await response.json()
+
+      console.log("Cart data:", data)
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      setCartItems(data.items || [])
+      setSubtotal(data.subtotal || 0)
+    } catch (error) {
+      console.error("Error loading cart:", error)
+      setError(error instanceof Error ? error.message : "Failed to load cart. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateQuantity = async (itemId: number, quantity: number) => {
     if (quantity < 1) return
 
     setUpdatingItem(itemId)
     try {
-      await updateItem(itemId, quantity)
+      const response = await fetch("/api/cart-direct", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ itemId, quantity }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update cart")
+      }
+
+      await fetchCart()
+
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error updating cart:", error)
       toast({
@@ -36,15 +101,26 @@ export default function ShoppingCartPage() {
     }
   }
 
-  const handleRemoveItem = async (itemId: number) => {
+  const removeItem = async (itemId: number) => {
     setUpdatingItem(itemId)
     try {
-      await removeItem(itemId)
+      const response = await fetch(`/api/cart-direct?id=${itemId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to remove item from cart")
+      }
+
+      await fetchCart()
 
       toast({
         title: "Item removed",
         description: "Item has been removed from your cart",
       })
+
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error removing item from cart:", error)
       toast({
@@ -57,14 +133,25 @@ export default function ShoppingCartPage() {
     }
   }
 
-  const handleClearCart = async () => {
+  const clearCart = async () => {
     try {
-      await clearCart()
+      const response = await fetch(`/api/cart-direct?clearAll=true`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to clear cart")
+      }
+
+      await fetchCart()
 
       toast({
         title: "Cart cleared",
         description: "All items have been removed from your cart",
       })
+
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error clearing cart:", error)
       toast({
@@ -75,25 +162,7 @@ export default function ShoppingCartPage() {
     }
   }
 
-  // Redirect to login if not authenticated
-  if (status === "unauthenticated") {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <Alert className="mb-6">
-          <AlertTitle>Authentication Required</AlertTitle>
-          <AlertDescription>
-            Please{" "}
-            <Link href="/login?callbackUrl=/shopping-cart" className="font-medium underline">
-              log in
-            </Link>{" "}
-            to view your cart.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-12">
         <div className="text-center">
@@ -108,14 +177,31 @@ export default function ShoppingCartPage() {
     return (
       <div className="container mx-auto px-4 py-12">
         <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+
+        {debugInfo && (
+          <div className="mb-6 rounded-md bg-gray-100 p-4">
+            <h3 className="mb-2 flex items-center text-sm font-medium">
+              <Bug className="mr-2 h-4 w-4" /> Debug Information
+            </h3>
+            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
+        )}
+
+        <div className="flex justify-center space-x-4">
+          <Button onClick={fetchCart}>Try Again</Button>
+          <Link href="/api/init-cart-table">
+            <Button variant="outline">Initialize Cart Table</Button>
+          </Link>
+        </div>
       </div>
     )
   }
 
-  if (items.length === 0) {
+  if (cartItems.length === 0) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8 text-center">
@@ -148,18 +234,18 @@ export default function ShoppingCartPage() {
         <div className="lg:col-span-2">
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between p-6">
-              <h2 className="text-xl font-semibold">Cart Items ({items.length})</h2>
-              <Button variant="outline" size="sm" onClick={handleClearCart}>
+              <h2 className="text-xl font-semibold">Cart Items ({cartItems.length})</h2>
+              <Button variant="outline" size="sm" onClick={clearCart}>
                 <Trash2 className="mr-2 h-4 w-4" /> Clear Cart
               </Button>
             </div>
 
             <div className="divide-y">
-              {items.map((item) => (
+              {cartItems.map((item) => (
                 <div key={item.id} className="p-6">
                   <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-6 sm:space-y-0">
                     <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border bg-gray-100 sm:h-32 sm:w-32">
-                      {item.product?.imageUrl ? (
+                      {item.product.imageUrl ? (
                         <Image
                           src={item.product.imageUrl || "/placeholder.svg"}
                           alt={item.product.name}
@@ -177,19 +263,19 @@ export default function ShoppingCartPage() {
                     <div className="flex flex-1 flex-col">
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="text-lg font-medium">{item.product?.name}</h3>
+                          <h3 className="text-lg font-medium">{item.product.name}</h3>
                           <p className="mt-1 text-sm text-gray-500">
-                            Category: {item.product?.category?.replace("_", " ") || "Unknown"}
+                            Category: {item.product.category?.replace("_", " ") || "Unknown"}
                           </p>
                         </div>
                         <div className="text-right">
-                          {item.product?.salePrice ? (
+                          {item.product.salePrice ? (
                             <>
                               <p className="text-lg font-medium text-green-600">{item.product.salePrice} MAD</p>
                               <p className="text-sm text-gray-500 line-through">{item.product.price} MAD</p>
                             </>
                           ) : (
-                            <p className="text-lg font-medium">{item.product?.price} MAD</p>
+                            <p className="text-lg font-medium">{item.product.price} MAD</p>
                           )}
                         </div>
                       </div>
@@ -201,7 +287,7 @@ export default function ShoppingCartPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-none border-r"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               disabled={updatingItem === item.id || item.quantity <= 1}
                             >
                               <Minus className="h-3 w-3" />
@@ -217,7 +303,7 @@ export default function ShoppingCartPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-none border-l"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               disabled={updatingItem === item.id}
                             >
                               <Plus className="h-3 w-3" />
@@ -229,7 +315,7 @@ export default function ShoppingCartPage() {
                           variant="ghost"
                           size="sm"
                           className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                          onClick={() => handleRemoveItem(item.id)}
+                          onClick={() => removeItem(item.id)}
                           disabled={updatingItem === item.id}
                         >
                           <Trash2 className="mr-1 h-4 w-4" />
@@ -247,7 +333,7 @@ export default function ShoppingCartPage() {
         <div>
           <Card className="sticky top-20">
             <div className="p-6">
-              <h2 className="mb-4 text-xl font-semibold">Order Summary</h2>
+              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span>Subtotal</span>

@@ -3,45 +3,85 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ShoppingCart } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
-import { useSession } from "next-auth/react"
 
 export default function CartIcon() {
-  const { status } = useSession()
   const [count, setCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     setIsClient(true)
 
-    if (status === "authenticated") {
-      fetchCartCount()
+    // Check authentication status first
+    checkAuthStatus()
 
-      // Listen for cart update events
-      window.addEventListener("cart:updated", fetchCartCount)
+    // Set up interval to refresh auth status and cart count
+    const interval = setInterval(() => {
+      checkAuthStatus()
+    }, 30000) // Refresh every 30 seconds
 
-      return () => {
-        window.removeEventListener("cart:updated", fetchCartCount)
+    // Listen for custom events from add-to-cart actions
+    window.addEventListener("cart:updated", fetchCartCount)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("cart:updated", fetchCartCount)
+    }
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch("/api/auth-direct")
+      const data = await response.json()
+
+      setIsAuthenticated(data.isAuthenticated)
+
+      if (data.isAuthenticated) {
+        fetchCartCount()
+      } else {
+        setCount(0)
+        setIsLoading(false)
       }
-    } else {
+    } catch (error) {
+      console.error("Error checking auth status:", error)
+      setIsAuthenticated(false)
       setIsLoading(false)
     }
-  }, [status])
+  }
 
   const fetchCartCount = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch("/api/cart/count")
+      setError(null)
+
+      // Try the direct API first
+      const response = await fetch("/api/cart-direct/count")
 
       if (!response.ok) {
-        throw new Error("Failed to fetch cart count")
+        const errorText = await response.text()
+        console.error("Error fetching cart count:", errorText)
+        setError("Failed to fetch cart count")
+        return
       }
 
       const data = await response.json()
+      console.log("Cart count:", data)
+
+      if (data.error) {
+        console.error("Cart count error:", data.error)
+        setError(data.error)
+        return
+      }
+
       setCount(data.count || 0)
     } catch (error) {
       console.error("Error fetching cart count:", error)
+      setError(error instanceof Error ? error.message : "Unknown error")
     } finally {
       setIsLoading(false)
     }
@@ -51,7 +91,7 @@ export default function CartIcon() {
   if (!isClient) return null
 
   // Don't render if not authenticated
-  if (status !== "authenticated") return null
+  if (!isAuthenticated) return null
 
   return (
     <Link href="/shopping-cart" className="relative">

@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, ShoppingCart, Plus, Minus, ArrowLeft } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
-import { useCart } from "@/contexts/cart-context"
 
 interface Product {
   id: number
@@ -32,30 +30,48 @@ interface ProductDetailContentProps {
 
 export function ProductDetailContent({ product, relatedProducts }: ProductDetailContentProps) {
   const router = useRouter()
-  const { data: session, status } = useSession()
-  const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
-  const { toast } = useToast()
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Default to true, will be checked during add to cart
 
   const handleQuantityChange = (change: number) => {
     setQuantity(Math.max(1, quantity + change))
   }
 
   const handleAddToCart = async () => {
-    if (status !== "authenticated") {
-      router.push(`/login?callbackUrl=/express-shop/${product.id}`)
-      return
-    }
-
     setIsAddingToCart(true)
     try {
-      await addItem(product.id, quantity)
+      // Try to add to cart using the direct API
+      const response = await fetch("/api/cart-direct", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId: product.id, quantity }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setIsAuthenticated(false)
+          toast({
+            variant: "destructive",
+            title: "Authentication Required",
+            description: "Please log in to add items to your cart",
+          })
+          return
+        }
+        throw new Error(data.error || "Failed to add item to cart")
+      }
 
       toast({
         title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
+        description: "Item has been added to your cart",
       })
+
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error adding item to cart:", error)
       toast({
@@ -134,7 +150,6 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
                   size="icon"
                   className="h-10 w-10 rounded-none"
                   onClick={() => handleQuantityChange(-1)}
-                  disabled={quantity <= 1}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -155,7 +170,7 @@ export function ProductDetailContent({ product, relatedProducts }: ProductDetail
           <Button
             className="w-full py-6 text-lg"
             onClick={handleAddToCart}
-            disabled={isAddingToCart || product.stock <= 0 || status !== "authenticated"}
+            disabled={isAddingToCart || product.stock <= 0}
           >
             {isAddingToCart ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

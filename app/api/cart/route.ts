@@ -1,55 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
-
-// Helper function to ensure cart table exists
-async function ensureCartTableExists() {
-  try {
-    // Check if cart_items table exists
-    const tables = await sql`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `
-
-    const cartTableExists = tables.some((t) => t.table_name === "cart_items")
-
-    if (!cartTableExists) {
-      console.log("Creating cart_items table...")
-      await sql`
-        CREATE TABLE cart_items (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
-          quantity INTEGER NOT NULL DEFAULT 1,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `
-      console.log("cart_items table created successfully")
-    }
-    return true
-  } catch (error) {
-    console.error("Error checking/creating cart table:", error)
-    return false
+// Helper function to get user ID from session
+async function getUserId() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    throw new Error("User not authenticated")
   }
+  return Number.parseInt(session.user.id as string)
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const userId = await getUserId()
+    const sql = neon(process.env.DATABASE_URL!)
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const userId = Number.parseInt(session.user.id as string)
-
-    // Ensure cart table exists
-    await ensureCartTableExists()
+    console.log("Fetching cart for user:", userId)
 
     // Get all cart items for the user with product details
     const cartItems = await sql`
@@ -68,6 +36,8 @@ export async function GET(request: NextRequest) {
       WHERE ci.user_id = ${userId}
     `
 
+    console.log("Cart items fetched:", cartItems.length)
+
     // Calculate totals
     const subtotal = cartItems.reduce((sum: number, item: any) => {
       const price = item.salePrice || item.price
@@ -81,6 +51,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error fetching cart:", error)
+    if (error instanceof Error && error.message === "User not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     return NextResponse.json(
       {
         error: "Failed to fetch cart",
@@ -93,27 +66,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const userId = Number.parseInt(session.user.id as string)
+    const userId = await getUserId()
     const data = await request.json()
+    const sql = neon(process.env.DATABASE_URL!)
+
+    console.log("Adding to cart:", data)
 
     // Validate required fields
-    if (!data.productId || data.quantity === undefined) {
+    if (!data.productId || !data.quantity) {
       return NextResponse.json(
         { error: "Missing required fields: productId and quantity are required" },
         { status: 400 },
       )
     }
 
-    // Ensure cart table exists
-    await ensureCartTableExists()
-
-    // Check if product exists
+    // Check if product exists and is active
     const productExists = await sql`
       SELECT id FROM products 
       WHERE id = ${data.productId}
@@ -126,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     // Check if item already exists in cart
     const existingItem = await sql`
-      SELECT id, quantity FROM cart_items
+      SELECT id FROM cart_items
       WHERE user_id = ${userId} AND product_id = ${data.productId}
       LIMIT 1
     `
@@ -135,10 +102,9 @@ export async function POST(request: NextRequest) {
 
     if (existingItem.length > 0) {
       // Update quantity if item already exists
-      const newQuantity = existingItem[0].quantity + data.quantity
       result = await sql`
         UPDATE cart_items
-        SET quantity = ${newQuantity}, updated_at = NOW()
+        SET quantity = ${data.quantity}, updated_at = NOW()
         WHERE id = ${existingItem[0].id}
         RETURNING id, product_id as "productId", quantity
       `
@@ -172,6 +138,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 201 })
   } catch (error) {
     console.error("Error updating cart:", error)
+    if (error instanceof Error && error.message === "User not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     return NextResponse.json(
       {
         error: "Failed to update cart",
@@ -182,68 +151,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const userId = Number.parseInt(session.user.id as string)
-    const data = await request.json()
-
-    // Validate required fields
-    if (!data.itemId || data.quantity === undefined) {
-      return NextResponse.json({ error: "Missing required fields: itemId and quantity are required" }, { status: 400 })
-    }
-
-    // Ensure cart table exists
-    await ensureCartTableExists()
-
-    // Update the item quantity
-    const result = await sql`
-      UPDATE cart_items
-      SET quantity = ${data.quantity}, updated_at = NOW()
-      WHERE id = ${data.itemId} AND user_id = ${userId}
-      RETURNING id, product_id as "productId", quantity
-    `
-
-    if (result.length === 0) {
-      return NextResponse.json({ error: "Item not found in cart" }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      ...result[0],
-      message: "Cart item updated",
-    })
-  } catch (error) {
-    console.error("Error updating cart item:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to update cart item",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
-  }
-}
-
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const userId = Number.parseInt(session.user.id as string)
+    const userId = await getUserId()
     const { searchParams } = new URL(request.url)
     const itemId = searchParams.get("id")
     const clearAll = searchParams.get("clearAll")
+    const sql = neon(process.env.DATABASE_URL!)
 
-    // Ensure cart table exists
-    await ensureCartTableExists()
+    console.log("Delete cart request:", { itemId, clearAll })
 
     if (clearAll === "true") {
       // Clear entire cart
@@ -267,9 +183,57 @@ export async function DELETE(request: NextRequest) {
     }
   } catch (error) {
     console.error("Error removing from cart:", error)
+    if (error instanceof Error && error.message === "User not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     return NextResponse.json(
       {
         error: "Failed to remove from cart",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
+  }
+}
+
+// Add PUT method to update cart item quantity
+export async function PUT(request: NextRequest) {
+  try {
+    const userId = await getUserId()
+    const data = await request.json()
+    const sql = neon(process.env.DATABASE_URL!)
+
+    console.log("Updating cart item:", data)
+
+    // Validate required fields
+    if (!data.itemId || !data.quantity) {
+      return NextResponse.json({ error: "Missing required fields: itemId and quantity are required" }, { status: 400 })
+    }
+
+    // Update the item quantity
+    const result = await sql`
+      UPDATE cart_items
+      SET quantity = ${data.quantity}, updated_at = NOW()
+      WHERE id = ${data.itemId} AND user_id = ${userId}
+      RETURNING id, product_id as "productId", quantity
+    `
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Item not found in cart" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      ...result[0],
+      message: "Cart item updated",
+    })
+  } catch (error) {
+    console.error("Error updating cart item:", error)
+    if (error instanceof Error && error.message === "User not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    return NextResponse.json(
+      {
+        error: "Failed to update cart item",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
