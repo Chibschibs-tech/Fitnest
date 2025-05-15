@@ -11,7 +11,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
   const [error, setError] = useState("")
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseInt(e.target.value)
+    const value = Number(e.target.value)
     if (value > 0) {
       setQuantity(value)
     }
@@ -24,7 +24,6 @@ export function AddToCartForm({ productId }: { productId: number }) {
     setError("")
 
     try {
-      console.log("Adding to cart from form:", productId, quantity)
       const response = await fetch("/api/cart-direct", {
         method: "POST",
         headers: {
@@ -36,9 +35,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
         }),
       })
 
-      console.log("Response status:", response.status)
       const data = await response.json()
-      console.log("Response data:", data)
 
       if (response.ok) {
         setMessage("Added to cart!")
@@ -54,7 +51,6 @@ export function AddToCartForm({ productId }: { productId: number }) {
         }
       }
     } catch (error) {
-      console.error("Error in add to cart form:", error)
       setError("Error adding to cart. Please try again.")
     } finally {
       setIsLoading(false)

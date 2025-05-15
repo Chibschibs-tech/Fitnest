@@ -55,7 +55,7 @@ export default function CartTestPage() {
             type="number"
             id="productId"
             value={productId}
-            onChange={(e) => setProductId(Number.parseInt(e.target.value))}
+            onChange={(e) => setProductId(Number(e.target.value))}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             min="1"
             required
@@ -70,7 +70,7 @@ export default function CartTestPage() {
             type="number"
             id="quantity"
             value={quantity}
-            onChange={(e) => setQuantity(Number.parseInt(e.target.value))}
+            onChange={(e) => setQuantity(Number(e.target.value))}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             min="1"
             required
