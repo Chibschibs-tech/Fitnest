@@ -11,7 +11,7 @@ interface NavbarAuthProps {
   onMenuClose?: () => void
 }
 
-export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuthProps) {
+function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuthProps) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -155,3 +155,7 @@ export default function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuth
     </div>
   )
 }
+
+// Export as both default and named export for compatibility
+export default NavbarAuth
+export { NavbarAuth }

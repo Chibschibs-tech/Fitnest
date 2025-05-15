@@ -1,179 +1,94 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useSafeSession } from "@/hooks/use-safe-session"
-import NavbarAuth from "./navbar-auth"
-import CartIcon from "./cart-icon"
-import { Menu, ShoppingCart } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu, X } from "lucide-react"
+import { CartIcon } from "@/components/cart-icon"
+import { NavbarAuth } from "@/components/navbar-auth"
 
 export default function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const { data: session, status } = useSafeSession()
+  const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
 
-  useEffect(() => {
-    // Check authentication status
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/auth-direct")
-        const data = await response.json()
-        setIsAuthenticated(data.isAuthenticated)
-      } catch (error) {
-        console.error("Error checking auth status:", error)
-        setIsAuthenticated(false)
-      }
-    }
+  const routes = [
+    { href: "/", label: "Home" },
+    { href: "/meal-plans", label: "Meal Plans" },
+    { href: "/express-shop", label: "Express Shop" },
+    { href: "/how-it-works", label: "How It Works" },
+    { href: "/about", label: "About" },
+    { href: "/contact", label: "Contact" },
+  ]
 
-    checkAuth()
-
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true)
-      } else {
-        setIsScrolled(false)
-      }
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
+  const isActive = (path: string) => {
+    return pathname === path
+  }
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 transition-shadow ${isScrolled ? "shadow-md" : "shadow-sm"}`}
-    >
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-Vert-v412yUnhxctld0VkvDHD8wXh8H2GMQ.png"
-              alt="Fitnest.ma Logo"
-              width={150}
-              height={50}
-              className="h-12 w-auto"
-              priority
-            />
+    <header className="sticky top-0 z-50 w-full border-b bg-white">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <div className="flex items-center">
+          <Link href="/" className="mr-6 flex items-center space-x-2">
+            <span className="text-xl font-bold">Fitnest.ma</span>
           </Link>
 
-          {/* Mobile Order Now button */}
-          <Link href="/order" className="md:hidden">
-            <Button size="sm" className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">
-              Order Now
-            </Button>
-          </Link>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-fitnest-green hover:bg-gray-100"
-            >
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </div>
-
-          {/* Desktop navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-600 hover:text-fitnest-green">
-              Home
-            </Link>
-            <Link href="/meal-plans" className="text-gray-600 hover:text-fitnest-green">
-              Meal Plans
-            </Link>
-            <Link href="/meals" className="text-gray-600 hover:text-fitnest-green">
-              Meals
-            </Link>
-            <Link href="/express-shop" className="text-gray-600 hover:text-fitnest-green">
-              Express Shop
-            </Link>
-            <Link href="/how-it-works" className="text-gray-600 hover:text-fitnest-green">
-              How It Works
-            </Link>
-            <Link href="/blog" className="text-gray-600 hover:text-fitnest-green">
-              Blog
-            </Link>
+          <nav className="hidden md:flex md:items-center md:space-x-6">
+            {routes.map((route) => (
+              <Link
+                key={route.href}
+                href={route.href}
+                className={`text-sm font-medium transition-colors hover:text-green-600 ${
+                  isActive(route.href) ? "text-green-600" : "text-gray-600"
+                }`}
+              >
+                {route.label}
+              </Link>
+            ))}
           </nav>
-
-          <div className="hidden md:flex items-center space-x-4">
-            <CartIcon />
-            <Link href="/order" className="hidden md:block">
-              <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white">Order Now</Button>
-            </Link>
-            <NavbarAuth />
-          </div>
         </div>
 
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden fixed top-[73px] left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-lg">
-            <nav className="flex flex-col space-y-4 p-4">
-              <Link
-                href="/"
-                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link
-                href="/meal-plans"
-                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Meal Plans
-              </Link>
-              <Link
-                href="/meals"
-                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Meals
-              </Link>
-              <Link
-                href="/express-shop"
-                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Express Shop
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                How It Works
-              </Link>
-              <Link
-                href="/blog"
-                className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Blog
-              </Link>
-              {isAuthenticated && (
-                <Link
-                  href="/shopping-cart"
-                  className="text-gray-600 hover:text-fitnest-green px-2 py-1 rounded hover:bg-gray-100 flex items-center"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Cart
-                </Link>
-              )}
-              <div className="pt-2 border-t border-gray-100">
-                <NavbarAuth isMobile={true} onMenuClose={() => setIsMenuOpen(false)} />
-              </div>
-            </nav>
+        <div className="flex items-center space-x-4">
+          <div className="hidden md:block">
+            <NavbarAuth />
           </div>
-        )}
+          <CartIcon />
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="outline" size="icon" aria-label="Menu">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[80%] sm:w-[350px]">
+              <div className="flex flex-col space-y-6 pt-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold">Menu</span>
+                  <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                <nav className="flex flex-col space-y-4">
+                  {routes.map((route) => (
+                    <Link
+                      key={route.href}
+                      href={route.href}
+                      className={`py-2 text-sm font-medium transition-colors hover:text-green-600 ${
+                        isActive(route.href) ? "text-green-600" : "text-gray-600"
+                      }`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {route.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="border-t pt-4">
+                  <NavbarAuth />
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   )

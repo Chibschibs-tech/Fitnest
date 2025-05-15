@@ -1,18 +1,66 @@
-import Link from "next/link"
-import Image from "next/image"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { getProductById, ensureProductsExist } from "@/lib/db-utils"
-import { AddToCartForm } from "./add-to-cart-form"
-import { ArrowLeft, Tag, Package, ShoppingBag } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { neon } from "@neondatabase/serverless"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ArrowLeft, ShoppingCart } from "lucide-react"
+import { AddToCartButton } from "../add-to-cart-button"
 
-export const dynamic = "force-dynamic"
+interface ProductPageProps {
+  params: {
+    id: string
+  }
+}
 
-export default async function ProductDetail({ params }: { params: { id: string } }) {
-  // Ensure products exist
-  await ensureProductsExist()
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const product = await getProduct(params.id)
 
-  // Get product by ID
-  const product = await getProductById(params.id)
+  if (!product) {
+    return {
+      title: "Product Not Found",
+    }
+  }
+
+  return {
+    title: `${product.name} | Fitnest.ma`,
+    description: product.description,
+  }
+}
+
+async function getProduct(id: string) {
+  try {
+    const sql = neon(process.env.DATABASE_URL!)
+    const product = await sql`
+      SELECT 
+        id, 
+        name, 
+        description, 
+        price, 
+        saleprice as "salePrice", 
+        imageurl as "imageUrl", 
+        category,
+        tags,
+        nutritionalinfo as "nutritionalInfo",
+        stock
+      FROM products
+      WHERE id = ${id} AND isactive = true
+    `
+
+    if (product.length === 0) {
+      return null
+    }
+
+    return product[0]
+  } catch (error) {
+    console.error("Error fetching product:", error)
+    return null
+  }
+}
+
+export default async function ProductPage({ params }: ProductPageProps) {
+  const product = await getProduct(params.id)
 
   if (!product) {
     notFound()
@@ -29,15 +77,10 @@ export default async function ProductDetail({ params }: { params: { id: string }
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <Link
-          href="/express-shop"
-          className="inline-flex items-center text-green-600 hover:text-green-700 hover:underline"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Express Shop
-        </Link>
-      </div>
+      <Link href="/express-shop" className="mb-8 inline-flex items-center text-sm text-gray-600 hover:text-green-600">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Express Shop
+      </Link>
 
       <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
         <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
@@ -47,69 +90,78 @@ export default async function ProductDetail({ params }: { params: { id: string }
               alt={product.name}
               fill
               className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
               priority
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <span className="text-gray-400">No image available</span>
+              <ShoppingCart className="h-24 w-24 text-gray-300" />
             </div>
+          )}
+          {product.salePrice && (
+            <Badge className="absolute right-4 top-4 bg-green-600 px-3 py-1 text-white">Sale</Badge>
           )}
         </div>
 
-        <div className="flex flex-col space-y-6">
+        <div className="space-y-6">
           <div>
-            <div className="mb-1 inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
-              {product.category}
-            </div>
-            <h1 className="mb-2 text-3xl font-bold">{product.name}</h1>
-            <p className="text-gray-600">{product.description}</p>
-          </div>
-
-          <div className="border-t border-b border-gray-200 py-4">
-            <div className="mb-4">
-              {product.salePrice ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-green-600">{formatPrice(product.salePrice)}</span>
-                  <span className="text-lg text-gray-500 line-through">{formatPrice(product.price)}</span>
-                  <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
-                    {Math.round(((product.price - product.salePrice) / product.price) * 100)}% OFF
-                  </span>
+            <h1 className="text-3xl font-bold">{product.name}</h1>
+            <div className="mt-2 flex items-center">
+              <Badge variant="outline" className="capitalize">
+                {product.category.replace("_", " ")}
+              </Badge>
+              {product.tags && (
+                <div className="ml-2 flex flex-wrap gap-1">
+                  {product.tags.split(",").map((tag: string) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag.trim()}
+                    </Badge>
+                  ))}
                 </div>
-              ) : (
-                <span className="text-3xl font-bold">{formatPrice(product.price)}</span>
               )}
             </div>
-
-            <AddToCartForm productId={product.id} />
           </div>
 
-          <div className="space-y-4 rounded-lg bg-gray-50 p-4">
-            <div className="flex items-start space-x-3">
-              <Tag className="mt-1 h-5 w-5 text-gray-600" />
-              <div>
-                <h3 className="font-medium">Product Details</h3>
-                <p className="text-sm text-gray-600">Category: {product.category}</p>
+          <div className="space-y-2">
+            {product.salePrice ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-3xl font-bold text-green-600">{formatPrice(product.salePrice)}</span>
+                <span className="text-xl text-gray-500 line-through">{formatPrice(product.price)}</span>
+              </div>
+            ) : (
+              <span className="text-3xl font-bold">{formatPrice(product.price)}</span>
+            )}
+            <p className="text-sm text-gray-500">
+              {product.stock > 10 ? "In Stock" : product.stock > 0 ? "Low Stock" : "Out of Stock"}
+            </p>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h2 className="mb-2 text-lg font-medium">Description</h2>
+            <p className="text-gray-700">{product.description}</p>
+          </div>
+
+          {product.nutritionalInfo && (
+            <div>
+              <h2 className="mb-2 text-lg font-medium">Nutritional Information</h2>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {Object.entries(product.nutritionalInfo).map(([key, value]) => (
+                  <div key={key} className="rounded-md bg-gray-50 p-3">
+                    <p className="text-sm text-gray-500 capitalize">{key}</p>
+                    <p className="font-medium">{value}</p>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            <div className="flex items-start space-x-3">
-              <Package className="mt-1 h-5 w-5 text-gray-600" />
-              <div>
-                <h3 className="font-medium">Shipping Information</h3>
-                <p className="text-sm text-gray-600">
-                  Free shipping on orders over 200 MAD. Delivery within 2-3 business days.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <ShoppingBag className="mt-1 h-5 w-5 text-gray-600" />
-              <div>
-                <h3 className="font-medium">Return Policy</h3>
-                <p className="text-sm text-gray-600">
-                  30-day return policy. Please contact customer service for details.
-                </p>
-              </div>
+          <div className="pt-4">
+            <AddToCartButton productId={product.id} className="w-full" />
+            <div className="mt-4 flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <ShoppingCart className="h-4 w-4" />
+              <span>Free shipping on orders over 200 MAD</span>
             </div>
           </div>
         </div>

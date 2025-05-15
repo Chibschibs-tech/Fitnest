@@ -1,23 +1,41 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedUserId, getCartCount } from "@/lib/db-utils"
+import { NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
+import { cookies } from "next/headers"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Get authenticated user ID
-    const userId = await getAuthenticatedUserId()
+    const cookieStore = cookies()
+    const cartId = cookieStore.get("cartId")?.value
 
-    // Get cart count
-    const count = await getCartCount(userId)
-
-    return NextResponse.json({
-      success: true,
-      count,
-    })
-  } catch (error) {
-    if (error instanceof Error && error.message === "Not authenticated") {
-      return NextResponse.json({ success: false, error: "Not authenticated", count: 0 }, { status: 401 })
+    if (!cartId) {
+      return NextResponse.json({ count: 0 })
     }
 
-    return NextResponse.json({ success: false, error: "Failed to get cart count", count: 0 }, { status: 500 })
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Check if cart table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cart'
+      ) as exists
+    `
+
+    if (!tableExists[0].exists) {
+      return NextResponse.json({ count: 0 })
+    }
+
+    // Get cart count
+    const result = await sql`
+      SELECT SUM(quantity) as count FROM cart WHERE id = ${cartId}
+    `
+
+    const count = result[0]?.count ? Number(result[0].count) : 0
+
+    return NextResponse.json({ count })
+  } catch (error) {
+    console.error("Error getting cart count:", error)
+    return NextResponse.json({ count: 0 })
   }
 }

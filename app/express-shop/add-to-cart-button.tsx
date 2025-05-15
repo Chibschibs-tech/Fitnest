@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { ShoppingCart, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import { toast } from "@/components/ui/use-toast"
+import { ShoppingCart, Check } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 interface AddToCartButtonProps {
   productId: number
@@ -13,84 +11,55 @@ interface AddToCartButtonProps {
 }
 
 export function AddToCartButton({ productId, className = "" }: AddToCartButtonProps) {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [added, setAdded] = useState(false)
+  const { toast } = useToast()
 
   const addToCart = async () => {
-    if (isLoading || isSuccess) return
-
-    setIsLoading(true)
-
     try {
-      const response = await fetch("/api/cart", {
+      setLoading(true)
+
+      // First ensure cart table exists
+      await fetch("/api/ensure-cart-table")
+
+      const response = await fetch("/api/cart/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          productId,
-          quantity: 1,
-        }),
+        body: JSON.stringify({ productId, quantity: 1 }),
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to add item to cart")
+        throw new Error(`Error: ${response.status}`)
       }
 
-      // Show success state
-      setIsSuccess(true)
+      setAdded(true)
+      setTimeout(() => setAdded(false), 2000)
 
-      // Dispatch event to update cart count
-      window.dispatchEvent(new Event("cart:updated"))
-
-      // Show success toast
       toast({
         title: "Added to cart",
         description: "Item has been added to your cart",
+        duration: 3000,
       })
-
-      // Reset success state after 2 seconds
-      setTimeout(() => {
-        setIsSuccess(false)
-      }, 2000)
     } catch (error) {
       console.error("Error adding to cart:", error)
 
-      // Show error toast
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add item to cart",
+        description: "Failed to add item to cart",
+        duration: 3000,
       })
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <Button
-      onClick={addToCart}
-      disabled={isLoading || isSuccess}
-      className={`bg-green-600 text-white hover:bg-green-700 ${className}`}
-    >
-      {isLoading ? (
-        <>
-          <LoadingSpinner size="sm" className="mr-2" />
-          Adding...
-        </>
-      ) : isSuccess ? (
-        <>
-          <Check className="mr-2 h-4 w-4" />
-          Added to Cart
-        </>
-      ) : (
-        <>
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          Add to Cart
-        </>
-      )}
+    <Button onClick={addToCart} disabled={loading} className={className}>
+      {added ? <Check className="mr-2 h-4 w-4" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+      {added ? "Added!" : "Add to Cart"}
     </Button>
   )
 }

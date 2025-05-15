@@ -52,6 +52,7 @@ export function CheckoutContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [apiError, setApiError] = useState<any>(null)
 
   // State for cart and meal plan data
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -89,6 +90,7 @@ export function CheckoutContent() {
     async function loadData() {
       setIsLoading(true)
       setError(null)
+      setApiError(null)
 
       try {
         // Check authentication
@@ -98,24 +100,40 @@ export function CheckoutContent() {
         }
 
         // Load cart data
-        const cartResponse = await fetch("/api/cart")
-        if (!cartResponse.ok) {
-          throw new Error("Failed to load cart data")
-        }
+        try {
+          const cartResponse = await fetch("/api/cart")
 
-        const cartData = await cartResponse.json()
-        setCartItems(cartData.items || [])
-        setCartSubtotal(cartData.subtotal || 0)
+          if (!cartResponse.ok) {
+            const errorText = await cartResponse.text()
+            console.error("Cart API error:", errorText)
+            throw new Error(`Failed to load cart data: ${cartResponse.status} ${cartResponse.statusText}`)
+          }
+
+          const cartData = await cartResponse.json()
+          setCartItems(cartData.items || [])
+          setCartSubtotal(cartData.subtotal || 0)
+        } catch (cartError) {
+          console.error("Error fetching cart:", cartError)
+          setApiError({
+            type: "cart",
+            message: cartError instanceof Error ? cartError.message : "Failed to load cart data",
+            details: cartError,
+          })
+          // Continue loading the page even if cart fails
+          setCartItems([])
+          setCartSubtotal(0)
+        }
 
         // Load meal plan selections from localStorage if they exist
         if (typeof window !== "undefined") {
-          const storedSelections = localStorage.getItem("mealPlanSelections")
-          if (storedSelections) {
-            try {
+          try {
+            const storedSelections = localStorage.getItem("mealPlanSelections")
+            if (storedSelections) {
               setMealPlanSelections(JSON.parse(storedSelections))
-            } catch (error) {
-              console.error("Error parsing meal plan selections:", error)
             }
+          } catch (storageError) {
+            console.error("Error parsing meal plan selections:", storageError)
+            // Non-critical error, continue
           }
         }
 

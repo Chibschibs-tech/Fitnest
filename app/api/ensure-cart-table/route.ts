@@ -9,43 +9,40 @@ export async function GET() {
     const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
-      WHERE table_schema = 'public'
+      WHERE table_schema = 'public' AND table_name = 'cart_items'
     `
 
-    const cartTableExists = tables.some((t) => t.table_name === "cart_items")
+    if (tables.length === 0) {
+      // Create cart_items table
+      await sql`
+        CREATE TABLE cart_items (
+          id SERIAL PRIMARY KEY,
+          user_id VARCHAR(255) NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        )
+      `
 
-    if (cartTableExists) {
+      return NextResponse.json({
+        success: true,
+        message: "Cart table created successfully",
+      })
+    } else {
       return NextResponse.json({
         success: true,
         message: "Cart table already exists",
-        exists: true,
       })
     }
-
-    // Create cart_items table if it doesn't exist
-    await sql`
-      CREATE TABLE cart_items (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
-
-    return NextResponse.json({
-      success: true,
-      message: "Cart table created successfully",
-      exists: false,
-    })
   } catch (error) {
-    console.error("Error checking/creating cart table:", error)
+    console.error("Error ensuring cart table:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to check/create cart table",
-        details: error instanceof Error ? error.message : String(error),
+        message: "Failed to ensure cart table exists",
+        error: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
     )

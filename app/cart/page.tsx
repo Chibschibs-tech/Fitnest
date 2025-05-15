@@ -1,153 +1,174 @@
-import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
+import { getServerSession } from "next-auth"
+import { neon } from "@neondatabase/serverless"
+import CartActions from "./cart-actions"
 import Image from "next/image"
 import Link from "next/link"
-import { getAuthenticatedUserId, getCartItems } from "@/lib/db-utils"
-import { CartActions } from "./cart-actions"
-import { ShoppingCart } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { ShoppingCart, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export const dynamic = "force-dynamic"
-
-export default async function CartPage() {
+async function getCartItems() {
   try {
-    // Get authenticated user ID
-    const userId = await getAuthenticatedUserId()
+    const cookieStore = cookies()
+    const cartId = cookieStore.get("cartId")?.value
 
-    // Get cart items
-    const cartItems = await getCartItems(userId)
-
-    // Calculate totals
-    const subtotal = cartItems.reduce((total, item) => {
-      const price = item.product?.salePrice || item.product?.price || 0
-      return total + price * item.quantity
-    }, 0)
-
-    const shipping = subtotal > 200 ? 0 : 30
-    const total = subtotal + shipping
-
-    // Format price
-    const formatPrice = (price: number) => {
-      return new Intl.NumberFormat("fr-MA", {
-        style: "currency",
-        currency: "MAD",
-        minimumFractionDigits: 2,
-      }).format(price)
+    if (!cartId) {
+      return { items: [] }
     }
 
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Check if cart table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cart'
+      ) as exists
+    `
+
+    if (!tableExists[0].exists) {
+      return { items: [] }
+    }
+
+    // Get cart items with product details
+    const cartItems = await sql`
+      SELECT c.*, p.name, p.price, p.image
+      FROM cart c
+      JOIN products p ON c.product_id = p.id
+      WHERE c.id = ${cartId}
+    `
+
+    // Format the response
+    const items = cartItems.map((item) => ({
+      id: item.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      product: {
+        id: item.product_id,
+        name: item.name,
+        price: Number.parseFloat(item.price),
+        image: item.image,
+      },
+    }))
+
+    return { items }
+  } catch (error) {
+    console.error("Error fetching cart:", error)
+    return { items: [], error: String(error) }
+  }
+}
+
+export default async function CartPage() {
+  const session = await getServerSession()
+  const { items, error } = await getCartItems()
+
+  // No need to redirect to login if the user is not authenticated
+  // We'll handle guest checkout
+
+  const calculateSubtotal = () => {
+    return items.reduce((total, item) => {
+      return total + item.product.price * item.quantity
+    }, 0)
+  }
+
+  if (error) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="mb-8 text-3xl font-bold">Your Cart</h1>
-
-        {cartItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center space-y-4 rounded-lg bg-gray-50 p-12 text-center">
-            <ShoppingCart className="h-16 w-16 text-gray-400" />
-            <h2 className="text-xl font-medium">Your cart is empty</h2>
-            <p className="text-gray-600">Looks like you haven't added any items to your cart yet.</p>
-            <Link href="/express-shop" className="mt-4 rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700">
-              Continue Shopping
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <div className="rounded-lg border border-gray-200">
-                <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 p-4 text-sm font-medium text-gray-600">
-                  <div className="col-span-6">Product</div>
-                  <div className="col-span-2 text-center">Price</div>
-                  <div className="col-span-2 text-center">Quantity</div>
-                  <div className="col-span-2 text-right">Total</div>
-                </div>
-
-                {cartItems.map((item) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-4 border-b border-gray-200 p-4 last:border-0">
-                    <div className="col-span-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100">
-                          {item.product?.imageUrl ? (
-                            <Image
-                              src={item.product.imageUrl || "/placeholder.svg"}
-                              alt={item.product?.name || "Product"}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <span className="text-xs text-gray-400">No image</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-medium">
-                            <Link
-                              href={`/express-shop/${item.productId}`}
-                              className="hover:text-green-600 hover:underline"
-                            >
-                              {item.product?.name || "Product"}
-                            </Link>
-                          </h3>
-                          <p className="text-sm text-gray-600">{item.product?.category || "Category"}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-span-2 flex items-center justify-center">
-                      {item.product?.salePrice ? (
-                        <div className="text-center">
-                          <span className="font-medium text-green-600">{formatPrice(item.product.salePrice)}</span>
-                          <span className="block text-xs text-gray-500 line-through">
-                            {formatPrice(item.product.price)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="font-medium">{formatPrice(item.product?.price || 0)}</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 flex items-center justify-center">
-                      <CartActions itemId={item.id} initialQuantity={item.quantity} />
-                    </div>
-                    <div className="col-span-2 flex items-center justify-end font-medium">
-                      {formatPrice((item.product?.salePrice || item.product?.price || 0) * item.quantity)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:col-span-1">
-              <div className="rounded-lg border border-gray-200 p-6">
-                <h2 className="mb-4 text-xl font-bold">Order Summary</h2>
-                <div className="space-y-3 border-b border-gray-200 pb-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium">{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
-                  </div>
-                </div>
-                <div className="flex justify-between py-4">
-                  <span className="text-lg font-bold">Total</span>
-                  <span className="text-lg font-bold">{formatPrice(total)}</span>
-                </div>
-                <Link
-                  href="/checkout"
-                  className="mt-4 block w-full rounded bg-green-600 py-3 text-center font-medium text-white hover:bg-green-700"
-                >
-                  Proceed to Checkout
-                </Link>
-                <Link
-                  href="/express-shop"
-                  className="mt-3 block w-full text-center text-sm text-gray-600 hover:text-green-600 hover:underline"
-                >
-                  Continue Shopping
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
-  } catch (error) {
-    // If not authenticated, redirect to login
-    redirect("/login?redirect=/cart")
   }
+
+  if (items.length === 0) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card className="text-center p-8">
+          <CardContent className="pt-6">
+            <div className="flex justify-center mb-4">
+              <ShoppingCart className="h-16 w-16 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
+            <p className="text-gray-500 mb-6">Looks like you haven't added any items to your cart yet.</p>
+            <Link href="/express-shop">
+              <Button>Continue Shopping</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cart Items ({items.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {items.map((item) => (
+                <div key={item.product_id} className="flex items-center space-x-4">
+                  <div className="relative h-24 w-24 rounded overflow-hidden bg-gray-100">
+                    <Image
+                      src={item.product.image || "/placeholder.svg"}
+                      alt={item.product.name}
+                      fill
+                      sizes="96px"
+                      style={{ objectFit: "cover" }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Link href={`/express-shop/${item.product_id}`} className="font-medium hover:underline">
+                      {item.product.name}
+                    </Link>
+                    <p className="text-gray-500">${item.product.price.toFixed(2)}</p>
+                  </div>
+                  <CartActions item={item} />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>${calculateSubtotal().toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                <span>Free</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-bold">
+                <span>Total</span>
+                <span>${calculateSubtotal().toFixed(2)}</span>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Link href="/checkout" className="w-full">
+                <Button className="w-full">Proceed to Checkout</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
 }

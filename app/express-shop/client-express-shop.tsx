@@ -34,6 +34,7 @@ export default function ClientExpressShop() {
   const [retryCount, setRetryCount] = useState(0)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [categories, setCategories] = useState<string[]>(["all"])
 
   useEffect(() => {
     // Check authentication status
@@ -61,35 +62,30 @@ export default function ClientExpressShop() {
       setLoading(true)
       console.log("Fetching products...")
 
+      // First ensure products exist
+      await fetch("/api/seed-products")
+
+      // Then fetch products
       const response = await fetch("/api/products")
       console.log("Response status:", response.status)
 
-      // Store the raw text response for debugging
-      const responseText = await response.text()
-      console.log("Raw response:", responseText)
-
-      let responseData
-      try {
-        // Try to parse the response as JSON
-        responseData = JSON.parse(responseText)
-        console.log("Parsed response data:", responseData)
-        setRawResponse(responseData)
-      } catch (parseError) {
-        console.error("Error parsing JSON:", parseError)
-        throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
-      }
-
       if (!response.ok) {
-        throw new Error(responseData.error || `API returned status ${response.status}`)
+        throw new Error(`API returned status ${response.status}`)
       }
 
-      // Ensure we have an array, even if empty
-      if (!Array.isArray(responseData)) {
-        console.error("API did not return an array:", responseData)
+      const products = await response.json()
+      console.log("Fetched products:", products)
+
+      if (!Array.isArray(products)) {
+        console.error("API did not return an array:", products)
         throw new Error("API did not return an array of products")
       }
 
-      setProducts(responseData)
+      setProducts(products)
+
+      // Extract unique categories
+      const uniqueCategories = ["all", ...new Set(products.map((product: Product) => product.category))]
+      setCategories(uniqueCategories)
     } catch (err) {
       console.error("Error fetching products:", err)
       setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
@@ -97,9 +93,6 @@ export default function ClientExpressShop() {
       setLoading(false)
     }
   }
-
-  // Extract unique categories from products
-  const categories = ["all", ...new Set(products.map((product) => product.category))]
 
   const filteredProducts =
     activeCategory === "all" ? products : products.filter((product) => product.category === activeCategory)
@@ -225,20 +218,12 @@ export default function ClientExpressShop() {
         </Alert>
       )}
 
-      {debugInfo && (
-        <div className="mb-6 rounded-md bg-gray-100 p-4">
-          <h3 className="mb-2 flex items-center text-sm font-medium">
-            <Bug className="mr-2 h-4 w-4" /> Auth Debug Information
-          </h3>
-          <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
-        </div>
-      )}
-
       {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
           <ShoppingCart className="h-16 w-16 text-gray-400" />
           <h2 className="text-2xl font-semibold">No products available</h2>
           <p className="text-gray-500">Check back soon for our new product lineup!</p>
+          <Button onClick={handleRetry}>Refresh Products</Button>
         </div>
       ) : (
         <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="mb-8">

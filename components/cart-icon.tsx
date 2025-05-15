@@ -1,60 +1,52 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { ShoppingCart } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 
 export function CartIcon() {
   const [count, setCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isUpdating, setIsUpdating] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const fetchCartCount = async () => {
-    if (isUpdating) return
-
-    setIsUpdating(true)
-
     try {
       const response = await fetch("/api/cart/count")
-
-      if (response.ok) {
-        const data = await response.json()
-        setCount(data.count || 0)
-      }
+      const data = await response.json()
+      setCount(data.count || 0)
     } catch (error) {
       console.error("Error fetching cart count:", error)
     } finally {
-      setIsLoading(false)
-      setIsUpdating(false)
+      setLoading(false)
     }
   }
 
   useEffect(() => {
     fetchCartCount()
 
-    // Set up event listener for cart updates
-    window.addEventListener("cart:updated", fetchCartCount)
+    // Listen for cart updates
+    const handleCartUpdate = () => {
+      fetchCartCount()
+    }
 
-    // Refresh cart count every 30 seconds
-    const interval = setInterval(fetchCartCount, 30000)
+    window.addEventListener("cart:updated", handleCartUpdate)
 
     return () => {
-      window.removeEventListener("cart:updated", fetchCartCount)
-      clearInterval(interval)
+      window.removeEventListener("cart:updated", handleCartUpdate)
     }
   }, [])
 
   return (
     <Link href="/cart" className="relative">
       <ShoppingCart className="h-6 w-6" />
-
-      {!isLoading && count > 0 && (
-        <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">
+      {!loading && count > 0 && (
+        <Badge
+          variant="destructive"
+          className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
+        >
           {count}
-        </span>
+        </Badge>
       )}
     </Link>
   )
 }
-
-export default CartIcon

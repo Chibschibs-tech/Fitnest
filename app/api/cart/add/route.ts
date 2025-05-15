@@ -1,97 +1,93 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { cookies } from "next/headers"
+import { v4 as uuidv4 } from "uuid"
 
 export async function POST(request: Request) {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions)
-
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    // Get user ID
-    const userId = session.user.id
-
-    if (!userId) {
-      return NextResponse.json({ error: "User ID not found" }, { status: 400 })
-    }
-
-    // Parse request body
     const body = await request.json()
-    const { productId, quantity } = body
+    const { productId, quantity = 1 } = body
 
-    // Validate input
-    if (!productId || !quantity || quantity < 1) {
-      return NextResponse.json({ error: "Invalid product ID or quantity" }, { status: 400 })
+    if (!productId) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
 
-    // Initialize Neon SQL client
+    const cookieStore = cookies()
+    let cartId = cookieStore.get("cartId")?.value
+
+    // Create a new cart ID if one doesn't exist
+    if (!cartId) {
+      cartId = uuidv4()
+    }
+
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Ensure cart table exists
-    await sql`
-      CREATE TABLE IF NOT EXISTS cart_items (
-        id SERIAL PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
+    // Check if cart table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cart'
+      ) as exists
     `
+
+    // Create cart table if it doesn't exist
+    if (!tableExists[0].exists) {
+      await sql`
+        CREATE TABLE cart (
+          id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(255),
+          product_id INT NOT NULL,
+          quantity INT NOT NULL DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id, product_id)
+        )
+      `
+    }
 
     // Check if product exists
     const product = await sql`SELECT id FROM products WHERE id = ${productId}`
-
     if (product.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
     // Check if item already exists in cart
     const existingItem = await sql`
-      SELECT id, quantity FROM cart_items 
-      WHERE user_id = ${userId} AND product_id = ${productId}
+      SELECT * FROM cart WHERE id = ${cartId} AND product_id = ${productId}
     `
 
     if (existingItem.length > 0) {
-      // Update existing cart item
-      const newQuantity = existingItem[0].quantity + quantity
-
+      // Update quantity if item exists
       await sql`
-        UPDATE cart_items 
-        SET quantity = ${newQuantity}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${existingItem[0].id}
+        UPDATE cart 
+        SET quantity = quantity + ${quantity} 
+        WHERE id = ${cartId} AND product_id = ${productId}
       `
-
-      return NextResponse.json({
-        success: true,
-        message: "Cart updated successfully",
-        quantity: newQuantity,
-      })
     } else {
       // Add new item to cart
       await sql`
-        INSERT INTO cart_items (user_id, product_id, quantity)
-        VALUES (${userId}, ${productId}, ${quantity})
+        INSERT INTO cart (id, product_id, quantity) 
+        VALUES (${cartId}, ${productId}, ${quantity})
       `
-
-      return NextResponse.json({
-        success: true,
-        message: "Item added to cart successfully",
-        quantity,
-      })
     }
+
+    // Set or update the cartId cookie
+    const response = NextResponse.json({ success: true, message: "Item added to cart" }, { status: 200 })
+
+    response.cookies.set({
+      name: "cartId",
+      value: cartId,
+      httpOnly: true,
+      path: "/",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    })
+
+    return response
   } catch (error) {
-    console.error("Error in cart/add API:", error)
+    console.error("Error adding to cart:", error)
     return NextResponse.json(
-      {
-        error: "Failed to add item to cart",
-        details: error instanceof Error ? error.message : String(error),
-      },
+      { error: "Failed to add item to cart", details: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     )
   }
