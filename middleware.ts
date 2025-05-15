@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-// Temporarily disable authentication checks to restore access
+// Simple middleware that doesn't block any routes
 export function middleware(request: NextRequest) {
-  // Allow all requests to pass through for now
+  // Allow all requests to pass through
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Only match specific paths that need middleware
+    "/dashboard/:path*",
+    "/checkout/:path*",
+    "/api/auth/:path*",
   ],
 }

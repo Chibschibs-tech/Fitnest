@@ -98,57 +98,22 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions)
-
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    // Get user ID
-    const userId = session.user.id
-
-    if (!userId) {
-      return NextResponse.json({ error: "User ID not found" }, { status: 400 })
-    }
-
-    // Initialize Neon SQL client
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Ensure cart table exists
-    await sql`
-      CREATE TABLE IF NOT EXISTS cart_items (
-        id SERIAL PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
+    // Simple query to test database connection
+    const result = await sql`SELECT NOW() as time`
 
-    // Get cart items with product details
-    const cartItems = await sql`
-      SELECT 
-        ci.id,
-        ci.product_id as "productId",
-        ci.quantity,
-        p.name,
-        p.price,
-        p.saleprice as "salePrice",
-        p.imageurl as "imageUrl"
-      FROM cart_items ci
-      JOIN products p ON ci.product_id = p.id
-      WHERE ci.user_id = ${userId}
-    `
-
-    return NextResponse.json(cartItems)
+    return NextResponse.json({
+      success: true,
+      message: "Cart API is working",
+      serverTime: result[0].time,
+    })
   } catch (error) {
-    console.error("Error in cart-simple GET API:", error)
+    console.error("Database error:", error)
     return NextResponse.json(
       {
-        error: "Failed to fetch cart items",
+        success: false,
+        error: "Database connection failed",
       },
       { status: 500 },
     )
