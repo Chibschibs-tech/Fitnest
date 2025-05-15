@@ -24,7 +24,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
     setError("")
 
     try {
-      const response = await fetch("/api/cart-direct", {
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,7 +37,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         setMessage("Added to cart!")
         setTimeout(() => setMessage(""), 2000)
       } else {

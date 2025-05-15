@@ -13,7 +13,7 @@ export function AddToCartButton({ productId }: { productId: number }) {
     setError("")
 
     try {
-      const response = await fetch("/api/cart-direct", {
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -26,7 +26,7 @@ export function AddToCartButton({ productId }: { productId: number }) {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         setMessage("Added to cart!")
         setTimeout(() => setMessage(""), 2000)
       } else {
@@ -53,7 +53,7 @@ export function AddToCartButton({ productId }: { productId: number }) {
         disabled={isLoading}
         className="rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:bg-green-400"
       >
-        {isLoading ? "Adding..." : "Add to Cart"}
+        {isLoading ? "Adding..." : "Add"}
       </button>
 
       {message && (

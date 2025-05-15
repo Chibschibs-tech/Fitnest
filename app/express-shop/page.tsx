@@ -1,34 +1,16 @@
-import Image from "next/image"
 import Link from "next/link"
-import { neon } from "@neondatabase/serverless"
+import Image from "next/image"
+import { getProducts, ensureProductsExist, type Product } from "@/lib/db-utils"
+import { AddToCartButton } from "./add-to-cart-button"
 
 export const dynamic = "force-dynamic"
 
 export default async function ExpressShop() {
-  let products = []
-  let error = null
+  // Ensure products exist
+  await ensureProductsExist()
 
-  try {
-    // First, ensure products exist by calling our direct seeding endpoint
-    const seedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/direct-seed-products`, {
-      cache: "no-store",
-    })
-
-    if (!seedResponse.ok) {
-      throw new Error("Failed to seed products")
-    }
-
-    // Connect to database
-    const sql = neon(process.env.DATABASE_URL!)
-
-    // Fetch products directly
-    products = await sql`SELECT * FROM products LIMIT 20`
-
-    console.log("Fetched products:", products)
-  } catch (err) {
-    console.error("Error in Express Shop page:", err)
-    error = err
-  }
+  // Get products
+  const products = await getProducts()
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -39,33 +21,18 @@ export default async function ExpressShop() {
         </p>
       </div>
 
-      {error && (
-        <div className="mb-8 rounded-md bg-red-50 p-4 text-red-800">
-          <p>Error loading products: {String(error)}</p>
-          <p className="mt-2">Please try refreshing the page or contact support.</p>
-        </div>
-      )}
-
-      {!error && products.length === 0 ? (
+      {products.length === 0 ? (
         <div className="mt-8 text-center">
           <p>No products available at this time. Please check back later.</p>
-          <div className="mt-4">
-            <Link
-              href="/api/direct-seed-products"
-              className="inline-block rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-            >
-              Initialize Products
-            </Link>
-          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
+          {products.map((product: Product) => (
             <div key={product.id} className="overflow-hidden rounded-lg border bg-white shadow">
               <div className="relative h-48 w-full bg-gray-100">
-                {product.imageurl ? (
+                {product.imageUrl ? (
                   <Image
-                    src={product.imageurl || "/placeholder.svg"}
+                    src={product.imageUrl || "/placeholder.svg"}
                     alt={product.name}
                     fill
                     className="object-cover"
@@ -80,13 +47,25 @@ export default async function ExpressShop() {
                 <h3 className="mb-2 text-lg font-medium">{product.name}</h3>
                 <p className="mb-4 text-sm text-gray-600 line-clamp-2">{product.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold">{product.saleprice || product.price} MAD</span>
-                  <Link
-                    href={`/express-shop/${product.id}`}
-                    className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
-                  >
-                    View Details
-                  </Link>
+                  <span className="text-lg font-bold">
+                    {product.salePrice ? (
+                      <>
+                        <span className="text-green-600">{product.salePrice} MAD</span>
+                        <span className="ml-2 text-sm text-gray-500 line-through">{product.price} MAD</span>
+                      </>
+                    ) : (
+                      <span>{product.price} MAD</span>
+                    )}
+                  </span>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/express-shop/${product.id}`}
+                      className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
+                    >
+                      View
+                    </Link>
+                    <AddToCartButton productId={product.id} />
+                  </div>
                 </div>
               </div>
             </div>

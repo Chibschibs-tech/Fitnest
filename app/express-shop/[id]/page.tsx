@@ -1,37 +1,17 @@
-import { neon } from "@neondatabase/serverless"
-import Image from "next/image"
 import Link from "next/link"
+import Image from "next/image"
 import { notFound } from "next/navigation"
+import { getProductById, ensureProductsExist } from "@/lib/db-utils"
 import { AddToCartForm } from "./add-to-cart-form"
 
 export const dynamic = "force-dynamic"
 
-async function getProduct(id: string) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
-
-    const product = await sql`
-      SELECT 
-        id, 
-        name, 
-        description, 
-        price, 
-        saleprice as "salePrice", 
-        imageurl as "imageUrl", 
-        category
-      FROM products
-      WHERE id = ${id}
-    `
-
-    return product[0] || null
-  } catch (error) {
-    console.error("Error fetching product:", error)
-    return null
-  }
-}
-
 export default async function ProductDetail({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id)
+  // Ensure products exist
+  await ensureProductsExist()
+
+  // Get product by ID
+  const product = await getProductById(params.id)
 
   if (!product) {
     notFound()
