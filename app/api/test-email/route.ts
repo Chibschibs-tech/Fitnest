@@ -1,98 +1,99 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
 import { sendWelcomeEmail, sendOrderConfirmationEmail, sendDeliveryUpdateEmail } from "@/lib/email-utils"
 
 export async function POST(request: Request) {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions)
-
-    // Check if user is an admin
-    if (!session || !session.user || session.user.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
-    }
-
-    // Parse request body
     const body = await request.json()
     const { type, email, name } = body
 
-    if (!type || !email) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 })
+    }
+
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
     let result
 
     switch (type) {
       case "welcome":
-        if (!name) {
-          return NextResponse.json({ error: "Name is required for welcome email" }, { status: 400 })
-        }
         result = await sendWelcomeEmail(email, name)
         break
 
       case "order_confirmation":
         // Mock order data for testing
-        const orderData = {
-          id: "TEST-12345",
+        const mockOrderData = {
+          id: "TEST-" + Math.floor(Math.random() * 10000),
           customer: {
-            name: name || "Test User",
-            email: email,
-          },
-          shipping: {
-            address: "123 Test Street, Casablanca",
-            city: "Casablanca",
-            postalCode: "20000",
-            deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+            name,
+            email,
+            firstName: name.split(" ")[0],
           },
           items: [
             {
-              name: "Test Product 1",
+              name: "Healthy Meal Plan - 1 Week",
+              quantity: 1,
+              price: 349.99,
+            },
+            {
+              name: "Protein Bar Sampler",
               quantity: 2,
               price: 59.99,
             },
-            {
-              name: "Test Product 2",
-              quantity: 1,
-              price: 29.99,
-            },
           ],
-          subtotal: 149.97,
+          subtotal: 469.97,
           shipping: 0,
-          total: 149.97,
+          total: 469.97,
+          shipping: {
+            address: "123 Test Street, Casablanca, Morocco",
+            deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+          },
         }
-        result = await sendOrderConfirmationEmail(orderData)
+
+        result = await sendOrderConfirmationEmail(mockOrderData)
         break
 
       case "delivery_update":
         // Mock delivery data for testing
-        const deliveryData = {
-          id: "TEST-12345",
+        const mockDeliveryData = {
+          id: "TEST-" + Math.floor(Math.random() * 10000),
           customer: {
-            firstName: name?.split(" ")[0] || "Test",
-            email: email,
+            name,
+            email,
+            firstName: name.split(" ")[0],
           },
           shipping: {
-            address: "123 Test Street, Casablanca",
-            city: "Casablanca",
-            postalCode: "20000",
-            deliveryDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+            address: "123 Test Street, Casablanca, Morocco",
+            deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
           },
         }
-        result = await sendDeliveryUpdateEmail(deliveryData)
+
+        result = await sendDeliveryUpdateEmail(mockDeliveryData)
         break
 
       default:
         return NextResponse.json({ error: "Invalid email type" }, { status: 400 })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Test ${type} email sent to ${email}`,
-      result,
-    })
+    if (result.success) {
+      return NextResponse.json({
+        success: true,
+        message: `${type.replace("_", " ")} email sent successfully`,
+        messageId: result.messageId,
+      })
+    } else {
+      console.error(`Failed to send ${type} email:`, result.error)
+      return NextResponse.json(
+        {
+          error: `Failed to send ${type} email: ${result.error}`,
+          details: result.details,
+        },
+        { status: 500 },
+      )
+    }
   } catch (error) {
-    console.error("Error sending test email:", error)
+    console.error("Test email sending error:", error)
     return NextResponse.json(
       {
         error: "Failed to send test email",
