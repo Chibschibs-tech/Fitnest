@@ -24,7 +24,8 @@ export function AddToCartForm({ productId }: { productId: number }) {
     setError("")
 
     try {
-      const response = await fetch("/api/cart/add", {
+      console.log("Adding to cart from form:", productId, quantity)
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,7 +36,9 @@ export function AddToCartForm({ productId }: { productId: number }) {
         }),
       })
 
+      console.log("Response status:", response.status)
       const data = await response.json()
+      console.log("Response data:", data)
 
       if (response.ok) {
         setMessage("Added to cart!")
@@ -51,6 +54,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
         }
       }
     } catch (error) {
+      console.error("Error in add to cart form:", error)
       setError("Error adding to cart. Please try again.")
     } finally {
       setIsLoading(false)

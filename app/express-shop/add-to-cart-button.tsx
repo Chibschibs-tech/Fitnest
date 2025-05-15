@@ -13,7 +13,8 @@ export function AddToCartButton({ productId }: { productId: number }) {
     setError("")
 
     try {
-      const response = await fetch("/api/cart/add", {
+      console.log("Adding to cart:", productId)
+      const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -24,7 +25,9 @@ export function AddToCartButton({ productId }: { productId: number }) {
         }),
       })
 
+      console.log("Response status:", response.status)
       const data = await response.json()
+      console.log("Response data:", data)
 
       if (response.ok) {
         setMessage("Added to cart!")
@@ -40,6 +43,7 @@ export function AddToCartButton({ productId }: { productId: number }) {
         }
       }
     } catch (error) {
+      console.error("Error in add to cart:", error)
       setError("Error adding to cart. Please try again.")
     } finally {
       setIsLoading(false)
