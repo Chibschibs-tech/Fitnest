@@ -103,52 +103,67 @@ export async function getProductById(id: string) {
   }
 }
 
-// Ensure products exist
+// Update the ensureProductsExist function to be more robust
 export async function ensureProductsExist() {
-  const sql = neon(process.env.DATABASE_URL!)
+  try {
+    const sql = neon(process.env.DATABASE_URL!)
 
-  // Check if products table exists
-  const tables = await sql`
-    SELECT table_name 
-    FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'products'
-  `
-
-  if (tables.length === 0) {
-    // Create products table
-    await sql`
-      CREATE TABLE products (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2) NOT NULL,
-        saleprice DECIMAL(10, 2),
-        imageurl VARCHAR(255),
-        category VARCHAR(50),
-        tags VARCHAR(255),
-        nutritionalinfo JSONB,
-        stock INTEGER DEFAULT 0,
-        isactive BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
+    // Check if products table exists
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'products'
     `
 
-    // Seed products
-    await sql`
-      INSERT INTO products (name, description, price, saleprice, imageurl, category, stock)
-      VALUES 
-        ('Protein Bar', 'Delicious protein bar with 20g of protein', 15.99, NULL, '/protein-bar.png', 'snacks', 100),
-        ('Berry Protein Bar', 'Berry flavored protein bar with 18g of protein', 16.99, 14.99, '/berry-protein-bar.png', 'snacks', 80),
-        ('Chocolate Peanut Butter Protein Bars', 'Rich chocolate and peanut butter protein bars', 39.99, 34.99, '/chocolate-peanut-butter-protein-bars.png', 'snacks', 50),
-        ('Protein Bar Variety Pack', 'Try all our delicious protein bar flavors', 45.99, NULL, '/protein-bar-variety-pack.png', 'snacks', 40),
-        ('Honey Almond Granola', 'Crunchy granola with honey and almonds', 12.99, NULL, '/honey-almond-granola.png', 'breakfast', 60),
-        ('Maple Pecan Granola - Medium Pack', 'Sweet maple granola with pecans', 18.99, 16.99, '/maple-pecan-granola-medium-pack.png', 'breakfast', 45),
-        ('Maple Pecan Granola - Large Pack', 'Sweet maple granola with pecans - family size', 29.99, 26.99, '/maple-pecan-granola-large-pack.png', 'breakfast', 30),
-        ('Healthy Protein Pancake Mix', 'Make delicious protein-packed pancakes at home', 24.99, NULL, '/healthy-protein-pancake-mix.png', 'breakfast', 25),
-        ('Energy Drink', 'Natural energy drink with vitamins', 12.99, NULL, '/vibrant-energy-drink.png', 'drinks', 120),
-        ('Protein Powder', 'Whey protein powder for muscle recovery', 49.99, 44.99, '/protein-powder-assortment.png', 'supplements', 35)
-    `
+    if (tables.length === 0) {
+      console.log("Creating products table...")
+      // Create products table
+      await sql`
+        CREATE TABLE products (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          price DECIMAL(10, 2) NOT NULL,
+          saleprice DECIMAL(10, 2),
+          imageurl VARCHAR(255),
+          category VARCHAR(50),
+          tags VARCHAR(255),
+          nutritionalinfo JSONB,
+          stock INTEGER DEFAULT 0,
+          isactive BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `
+    }
+
+    // Check if products exist
+    const productCount = await sql`SELECT COUNT(*) as count FROM products`
+
+    if (Number.parseInt(productCount[0].count) === 0) {
+      console.log("Seeding products...")
+      // Seed products
+      await sql`
+        INSERT INTO products (name, description, price, saleprice, imageurl, category, stock)
+        VALUES 
+          ('Protein Bar', 'Delicious protein bar with 20g of protein', 15.99, NULL, '/protein-bar.png', 'snacks', 100),
+          ('Berry Protein Bar', 'Berry flavored protein bar with 18g of protein', 16.99, 14.99, '/berry-protein-bar.png', 'snacks', 80),
+          ('Chocolate Peanut Butter Protein Bars', 'Rich chocolate and peanut butter protein bars', 39.99, 34.99, '/chocolate-peanut-butter-protein-bars.png', 'snacks', 50),
+          ('Protein Bar Variety Pack', 'Try all our delicious protein bar flavors', 45.99, NULL, '/protein-bar-variety-pack.png', 'snacks', 40),
+          ('Honey Almond Granola', 'Crunchy granola with honey and almonds', 12.99, NULL, '/honey-almond-granola.png', 'breakfast', 60),
+          ('Maple Pecan Granola - Medium Pack', 'Sweet maple granola with pecans', 18.99, 16.99, '/maple-pecan-granola-medium-pack.png', 'breakfast', 45),
+          ('Maple Pecan Granola - Large Pack', 'Sweet maple granola with pecans - family size', 29.99, 26.99, '/maple-pecan-granola-large-pack.png', 'breakfast', 30),
+          ('Healthy Protein Pancake Mix', 'Make delicious protein-packed pancakes at home', 24.99, NULL, '/healthy-protein-pancake-mix.png', 'breakfast', 25),
+          ('Energy Drink', 'Natural energy drink with vitamins', 12.99, NULL, '/vibrant-energy-drink.png', 'drinks', 120),
+          ('Protein Powder', 'Whey protein powder for muscle recovery', 49.99, 44.99, '/protein-powder-assortment.png', 'supplements', 35)
+      `
+      return true
+    }
+
+    return false
+  } catch (error) {
+    console.error("Error ensuring products exist:", error)
+    throw error
   }
 }
 

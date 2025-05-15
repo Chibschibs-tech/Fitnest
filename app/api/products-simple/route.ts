@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { ensureProductsExist } from "@/lib/db-utils"
 
 export async function GET() {
   try {
-    // Initialize the Neon SQL client
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Simple query to get all products
-    const productData = await sql`
+    // Ensure products exist in the database
+    await ensureProductsExist()
+
+    // Get products
+    const products = await sql`
       SELECT 
         id, 
         name, 
@@ -15,17 +18,23 @@ export async function GET() {
         price, 
         saleprice as "salePrice", 
         imageurl as "imageUrl", 
-        category
+        category,
+        tags,
+        stock
       FROM products
-      WHERE stock > 0
-      LIMIT 100
+      WHERE isactive = true OR isactive IS NULL
+      ORDER BY id ASC
     `
 
-    // Return empty array instead of undefined if no products found
-    return NextResponse.json(productData || [])
+    return NextResponse.json(products)
   } catch (error) {
     console.error("Error fetching products:", error)
-    // Return empty array on error to avoid breaking the UI
-    return NextResponse.json([])
+    return NextResponse.json(
+      {
+        error: "Failed to fetch products",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
