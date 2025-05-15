@@ -25,7 +25,7 @@ export function AddToCartForm({ productId }: { productId: number }) {
 
     try {
       console.log("Adding to cart from form:", productId, quantity)
-      const response = await fetch("/api/cart", {
+      const response = await fetch("/api/cart-direct", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -14,7 +14,7 @@ export function AddToCartButton({ productId }: { productId: number }) {
 
     try {
       console.log("Adding to cart:", productId)
-      const response = await fetch("/api/cart", {
+      const response = await fetch("/api/cart-direct", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
