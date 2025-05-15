@@ -1,7 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
 import { getProducts, ensureProductsExist, type Product } from "@/lib/db-utils"
-import { AddToCartButton } from "./add-to-cart-button"
 
 export const dynamic = "force-dynamic"
 
@@ -57,15 +56,12 @@ export default async function ExpressShop() {
                       <span>{product.price} MAD</span>
                     )}
                   </span>
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/express-shop/${product.id}`}
-                      className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
-                    >
-                      View
-                    </Link>
-                    <AddToCartButton productId={product.id} />
-                  </div>
+                  <Link
+                    href={`/express-shop/${product.id}`}
+                    className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
+                  >
+                    View Details
+                  </Link>
                 </div>
               </div>
             </div>

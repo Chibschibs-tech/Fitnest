@@ -2,7 +2,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
 import { getProductById, ensureProductsExist } from "@/lib/db-utils"
-import { AddToCartForm } from "./add-to-cart-form"
 
 export const dynamic = "force-dynamic"
 
@@ -57,7 +56,15 @@ export default async function ProductDetail({ params }: { params: { id: string }
             )}
           </div>
 
-          <AddToCartForm productId={product.id} />
+          <div className="space-y-4">
+            <p>To add this item to your cart, please use the Express Shop page.</p>
+            <Link
+              href="/express-shop"
+              className="inline-block rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+            >
+              Back to Express Shop
+            </Link>
+          </div>
         </div>
       </div>
     </div>

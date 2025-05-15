@@ -1,7 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
 import { getCartItems, getAuthenticatedUserId } from "@/lib/db-utils"
-import { CartActions } from "./cart-actions"
 
 export const dynamic = "force-dynamic"
 
@@ -64,8 +63,6 @@ export default async function CartPage() {
                           <div className="flex flex-col items-end">
                             <span className="font-medium">{item.product?.salePrice || item.product?.price} MAD</span>
                             <span className="text-sm text-gray-600">Qty: {item.quantity}</span>
-
-                            <CartActions itemId={item.id} />
                           </div>
                         </div>
                       </div>

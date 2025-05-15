@@ -43,7 +43,7 @@ importers:
         version: 1.19.0
       '@prisma/client':
         specifier: latest
-        version: 6.7.0(typescript@5.0.2)
+        version: 6.8.0(typescript@5.0.2)
       '@radix-ui/react-accordion':
         specifier: 1.2.2
         version: 1.2.2(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -133,7 +133,7 @@ importers:
         version: 7.6.13
       '@types/pg':
         specifier: latest
-        version: 8.15.1
+        version: 8.15.2
       '@types/sql.js':
         specifier: latest
         version: 1.4.9
@@ -172,7 +172,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.43.1(9c650e3aea7ff7019d708e44f6b993e6)
+        version: 0.43.1(be378b2d71c62e67e1a2e383b2fb1462)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -1353,8 +1353,8 @@ packages:
     resolution: {integrity: sha512-Tv4jcFUFAFjOWrGSio49H6R2ijALv0ZzVBfJKIdm+kl9X046Fh4LLawrF9OMsglVbK6ukqMJsUCeucGAFTBcMA==}
     engines: {node: '>=16'}
 
-  '@prisma/client@6.7.0':
-    resolution: {integrity: sha512-+k61zZn1XHjbZul8q6TdQLpuI/cvyfil87zqK2zpreNIXyXtpUv3+H/oM69hcsFcZXaokHJIzPAt5Z8C8eK2QA==}
+  '@prisma/client@6.8.0':
+    resolution: {integrity: sha512-t29bmo2VUOBIlinu0tRHXhj3r8+IwA7azetNOGqK9sQDVq/zwbSWq075P2kDjLhxpIe0L/g06bI22c307Tt4vA==}
     engines: {node: '>=18.18'}
     peerDependencies:
       prisma: '*'
@@ -2337,8 +2337,8 @@ packages:
   '@types/pg@8.11.6':
     resolution: {integrity: sha512-/2WmmBXHLsfRqzfHW7BNZ8SbYzE8OSk7i3WjFYvfgRHj7S1xj+16Je5fUKv3lVdVzk/zn9TXOqf+avFCFIE0yQ==}
 
-  '@types/pg@8.15.1':
-    resolution: {integrity: sha512-YKHrkGWBX5+ivzvOQ66I0fdqsQTsvxqM0AGP2i0XrVZ9DP5VA/deEbTf7VuLPGpY7fJB9uGbkZ6KjVhuHcrTkQ==}
+  '@types/pg@8.15.2':
+    resolution: {integrity: sha512-+BKxo5mM6+/A1soSHBI7ufUglqYXntChLDyTbvcAn1Lawi9J7J9Ok3jt6w7I0+T/UDJ4CyhHk66+GZbwmkYxSg==}
 
   '@types/react-dom@19.0.0':
     resolution: {integrity: sha512-1KfiQKsH1o00p9m5ag12axHQSb3FOU9H20UTrujVSkNhuCrRHiQWFqgEnTNK5ZNfnzZv8UWrnXVqCmCF9fgY3w==}
@@ -5059,8 +5059,8 @@ packages:
     resolution: {integrity: sha512-un0FmiRUQNr5PJqy9kP7c40F5BOfpGlYTrxonDChEZB7pzZxRNp/bt+ymiy9/npwXya9KH99nJ/GXFIiUkYGFQ==}
     engines: {node: '>=8'}
 
-  terser@5.39.1:
-    resolution: {integrity: sha512-Mm6+uad0ZuDtcV8/4uOZQDQ8RuiC5Pu+iZRedJtF7yA/27sPL7d++In/AJKpWZlU3SYMPPkVfwetn6sgZ66pUA==}
+  terser@5.39.2:
+    resolution: {integrity: sha512-yEPUmWve+VA78bI71BW70Dh0TuV4HHd+I5SHOAfS1+QBOmvmCiiffgjR8ryyEd3KIfvPGFqoADt8LdQ6XpXIvg==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -6862,7 +6862,7 @@ snapshots:
   '@neondatabase/serverless@1.0.0':
     dependencies:
       '@types/node': 22.15.18
-      '@types/pg': 8.15.1
+      '@types/pg': 8.15.2
 
   '@next/env@15.2.4': {}
 
@@ -6930,7 +6930,7 @@ snapshots:
 
   '@planetscale/database@1.19.0': {}
 
-  '@prisma/client@6.7.0(typescript@5.0.2)':
+  '@prisma/client@6.8.0(typescript@5.0.2)':
     optionalDependencies:
       typescript: 5.0.2
 
@@ -8113,7 +8113,7 @@ snapshots:
       pg-protocol: 1.10.0
       pg-types: 4.0.2
 
-  '@types/pg@8.15.1':
+  '@types/pg@8.15.2':
     dependencies:
       '@types/node': 22.0.0
       pg-protocol: 1.10.0
@@ -8828,7 +8828,7 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.43.1(9c650e3aea7ff7019d708e44f6b993e6):
+  drizzle-orm@0.43.1(be378b2d71c62e67e1a2e383b2fb1462):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.810.0
       '@cloudflare/workers-types': 4.20250515.0
@@ -8839,10 +8839,10 @@ snapshots:
       '@op-engineering/op-sqlite': 13.0.2(react-native@0.79.2(@babel/core@7.27.1)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)
       '@opentelemetry/api': 1.9.0
       '@planetscale/database': 1.19.0
-      '@prisma/client': 6.7.0(typescript@5.0.2)
+      '@prisma/client': 6.8.0(typescript@5.0.2)
       '@tidbcloud/serverless': 0.2.0
       '@types/better-sqlite3': 7.6.13
-      '@types/pg': 8.15.1
+      '@types/pg': 8.15.2
       '@types/sql.js': 1.4.9
       '@vercel/postgres': 0.10.0
       '@xata.io/client': 0.30.1(typescript@5.0.2)
@@ -9725,7 +9725,7 @@ snapshots:
   metro-minify-terser@0.82.3:
     dependencies:
       flow-enums-runtime: 0.0.6
-      terser: 5.39.1
+      terser: 5.39.2
 
   metro-resolver@0.82.3:
     dependencies:
@@ -11027,7 +11027,7 @@ snapshots:
       ansi-escapes: 4.3.2
       supports-hyperlinks: 2.3.0
 
-  terser@5.39.1:
+  terser@5.39.2:
     dependencies:
       '@jridgewell/source-map': 0.3.6
       acorn: 8.14.1
