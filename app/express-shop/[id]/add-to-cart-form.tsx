@@ -1,27 +1,38 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { ShoppingCart, Check, Minus, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import { toast } from "@/components/ui/use-toast"
 
-export function AddToCartForm({ productId }: { productId: number }) {
+interface AddToCartFormProps {
+  productId: number
+}
+
+export function AddToCartForm({ productId }: AddToCartFormProps) {
+  const router = useRouter()
   const [quantity, setQuantity] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState("")
-  const [error, setError] = useState("")
+  const [isSuccess, setIsSuccess] = useState(false)
 
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(e.target.value)
-    if (value > 0) {
-      setQuantity(value)
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1)
     }
   }
 
-  const addToCart = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const increaseQuantity = () => {
+    if (quantity < 99) {
+      setQuantity(quantity + 1)
+    }
+  }
+
+  const addToCart = async () => {
+    if (isLoading || isSuccess) return
+
     setIsLoading(true)
-    setMessage("")
-    setError("")
 
     try {
       const response = await fetch("/api/cart", {
@@ -35,72 +46,95 @@ export function AddToCartForm({ productId }: { productId: number }) {
         }),
       })
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        setMessage("Added to cart!")
-        setTimeout(() => setMessage(""), 2000)
-      } else {
-        setError(data.error || "Failed to add to cart")
-
-        // If not authenticated, redirect to login
-        if (response.status === 401) {
-          setTimeout(() => {
-            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname)
-          }, 1500)
-        }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add item to cart")
       }
+
+      // Show success state
+      setIsSuccess(true)
+
+      // Dispatch event to update cart count
+      window.dispatchEvent(new Event("cart:updated"))
+
+      // Show success toast
+      toast({
+        title: "Added to cart",
+        description: `${quantity} item${quantity > 1 ? "s" : ""} added to your cart`,
+      })
+
+      // Reset success state after 2 seconds
+      setTimeout(() => {
+        setIsSuccess(false)
+      }, 2000)
     } catch (error) {
-      setError("Error adding to cart. Please try again.")
+      console.error("Error adding to cart:", error)
+
+      // Show error toast
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add item to cart",
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <form onSubmit={addToCart} className="space-y-4">
-      <div>
-        <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
-          Quantity
-        </label>
-        <div className="mt-1 flex max-w-xs items-center">
-          <button
+    <div className="space-y-4">
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center rounded-md border">
+          <Button
             type="button"
-            onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-            className="rounded-l border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 hover:bg-gray-200"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-r-none"
+            onClick={decreaseQuantity}
+            disabled={quantity <= 1 || isLoading || isSuccess}
           >
-            -
-          </button>
-          <input
-            type="number"
-            id="quantity"
-            name="quantity"
-            min="1"
-            value={quantity}
-            onChange={handleQuantityChange}
-            className="w-16 border-y border-gray-300 px-3 py-2 text-center"
-          />
-          <button
+            <Minus className="h-4 w-4" />
+            <span className="sr-only">Decrease quantity</span>
+          </Button>
+          <div className="flex h-10 w-12 items-center justify-center text-center">{quantity}</div>
+          <Button
             type="button"
-            onClick={() => setQuantity(quantity + 1)}
-            className="rounded-r border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 hover:bg-gray-200"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-l-none"
+            onClick={increaseQuantity}
+            disabled={quantity >= 99 || isLoading || isSuccess}
           >
-            +
-          </button>
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Increase quantity</span>
+          </Button>
         </div>
+        <Button
+          onClick={addToCart}
+          disabled={isLoading || isSuccess}
+          className="flex-1 bg-green-600 py-6 text-white hover:bg-green-700"
+        >
+          {isLoading ? (
+            <>
+              <LoadingSpinner size="sm" className="mr-2" />
+              Adding...
+            </>
+          ) : isSuccess ? (
+            <>
+              <Check className="mr-2 h-5 w-5" />
+              Added to Cart
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              Add to Cart
+            </>
+          )}
+        </Button>
       </div>
-
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="w-full rounded-md bg-green-600 px-4 py-3 text-white hover:bg-green-700 disabled:bg-green-400"
-      >
-        {isLoading ? "Adding to Cart..." : "Add to Cart"}
-      </button>
-
-      {message && <div className="mt-2 rounded bg-green-100 p-2 text-center text-green-700">{message}</div>}
-
-      {error && <div className="mt-2 rounded bg-red-100 p-2 text-center text-red-700">{error}</div>}
-    </form>
+      <Button onClick={() => router.push("/cart")} variant="outline" className="w-full py-6">
+        View Cart
+      </Button>
+    </div>
   )
 }

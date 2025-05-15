@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
 import { getProductById, ensureProductsExist } from "@/lib/db-utils"
-import { AddToCartButton } from "../add-to-cart-button"
+import { AddToCartForm } from "./add-to-cart-form"
 import { ArrowLeft, Tag, Package, ShoppingBag } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -80,7 +80,7 @@ export default async function ProductDetail({ params }: { params: { id: string }
               )}
             </div>
 
-            <AddToCartButton productId={product.id} />
+            <AddToCartForm productId={product.id} />
           </div>
 
           <div className="space-y-4 rounded-lg bg-gray-50 p-4">

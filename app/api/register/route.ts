@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
-import { db, users } from "@/lib/db"
 import { eq } from "drizzle-orm"
+import { db, users } from "@/lib/db"
+import { sendWelcomeEmail } from "@/lib/email-utils"
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +30,14 @@ export async function POST(request: Request) {
       password: hashedPassword,
       role: "customer",
     })
+
+    // Send welcome email
+    try {
+      await sendWelcomeEmail(email, name)
+    } catch (emailError) {
+      console.error("Error sending welcome email:", emailError)
+      // Continue with the response even if email fails
+    }
 
     return NextResponse.json({ message: "User created successfully" }, { status: 201 })
   } catch (error) {
