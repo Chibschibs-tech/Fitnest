@@ -7,29 +7,41 @@ import { ShoppingCart } from "lucide-react"
 export function CartIcon() {
   const [count, setCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const fetchCartCount = async () => {
+    if (isUpdating) return
+
+    setIsUpdating(true)
+
+    try {
+      const response = await fetch("/api/cart/count")
+
+      if (response.ok) {
+        const data = await response.json()
+        setCount(data.count || 0)
+      }
+    } catch (error) {
+      console.error("Error fetching cart count:", error)
+    } finally {
+      setIsLoading(false)
+      setIsUpdating(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchCartCount = async () => {
-      try {
-        const response = await fetch("/api/cart/count")
-
-        if (response.ok) {
-          const data = await response.json()
-          setCount(data.count || 0)
-        }
-      } catch (error) {
-        console.error("Error fetching cart count:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchCartCount()
+
+    // Set up event listener for cart updates
+    window.addEventListener("cart:updated", fetchCartCount)
 
     // Refresh cart count every 30 seconds
     const interval = setInterval(fetchCartCount, 30000)
 
-    return () => clearInterval(interval)
+    return () => {
+      window.removeEventListener("cart:updated", fetchCartCount)
+      clearInterval(interval)
+    }
   }, [])
 
   return (
