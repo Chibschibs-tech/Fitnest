@@ -57,31 +57,37 @@ export function ExpressShopContent() {
         setLoading(true)
         console.log("Fetching products...")
 
-        // First ensure products exist
-        await fetch("/api/ensure-products")
-
         const response = await fetch("/api/products-simple")
         console.log("Response status:", response.status)
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error("API error response:", errorText)
-          throw new Error(`API returned status ${response.status}: ${errorText}`)
+        // Store the raw text response for debugging
+        const responseText = await response.text()
+        console.log("Raw response:", responseText)
+
+        let responseData
+        try {
+          // Try to parse the response as JSON
+          responseData = JSON.parse(responseText)
+          console.log("Parsed response data:", responseData)
+        } catch (parseError) {
+          console.error("Error parsing JSON:", parseError)
+          throw new Error(`Failed to parse response as JSON: ${responseText.substring(0, 100)}...`)
         }
 
-        const data = await response.json()
-        console.log("Products data:", data)
+        if (!response.ok) {
+          throw new Error(responseData.error || `API returned status ${response.status}`)
+        }
 
-        if (!Array.isArray(data)) {
-          console.error("API did not return an array:", data)
+        // Ensure we have an array, even if empty
+        if (!Array.isArray(responseData)) {
+          console.error("API did not return an array:", responseData)
           throw new Error("API did not return an array of products")
         }
 
-        setProducts(data)
+        setProducts(responseData)
       } catch (err) {
         console.error("Error fetching products:", err)
         setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
-        setDebugInfo({ error: String(err) })
       } finally {
         setLoading(false)
       }

@@ -8,7 +8,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, X } from "lucide-react"
 import { CartIcon } from "@/components/cart-icon"
 import { NavbarAuth } from "@/components/navbar-auth"
-import Image from "next/image"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -32,14 +31,7 @@ export default function Navbar() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Image
-              src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-Vert-v412yUnhxctld0VkvDHD8wXh8H2GMQ.png"
-              alt="Fitnest.ma Logo"
-              width={150}
-              height={50}
-              className="h-12 w-auto"
-              priority
-            />
+            <span className="text-xl font-bold">Fitnest.ma</span>
           </Link>
 
           <nav className="hidden md:flex md:items-center md:space-x-6">
