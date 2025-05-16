@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+// Force dynamic to prevent caching issues
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   try {
     const sql = neon(process.env.DATABASE_URL!)
@@ -10,15 +13,15 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category")
     const limit = searchParams.get("limit") ? Number.parseInt(searchParams.get("limit")!) : 20
 
-    // Build query based on parameters
+    // Build query based on parameters - Fix column names to match database schema
     let query = `
       SELECT 
         id, 
         name, 
         description, 
         price, 
-        saleprice as "salePrice", 
-        imageurl as "imageUrl", 
+        sale_price as "salePrice", 
+        image_url as "imageUrl", 
         category,
         tags,
         stock
@@ -66,10 +69,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Insert the new product
+    // Insert the new product - Fix column names to match database schema
     const newProduct = await sql`
       INSERT INTO products
-      (name, description, price, saleprice, imageurl, category, tags, nutritionalinfo, stock, isactive)
+      (name, description, price, sale_price, image_url, category, tags, nutritional_info, stock, isactive)
       VALUES
       (${data.name}, ${data.description}, ${data.price}, ${data.salePrice || null},
        ${data.imageUrl || null}, ${data.category}, ${data.tags || null},
@@ -86,11 +89,11 @@ export async function POST(request: NextRequest) {
         name: product.name,
         description: product.description,
         price: product.price,
-        salePrice: product.saleprice,
-        imageUrl: product.imageurl,
+        salePrice: product.sale_price,
+        imageUrl: product.image_url,
         category: product.category,
         tags: product.tags,
-        nutritionalInfo: product.nutritionalinfo,
+        nutritionalInfo: product.nutritional_info,
         stock: product.stock,
         isActive: product.isactive,
       },
