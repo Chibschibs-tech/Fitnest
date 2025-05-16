@@ -4,15 +4,16 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
 
-// Basic product type
-export type Product = {
-  id: number
+// Define product type
+interface Product {
+  id: string
   name: string
   description: string
   price: number
   salePrice?: number
-  imageUrl?: string
   category: string
+  imageUrl?: string
+  stock: number
 }
 
 // Basic cart item type
@@ -21,6 +22,33 @@ export type CartItem = {
   productId: number
   quantity: number
   product?: Product
+}
+
+// Get database connection
+export function getDb() {
+  const dbUrl = process.env.DATABASE_URL
+  if (!dbUrl) {
+    throw new Error("DATABASE_URL is not defined")
+  }
+  return neon(dbUrl)
+}
+
+// Get cart ID from cookies or create a new one
+export function getCartId() {
+  const cookieStore = cookies()
+  let cartId = cookieStore.get("cartId")?.value
+
+  if (!cartId) {
+    cartId = Math.random().toString(36).substring(2, 15)
+    cookieStore.set("cartId", cartId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    })
+  }
+
+  return cartId
 }
 
 // Get authenticated user ID
@@ -43,282 +71,294 @@ export async function getAuthenticatedUserId() {
   return session.user.id
 }
 
-// Get products
-export async function getProducts() {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+// Ensure products table exists
+export async function ensureProductsTable() {
+  const sql = getDb()
 
-    const products = await sql`
-      SELECT 
-        id, 
-        name, 
-        description, 
-        price, 
-        saleprice as "salePrice", 
-        imageurl as "imageUrl", 
-        category,
-        tags,
-        stock
-      FROM products
-      WHERE isactive = true
-      ORDER BY id ASC
-    `
-
-    return products
-  } catch (error) {
-    console.error("Error getting products:", error)
-    return []
-  }
+  await sql`
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      price DECIMAL(10, 2) NOT NULL,
+      sale_price DECIMAL(10, 2),
+      category TEXT NOT NULL,
+      image_url TEXT,
+      stock INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `
 }
 
-// Get product by ID
-export async function getProductById(id: string) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+// Ensure cart table exists
+export async function ensureCartTable() {
+  const sql = getDb()
 
-    const product = await sql`
-      SELECT 
-        id, 
-        name, 
-        description, 
-        price, 
-        saleprice as "salePrice", 
-        imageurl as "imageUrl", 
-        category,
-        tags,
-        nutritionalinfo as "nutritionalInfo",
-        stock
-      FROM products
-      WHERE id = ${id} AND isactive = true
-    `
+  await sql`
+    CREATE TABLE IF NOT EXISTS cart_items (
+      id SERIAL PRIMARY KEY,
+      cart_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    )
+  `
+}
 
-    if (product.length === 0) {
-      return null
+// Sample products data
+const sampleProducts = [
+  {
+    id: "protein-bar-1",
+    name: "Protein Bar - Chocolate",
+    description: "Delicious chocolate protein bar with 20g of protein.",
+    price: 25.99,
+    salePrice: null,
+    category: "protein_bars",
+    imageUrl: "/protein-bar.png",
+    stock: 100,
+  },
+  {
+    id: "protein-bar-2",
+    name: "Protein Bar - Berry",
+    description: "Delicious berry protein bar with 18g of protein.",
+    price: 25.99,
+    salePrice: 19.99,
+    category: "protein_bars",
+    imageUrl: "/berry-protein-bar.png",
+    stock: 75,
+  },
+  {
+    id: "granola-1",
+    name: "Honey Almond Granola",
+    description: "Crunchy granola with honey and almonds.",
+    price: 45.99,
+    salePrice: null,
+    category: "granola",
+    imageUrl: "/honey-almond-granola.png",
+    stock: 50,
+  },
+  {
+    id: "protein-pancake-1",
+    name: "Protein Pancake Mix",
+    description: "Make delicious protein pancakes at home.",
+    price: 89.99,
+    salePrice: 79.99,
+    category: "breakfast",
+    imageUrl: "/healthy-protein-pancake-mix.png",
+    stock: 30,
+  },
+  {
+    id: "protein-bar-pack-1",
+    name: "Protein Bar Variety Pack",
+    description: "Try all our delicious protein bar flavors.",
+    price: 119.99,
+    salePrice: null,
+    category: "protein_bars",
+    imageUrl: "/protein-bar-pack.png",
+    stock: 25,
+  },
+  {
+    id: "protein-bar-3",
+    name: "Chocolate Peanut Butter Protein Bars",
+    description: "Rich chocolate and peanut butter protein bars with 22g of protein.",
+    price: 29.99,
+    salePrice: null,
+    category: "protein_bars",
+    imageUrl: "/chocolate-peanut-butter-protein-bars.png",
+    stock: 60,
+  },
+  {
+    id: "protein-bar-variety-1",
+    name: "Protein Bar Variety Box",
+    description: "Box of 12 assorted protein bars with different flavors.",
+    price: 249.99,
+    salePrice: 199.99,
+    category: "protein_bars",
+    imageUrl: "/protein-bar-variety-pack.png",
+    stock: 15,
+  },
+  {
+    id: "granola-2",
+    name: "Maple Pecan Granola - Medium",
+    description: "Crunchy granola with maple syrup and pecans.",
+    price: 49.99,
+    salePrice: null,
+    category: "granola",
+    imageUrl: "/maple-pecan-granola-medium-pack.png",
+    stock: 40,
+  },
+  {
+    id: "granola-3",
+    name: "Maple Pecan Granola - Large",
+    description: "Large pack of crunchy granola with maple syrup and pecans.",
+    price: 79.99,
+    salePrice: 69.99,
+    category: "granola",
+    imageUrl: "/maple-pecan-granola-large-pack.png",
+    stock: 35,
+  },
+]
+
+// Seed products
+export async function seedProducts() {
+  const sql = getDb()
+
+  // Check if products already exist
+  const existingProducts = await sql`SELECT COUNT(*) FROM products`
+
+  if (Number.parseInt(existingProducts[0].count) === 0) {
+    // Insert sample products
+    for (const product of sampleProducts) {
+      await sql`
+        INSERT INTO products (id, name, description, price, sale_price, category, image_url, stock)
+        VALUES (${product.id}, ${product.name}, ${product.description}, ${product.price}, ${product.salePrice}, ${product.category}, ${product.imageUrl}, ${product.stock})
+      `
     }
-
-    return product[0]
-  } catch (error) {
-    console.error("Error getting product:", error)
-    return null
   }
 }
 
 // Ensure products exist
 export async function ensureProductsExist() {
-  const sql = neon(process.env.DATABASE_URL!)
-
-  // Check if products table exists
-  const tables = await sql`
-    SELECT table_name 
-    FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'products'
-  `
-
-  if (tables.length === 0) {
-    // Create products table
-    await sql`
-      CREATE TABLE products (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2) NOT NULL,
-        saleprice DECIMAL(10, 2),
-        imageurl VARCHAR(255),
-        category VARCHAR(50),
-        tags VARCHAR(255),
-        nutritionalinfo JSONB,
-        stock INTEGER DEFAULT 0,
-        isactive BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
-
-    // Seed products
-    await sql`
-      INSERT INTO products (name, description, price, saleprice, imageurl, category, stock)
-      VALUES 
-        ('Protein Bar', 'Delicious protein bar with 20g of protein', 15.99, NULL, '/protein-bar.png', 'snacks', 100),
-        ('Berry Protein Bar', 'Berry flavored protein bar with 18g of protein', 16.99, 14.99, '/berry-protein-bar.png', 'snacks', 80),
-        ('Chocolate Peanut Butter Protein Bars', 'Rich chocolate and peanut butter protein bars', 39.99, 34.99, '/chocolate-peanut-butter-protein-bars.png', 'snacks', 50),
-        ('Protein Bar Variety Pack', 'Try all our delicious protein bar flavors', 45.99, NULL, '/protein-bar-variety-pack.png', 'snacks', 40),
-        ('Honey Almond Granola', 'Crunchy granola with honey and almonds', 12.99, NULL, '/honey-almond-granola.png', 'breakfast', 60),
-        ('Maple Pecan Granola - Medium Pack', 'Sweet maple granola with pecans', 18.99, 16.99, '/maple-pecan-granola-medium-pack.png', 'breakfast', 45),
-        ('Maple Pecan Granola - Large Pack', 'Sweet maple granola with pecans - family size', 29.99, 26.99, '/maple-pecan-granola-large-pack.png', 'breakfast', 30),
-        ('Healthy Protein Pancake Mix', 'Make delicious protein-packed pancakes at home', 24.99, NULL, '/healthy-protein-pancake-mix.png', 'breakfast', 25),
-        ('Energy Drink', 'Natural energy drink with vitamins', 12.99, NULL, '/vibrant-energy-drink.png', 'drinks', 120),
-        ('Protein Powder', 'Whey protein powder for muscle recovery', 49.99, 44.99, '/protein-powder-assortment.png', 'supplements', 35)
-    `
-  }
+  await ensureProductsTable()
+  await ensureCartTable()
+  await seedProducts()
 }
 
-// Ensure cart table exists
-export async function ensureCartTable() {
-  const sql = neon(process.env.DATABASE_URL!)
+// Get all products
+export async function getProducts(): Promise<Product[]> {
+  const sql = getDb()
 
-  // Check if cart_items table exists
-  const tables = await sql`
-    SELECT table_name 
-    FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'cart_items'
+  const products = await sql`
+    SELECT 
+      id, 
+      name, 
+      description, 
+      price, 
+      sale_price as "salePrice", 
+      category, 
+      image_url as "imageUrl", 
+      stock
+    FROM products
+    ORDER BY name
   `
 
-  if (tables.length === 0) {
-    // Create cart_items table
-    await sql`
-      CREATE TABLE cart_items (
-        id SERIAL PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
-  }
+  return products
 }
 
-// Add item to cart
-export async function addToCart(userId: string, productId: number, quantity: number) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+// Get product by ID
+export async function getProductById(id: string): Promise<Product | null> {
+  const sql = getDb()
 
-    // Check if product exists
-    const product = await sql`SELECT id FROM products WHERE id = ${productId}`
+  const products = await sql`
+    SELECT 
+      id, 
+      name, 
+      description, 
+      price, 
+      sale_price as "salePrice", 
+      category, 
+      image_url as "imageUrl", 
+      stock
+    FROM products
+    WHERE id = ${id}
+  `
 
-    if (product.length === 0) {
-      return { success: false, message: "Product not found" }
-    }
-
-    // Check if item already exists in cart
-    const existingItem = await sql`
-      SELECT * FROM cart_items WHERE user_id = ${userId} AND product_id = ${productId}
-    `
-
-    if (existingItem.length > 0) {
-      // Update quantity if item exists
-      await sql`
-        UPDATE cart_items 
-        SET quantity = quantity + ${quantity}, updated_at = CURRENT_TIMESTAMP 
-        WHERE user_id = ${userId} AND product_id = ${productId}
-      `
-    } else {
-      // Add new item to cart
-      await sql`
-        INSERT INTO cart_items (user_id, product_id, quantity) 
-        VALUES (${userId}, ${productId}, ${quantity})
-      `
-    }
-
-    return { success: true, message: "Item added to cart" }
-  } catch (error) {
-    console.error("Error adding to cart:", error)
-    return { success: false, message: "Failed to add item to cart" }
-  }
+  return products.length > 0 ? products[0] : null
 }
 
 // Get cart items
-export async function getCartItems(userId: string) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+export async function getCartItems(cartId: string) {
+  const sql = getDb()
 
-    // Get cart items with product details
-    const cartItems = await sql`
-      SELECT ci.*, p.name, p.description, p.price, p.saleprice, p.imageurl, p.category
-      FROM cart_items ci
-      JOIN products p ON ci.product_id = p.id
-      WHERE ci.user_id = ${userId}
+  const cartItems = await sql`
+    SELECT 
+      ci.id,
+      ci.product_id as "productId",
+      ci.quantity,
+      p.name,
+      p.price,
+      p.sale_price as "salePrice",
+      p.image_url as "imageUrl"
+    FROM cart_items ci
+    JOIN products p ON ci.product_id = p.id
+    WHERE ci.cart_id = ${cartId}
+    ORDER BY ci.created_at DESC
+  `
+
+  return cartItems
+}
+
+// Add item to cart
+export async function addToCart(cartId: string, productId: string, quantity: number) {
+  const sql = getDb()
+
+  // Check if product exists
+  const product = await getProductById(productId)
+  if (!product) {
+    throw new Error("Product not found")
+  }
+
+  // Check if item already in cart
+  const existingItem = await sql`
+    SELECT id, quantity FROM cart_items
+    WHERE cart_id = ${cartId} AND product_id = ${productId}
+  `
+
+  if (existingItem.length > 0) {
+    // Update quantity
+    const newQuantity = existingItem[0].quantity + quantity
+    await sql`
+      UPDATE cart_items
+      SET quantity = ${newQuantity}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${existingItem[0].id}
     `
-
-    // Format the response
-    return cartItems.map((item) => ({
-      id: item.id,
-      userId: item.user_id,
-      productId: item.product_id,
-      quantity: item.quantity,
-      product: {
-        id: item.product_id,
-        name: item.name,
-        description: item.description,
-        price: Number(item.price),
-        salePrice: item.saleprice ? Number(item.saleprice) : undefined,
-        imageUrl: item.imageurl,
-        category: item.category,
-      },
-    }))
-  } catch (error) {
-    console.error("Error getting cart items:", error)
-    return []
+  } else {
+    // Add new item
+    await sql`
+      INSERT INTO cart_items (cart_id, product_id, quantity)
+      VALUES (${cartId}, ${productId}, ${quantity})
+    `
   }
 }
 
 // Remove item from cart
-export async function removeFromCart(userId: string, itemId: number) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+export async function removeFromCart(cartId: string, productId: string) {
+  const sql = getDb()
 
-    // Check if item exists in cart
-    const existingItem = await sql`
-      SELECT * FROM cart_items WHERE user_id = ${userId} AND id = ${itemId}
-    `
-
-    if (existingItem.length === 0) {
-      return { success: false, message: "Item not found in cart" }
-    }
-
-    // Remove item from cart
-    await sql`
-      DELETE FROM cart_items WHERE user_id = ${userId} AND id = ${itemId}
-    `
-
-    return { success: true, message: "Item removed from cart" }
-  } catch (error) {
-    console.error("Error removing from cart:", error)
-    return { success: false, message: "Failed to remove item from cart" }
-  }
+  await sql`
+    DELETE FROM cart_items
+    WHERE cart_id = ${cartId} AND product_id = ${productId}
+  `
 }
 
 // Update cart item quantity
-export async function updateCartItemQuantity(userId: string, itemId: number, quantity: number) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+export async function updateCartItemQuantity(cartId: string, productId: string, quantity: number) {
+  const sql = getDb()
 
-    // Check if item exists in cart
-    const existingItem = await sql`
-      SELECT * FROM cart_items WHERE user_id = ${userId} AND id = ${itemId}
-    `
-
-    if (existingItem.length === 0) {
-      return { success: false, message: "Item not found in cart" }
-    }
-
-    // Update quantity
-    await sql`
-      UPDATE cart_items 
-      SET quantity = ${quantity}, updated_at = CURRENT_TIMESTAMP 
-      WHERE user_id = ${userId} AND id = ${itemId}
-    `
-
-    return { success: true, message: "Cart item updated" }
-  } catch (error) {
-    console.error("Error updating cart item:", error)
-    return { success: false, message: "Failed to update cart item" }
+  if (quantity <= 0) {
+    await removeFromCart(cartId, productId)
+    return
   }
+
+  await sql`
+    UPDATE cart_items
+    SET quantity = ${quantity}, updated_at = CURRENT_TIMESTAMP
+    WHERE cart_id = ${cartId} AND product_id = ${productId}
+  `
 }
 
-// Clear cart
-export async function clearCart(userId: string) {
-  try {
-    const sql = neon(process.env.DATABASE_URL!)
+// Get cart item count
+export async function getCartItemCount(cartId: string): Promise<number> {
+  const sql = getDb()
 
-    // Remove all items from cart
-    await sql`
-      DELETE FROM cart_items WHERE user_id = ${userId}
-    `
+  const result = await sql`
+    SELECT SUM(quantity) as count
+    FROM cart_items
+    WHERE cart_id = ${cartId}
+  `
 
-    return { success: true, message: "Cart cleared" }
-  } catch (error) {
-    console.error("Error clearing cart:", error)
-    return { success: false, message: "Failed to clear cart" }
-  }
+  return Number.parseInt(result[0].count) || 0
 }

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { cookies } from "next/headers"
 
+// Force dynamic rendering to avoid caching issues
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     const cookieStore = cookies()

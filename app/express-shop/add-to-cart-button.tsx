@@ -1,65 +1,54 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { ShoppingCart, Check } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 interface AddToCartButtonProps {
-  productId: number
-  className?: string
+  productId: string
 }
 
-export function AddToCartButton({ productId, className = "" }: AddToCartButtonProps) {
-  const [loading, setLoading] = useState(false)
-  const [added, setAdded] = useState(false)
-  const { toast } = useToast()
+export function AddToCartButton({ productId }: AddToCartButtonProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isAdded, setIsAdded] = useState(false)
+  const router = useRouter()
 
-  const addToCart = async () => {
+  const handleAddToCart = async () => {
+    setIsLoading(true)
     try {
-      setLoading(true)
-
-      // First ensure cart table exists
-      await fetch("/api/ensure-cart-table")
-
       const response = await fetch("/api/cart/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ productId, quantity: 1 }),
+        body: JSON.stringify({
+          productId,
+          quantity: 1,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
+        throw new Error("Failed to add to cart")
       }
 
-      setAdded(true)
-      setTimeout(() => setAdded(false), 2000)
-
-      toast({
-        title: "Added to cart",
-        description: "Item has been added to your cart",
-        duration: 3000,
-      })
+      setIsAdded(true)
+      setTimeout(() => setIsAdded(false), 2000)
+      router.refresh()
     } catch (error) {
       console.error("Error adding to cart:", error)
-
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to add item to cart",
-        duration: 3000,
-      })
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <Button onClick={addToCart} disabled={loading} className={className}>
-      {added ? <Check className="mr-2 h-4 w-4" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-      {added ? "Added!" : "Add to Cart"}
-    </Button>
+    <button
+      onClick={handleAddToCart}
+      disabled={isLoading || isAdded}
+      className={`w-full rounded-md px-4 py-2 text-sm font-medium text-white transition-colors ${
+        isAdded ? "bg-green-500 hover:bg-green-600" : "bg-green-600 hover:bg-green-700"
+      } disabled:opacity-50`}
+    >
+      {isLoading ? "Adding..." : isAdded ? "Added to Cart ✓" : "Add to Cart"}
+    </button>
   )
 }
