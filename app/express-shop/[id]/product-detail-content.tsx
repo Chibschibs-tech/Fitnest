@@ -1,15 +1,21 @@
 "use client"
 
-import { useState } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { AlertDescription } from "@/components/ui/alert"
+
+import { AlertTitle } from "@/components/ui/alert"
+
+import { Alert } from "@/components/ui/alert"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, ShoppingCart, Plus, Minus, ArrowLeft } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Image from "next/image"
 import Link from "next/link"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 interface Product {
   id: number
@@ -26,14 +32,30 @@ interface Product {
 
 interface ProductDetailContentProps {
   product: Product
+  relatedProducts: Product[]
 }
 
-export function ProductDetailContent({ product }: ProductDetailContentProps) {
+export function ProductDetailContent({ product, relatedProducts }: ProductDetailContentProps) {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const { toast } = useToast()
+
+  // Ensure cart table exists on component mount
+  useEffect(() => {
+    async function ensureCartTable() {
+      try {
+        const response = await fetch("/api/ensure-cart-table")
+        const data = await response.json()
+        console.log("Cart table check:", data)
+      } catch (error) {
+        console.error("Error checking cart table:", error)
+      }
+    }
+
+    ensureCartTable()
+  }, [])
 
   const handleQuantityChange = (change: number) => {
     setQuantity(Math.max(1, quantity + change))
@@ -113,9 +135,7 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
               <ShoppingCart className="h-24 w-24 text-gray-300" />
             </div>
           )}
-          {product.salePrice && (
-            <Badge className="absolute right-4 top-4 bg-fitnest-green px-3 py-1 text-base">Sale</Badge>
-          )}
+          {product.salePrice && <Badge className="absolute right-4 top-4 bg-green-600 px-3 py-1 text-base">Sale</Badge>}
         </div>
 
         {/* Product Details */}
@@ -131,7 +151,7 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
             <div className="flex items-center space-x-2">
               {product.salePrice ? (
                 <>
-                  <span className="text-2xl font-bold text-fitnest-green">{product.salePrice} MAD</span>
+                  <span className="text-2xl font-bold text-green-600">{product.salePrice} MAD</span>
                   <span className="text-lg text-gray-500 line-through">{product.price} MAD</span>
                 </>
               ) : (
@@ -175,7 +195,7 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
 
           {/* Add to Cart Button */}
           <Button
-            className="w-full bg-fitnest-green hover:bg-fitnest-green/90 py-6 text-lg"
+            className="w-full py-6 text-lg"
             onClick={handleAddToCart}
             disabled={isAddingToCart || product.stock <= 0 || status !== "authenticated"}
           >
@@ -226,6 +246,60 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
           )}
         </div>
       </div>
+
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-16">
+          <h2 className="mb-6 text-2xl font-bold">You might also like</h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {relatedProducts
+              .filter((relatedProduct) => relatedProduct.id !== product.id)
+              .slice(0, 4)
+              .map((relatedProduct) => (
+                <Card key={relatedProduct.id} className="overflow-hidden">
+                  <Link href={`/express-shop/${relatedProduct.id}`}>
+                    <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+                      {relatedProduct.imageUrl ? (
+                        <Image
+                          src={relatedProduct.imageUrl || "/placeholder.svg"}
+                          alt={relatedProduct.name}
+                          fill
+                          className="object-cover transition-transform hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <ShoppingCart className="h-12 w-12 text-gray-300" />
+                        </div>
+                      )}
+                      {relatedProduct.salePrice && <Badge className="absolute right-2 top-2 bg-green-600">Sale</Badge>}
+                    </div>
+                  </Link>
+                  <CardContent className="p-4">
+                    <h3 className="line-clamp-1 text-lg font-medium">{relatedProduct.name}</h3>
+                    <p className="line-clamp-2 text-sm text-gray-500">{relatedProduct.description}</p>
+                    <div className="mt-2">
+                      {relatedProduct.salePrice ? (
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-green-600">{relatedProduct.salePrice} MAD</span>
+                          <span className="text-sm text-gray-500 line-through">{relatedProduct.price} MAD</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold">{relatedProduct.price} MAD</span>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0">
+                    <Link href={`/express-shop/${relatedProduct.id}`} className="w-full">
+                      <Button variant="outline" className="w-full">
+                        View Product
+                      </Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

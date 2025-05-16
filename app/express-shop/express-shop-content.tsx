@@ -156,7 +156,7 @@ export function ExpressShopContent() {
   if (loading) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-fitnest-green" />
+        <Loader2 className="h-12 w-12 animate-spin text-green-600" />
       </div>
     )
   }
@@ -255,7 +255,7 @@ export function ExpressShopContent() {
                               <ShoppingCart className="h-12 w-12 text-gray-300" />
                             </div>
                           )}
-                          {product.salePrice && <Badge className="absolute right-2 top-2 bg-fitnest-green">Sale</Badge>}
+                          {product.salePrice && <Badge className="absolute right-2 top-2 bg-green-600">Sale</Badge>}
                         </div>
                       </Link>
                       <CardHeader className="p-4 pb-0">
@@ -267,7 +267,7 @@ export function ExpressShopContent() {
                           <div>
                             {product.salePrice ? (
                               <div className="flex items-center space-x-2">
-                                <span className="text-lg font-bold text-fitnest-green">{product.salePrice} MAD</span>
+                                <span className="text-lg font-bold text-green-600">{product.salePrice} MAD</span>
                                 <span className="text-sm text-gray-500 line-through">{product.price} MAD</span>
                               </div>
                             ) : (
@@ -275,13 +275,13 @@ export function ExpressShopContent() {
                             )}
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {category.replace("_", " ")}
+                            {product.category.replace("_", " ")}
                           </Badge>
                         </div>
                       </CardContent>
                       <CardFooter className="p-4 pt-0">
                         <Button
-                          className="w-full bg-fitnest-green hover:bg-fitnest-green/90"
+                          className="w-full"
                           onClick={() => handleAddToCart(product.id)}
                           disabled={addingToCart === product.id || status !== "authenticated"}
                         >
