@@ -16,7 +16,7 @@ importers:
         version: 3.812.0
       '@cloudflare/workers-types':
         specifier: latest
-        version: 4.20250515.0
+        version: 4.20250517.0
       '@electric-sql/pglite':
         specifier: latest
         version: 0.3.1
@@ -172,7 +172,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.43.1(9fcc5631b794f239e5af3058a3f5d360)
+        version: 0.43.1(c6067b0ae823b7221851be167dc0f07b)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -907,8 +907,8 @@ packages:
     resolution: {integrity: sha512-+EzkxvLNfiUeKMgy/3luqfsCWFRXLb7U6wNQTk60tovuckwB15B191tJWvpp4HjiQWdJkCxO3Wbvc6jlk3Xb2Q==}
     engines: {node: '>=6.9.0'}
 
-  '@cloudflare/workers-types@4.20250515.0':
-    resolution: {integrity: sha512-KoHFMH04gOXp3KEI+wrFIU+3ZfoSXnwqZTpybNQjalHoN3pWjtWBb/030cCRAZ639YX+DAHAxNF7AvEYGz1oaA==}
+  '@cloudflare/workers-types@4.20250517.0':
+    resolution: {integrity: sha512-DYttpORVcvKGXI+zQDHBO6r0pDsAc8fkmJg0x1PK7+t0ijfc6nMVnUF/IVJIllScOWWHHCBknCbCmV0eGq2njA==}
 
   '@electric-sql/pglite@0.3.1':
     resolution: {integrity: sha512-Kpbd2FMXnM5I56ZpMnGKZhv+h31ipeimgyJVb1C+nWFTikp33z0TTwmksEtHpPinuqKiMJblH2OJM0RubKvJgg==}
@@ -6460,7 +6460,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@cloudflare/workers-types@4.20250515.0': {}
+  '@cloudflare/workers-types@4.20250517.0': {}
 
   '@electric-sql/pglite@0.3.1': {}
 
@@ -9065,10 +9065,10 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.43.1(9fcc5631b794f239e5af3058a3f5d360):
+  drizzle-orm@0.43.1(c6067b0ae823b7221851be167dc0f07b):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.812.0
-      '@cloudflare/workers-types': 4.20250515.0
+      '@cloudflare/workers-types': 4.20250517.0
       '@electric-sql/pglite': 0.3.1
       '@libsql/client': 0.15.6(bufferutil@4.0.9)
       '@libsql/client-wasm': 0.15.6
