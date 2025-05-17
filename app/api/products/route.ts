@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+// Force dynamic to prevent caching issues
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   try {
     const sql = neon(process.env.DATABASE_URL!)
@@ -10,20 +13,20 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category")
     const limit = searchParams.get("limit") ? Number.parseInt(searchParams.get("limit")!) : 20
 
-    // Build query based on parameters - using sale_price instead of saleprice
+    // Build query based on parameters - using the EXACT column names from the database
     let query = `
       SELECT 
         id, 
         name, 
         description, 
         price, 
-        sale_price as "salePrice", 
-        image_url as "imageUrl", 
+        saleprice as "salePrice", 
+        imageurl as "imageUrl", 
         category,
         tags,
         stock
       FROM products
-      WHERE is_active = true
+      WHERE isactive = true
     `
 
     const queryParams: any[] = []
@@ -66,10 +69,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Insert the new product - using sale_price instead of saleprice
+    // Insert the new product - using the EXACT column names from the database
     const newProduct = await sql`
       INSERT INTO products
-      (name, description, price, sale_price, image_url, category, tags, nutritional_info, stock, is_active)
+      (name, description, price, saleprice, imageurl, category, tags, nutritionalinfo, stock, isactive)
       VALUES
       (${data.name}, ${data.description}, ${data.price}, ${data.salePrice || null},
        ${data.imageUrl || null}, ${data.category}, ${data.tags || null},
@@ -86,13 +89,13 @@ export async function POST(request: NextRequest) {
         name: product.name,
         description: product.description,
         price: product.price,
-        salePrice: product.sale_price,
-        imageUrl: product.image_url,
+        salePrice: product.saleprice,
+        imageUrl: product.imageurl,
         category: product.category,
         tags: product.tags,
-        nutritionalInfo: product.nutritional_info,
+        nutritionalInfo: product.nutritionalinfo,
         stock: product.stock,
-        isActive: product.is_active,
+        isActive: product.isactive,
       },
       { status: 201 },
     )
