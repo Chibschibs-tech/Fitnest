@@ -25,41 +25,42 @@ interface Product {
   stock: number
 }
 
-export function ExpressShopContent() {
+interface ExpressShopContentProps {
+  initialProducts?: Product[]
+  initialError?: string | null
+}
+
+export function ExpressShopContent({ initialProducts = [], initialError = null }: ExpressShopContentProps) {
   const { data: session, status } = useSession()
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const [loading, setLoading] = useState(!initialProducts.length)
+  const [error, setError] = useState<string | null>(initialError)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const { toast } = useToast()
 
-  // Ensure cart table exists on component mount
+  // Only fetch products client-side if we don't have initial products
   useEffect(() => {
-    async function ensureCartTable() {
-      try {
-        const response = await fetch("/api/ensure-cart-table")
-        const data = await response.json()
-        console.log("Cart table check:", data)
-      } catch (error) {
-        console.error("Error checking cart table:", error)
-      }
+    if (initialProducts.length > 0 && !initialError) {
+      // We already have products from server-side props
+      setLoading(false)
+      return
     }
 
-    ensureCartTable()
-  }, [])
-
-  useEffect(() => {
     async function fetchProducts() {
       try {
         setLoading(true)
-        console.log("Fetching products...")
+        console.log("Fetching products client-side...")
 
-        // First ensure products exist
-        await fetch("/api/ensure-products")
+        // First try the diagnostic endpoint to get more info
+        const diagnosticResponse = await fetch("/api/products-diagnostic")
+        const diagnosticData = await diagnosticResponse.json()
+        console.log("Diagnostic data:", diagnosticData)
+        setDebugInfo(diagnosticData)
 
+        // Then fetch the actual products
         const response = await fetch("/api/products-simple")
         console.log("Response status:", response.status)
 
@@ -81,17 +82,17 @@ export function ExpressShopContent() {
       } catch (err) {
         console.error("Error fetching products:", err)
         setError(err instanceof Error ? err.message : "Failed to load products. Please try again.")
-        setDebugInfo({ error: String(err) })
+        setDebugInfo((prev: any) => ({ ...prev, clientError: String(err) }))
       } finally {
         setLoading(false)
       }
     }
 
     fetchProducts()
-  }, [retryCount])
+  }, [initialProducts, initialError, retryCount])
 
   // Extract unique categories from products
-  const categories = ["all", ...new Set(products.map((product) => product.category))]
+  const categories = ["all", ...new Set(products.map((product) => product.category).filter(Boolean))]
 
   const filteredProducts =
     activeCategory === "all" ? products : products.filter((product) => product.category === activeCategory)
@@ -214,6 +215,15 @@ export function ExpressShopContent() {
           <ShoppingCart className="h-16 w-16 text-gray-400" />
           <h2 className="text-2xl font-semibold">No products available</h2>
           <p className="text-gray-500">Check back soon for our new product lineup!</p>
+
+          {debugInfo && (
+            <div className="mt-8 w-full max-w-2xl rounded-md bg-gray-100 p-4">
+              <h3 className="mb-2 flex items-center text-sm font-medium">
+                <Bug className="mr-2 h-4 w-4" /> Debug Information
+              </h3>
+              <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(debugInfo, null, 2)}</pre>
+            </div>
+          )}
         </div>
       ) : (
         <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
@@ -221,7 +231,7 @@ export function ExpressShopContent() {
             <TabsList className="overflow-x-auto">
               {categories.map((category) => (
                 <TabsTrigger key={category} value={category} className="capitalize">
-                  {category.replace("_", " ")}
+                  {category?.replace("_", " ") || "Uncategorized"}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -275,7 +285,7 @@ export function ExpressShopContent() {
                             )}
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {category.replace("_", " ")}
+                            {product.category?.replace("_", " ") || "Uncategorized"}
                           </Badge>
                         </div>
                       </CardContent>
