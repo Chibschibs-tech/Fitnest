@@ -1,73 +1,131 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Log the database connection
-    console.log("Database connection established")
-
     // Check if products table exists
-    const tableCheck = await sql`
+    const tableExists = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_name = 'products'
-      );
+        WHERE table_schema = 'public' 
+        AND table_name = 'products'
+      ) as exists
     `
 
-    console.log("Table check result:", tableCheck)
-
-    if (!tableCheck[0].exists) {
-      console.log("Creating products table")
-      // Create products table
+    if (!tableExists[0].exists) {
+      // Create the products table with camelCase column names
       await sql`
-        CREATE TABLE products (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          description TEXT,
+        CREATE TABLE IF NOT EXISTS products (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
           price DECIMAL(10, 2) NOT NULL,
           saleprice DECIMAL(10, 2),
-          imageurl VARCHAR(255),
-          category VARCHAR(100),
-          stock INTEGER DEFAULT 100,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          category TEXT,
+          imageurl TEXT,
+          stock INTEGER NOT NULL DEFAULT 0,
+          isactive BOOLEAN DEFAULT true
         )
       `
     }
 
-    // Check product count
-    const countResult = await sql`SELECT COUNT(*) FROM products`
-    console.log("Product count:", countResult)
+    // Sample products data
+    const sampleProducts = [
+      {
+        id: "protein-bar-1",
+        name: "Protein Bar - Chocolate",
+        description: "Delicious chocolate protein bar with 20g of protein.",
+        price: 25.99,
+        saleprice: null,
+        category: "protein_bars",
+        imageurl: "/protein-bar.png",
+        stock: 100,
+      },
+      {
+        id: "protein-bar-2",
+        name: "Protein Bar - Berry",
+        description: "Delicious berry protein bar with 18g of protein.",
+        price: 25.99,
+        saleprice: 19.99,
+        category: "protein_bars",
+        imageurl: "/berry-protein-bar.png",
+        stock: 75,
+      },
+      {
+        id: "granola-1",
+        name: "Honey Almond Granola",
+        description: "Crunchy granola with honey and almonds.",
+        price: 45.99,
+        saleprice: null,
+        category: "granola",
+        imageurl: "/honey-almond-granola.png",
+        stock: 50,
+      },
+      {
+        id: "protein-pancake-1",
+        name: "Protein Pancake Mix",
+        description: "Make delicious protein pancakes at home.",
+        price: 89.99,
+        saleprice: 79.99,
+        category: "breakfast",
+        imageurl: "/healthy-protein-pancake-mix.png",
+        stock: 30,
+      },
+      {
+        id: "protein-bar-pack-1",
+        name: "Protein Bar Variety Pack",
+        description: "Try all our delicious protein bar flavors.",
+        price: 119.99,
+        saleprice: null,
+        category: "protein_bars",
+        imageurl: "/protein-bar-pack.png",
+        stock: 25,
+      },
+    ]
 
-    if (Number.parseInt(countResult[0].count) === 0) {
-      console.log("Seeding products table")
-      // Seed with sample data
+    // Insert sample products
+    let inserted = 0
+    for (const product of sampleProducts) {
       await sql`
-        INSERT INTO products (name, description, price, saleprice, imageurl, category) VALUES
-        ('Protein Bar - Chocolate', 'Delicious chocolate protein bar with 20g of protein.', 25.00, 22.50, '/protein-bar.png', 'snacks'),
-        ('Berry Protein Bar', 'Mixed berry protein bar with 18g of protein.', 25.00, 22.50, '/berry-protein-bar.png', 'snacks'),
-        ('Honey Almond Granola', 'Crunchy granola with honey and almonds.', 35.00, 32.00, '/honey-almond-granola.png', 'breakfast'),
-        ('Protein Pancake Mix', 'High-protein pancake mix for a healthy breakfast.', 45.00, 40.00, '/healthy-protein-pancake-mix.png', 'breakfast')
+        INSERT INTO products (id, name, description, price, saleprice, category, imageurl, stock)
+        VALUES (${product.id}, ${product.name}, ${product.description}, ${product.price}, 
+                ${product.saleprice}, ${product.category}, ${product.imageurl}, ${product.stock})
+        ON CONFLICT (id) DO UPDATE SET
+          name = ${product.name},
+          description = ${product.description},
+          price = ${product.price},
+          saleprice = ${product.saleprice},
+          category = ${product.category},
+          imageurl = ${product.imageurl},
+          stock = ${product.stock}
       `
+      inserted++
     }
 
-    // Verify products were added
-    const products = await sql`SELECT * FROM products LIMIT 10`
+    // Get product count
+    const countResult = await sql`
+      SELECT COUNT(*) as count FROM products
+    `
 
     return NextResponse.json({
       success: true,
-      message: "Products table checked and seeded if needed",
-      tableExists: tableCheck[0].exists,
-      productCount: countResult[0].count,
-      sampleProducts: products,
+      message: "Products seeded successfully",
+      inserted,
+      totalProducts: Number.parseInt(countResult[0].count),
+      timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error("Error in direct-seed-products API:", error)
+    console.error("Error seeding products:", error)
     return NextResponse.json(
       {
         success: false,
-        error: String(error),
+        error: "Failed to seed products",
+        details: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
       },
       { status: 500 },
     )
