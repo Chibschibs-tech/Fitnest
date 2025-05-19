@@ -20,17 +20,18 @@ export async function GET() {
 
     if (!tableExists[0].exists) {
       console.log("Products table doesn't exist, creating it")
-      // Create table
+      // Create table with camelCase/lowercase column names
       await sql`
         CREATE TABLE IF NOT EXISTS products (
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           description TEXT NOT NULL,
           price DECIMAL(10, 2) NOT NULL,
-          sale_price DECIMAL(10, 2),
+          saleprice DECIMAL(10, 2),
           category TEXT,
-          image_url TEXT,
-          stock INTEGER NOT NULL DEFAULT 0
+          imageurl TEXT,
+          stock INTEGER NOT NULL DEFAULT 0,
+          isactive BOOLEAN DEFAULT true
         )
       `
 
@@ -41,38 +42,41 @@ export async function GET() {
           name: "Protein Bar - Chocolate",
           description: "Delicious chocolate protein bar with 20g of protein.",
           price: 25.99,
-          sale_price: null,
+          saleprice: null,
           category: "protein_bars",
-          image_url: "/protein-bar.png",
+          imageurl: "/protein-bar.png",
           stock: 100,
+          isactive: true,
         },
         {
           id: "protein-bar-2",
           name: "Protein Bar - Berry",
           description: "Delicious berry protein bar with 18g of protein.",
           price: 25.99,
-          sale_price: 19.99,
+          saleprice: 19.99,
           category: "protein_bars",
-          image_url: "/berry-protein-bar.png",
+          imageurl: "/berry-protein-bar.png",
           stock: 75,
+          isactive: true,
         },
         {
           id: "granola-1",
           name: "Honey Almond Granola",
           description: "Crunchy granola with honey and almonds.",
           price: 45.99,
-          sale_price: null,
+          saleprice: null,
           category: "granola",
-          image_url: "/honey-almond-granola.png",
+          imageurl: "/honey-almond-granola.png",
           stock: 50,
+          isactive: true,
         },
       ]
 
       for (const product of sampleProducts) {
         await sql`
-          INSERT INTO products (id, name, description, price, sale_price, category, image_url, stock)
+          INSERT INTO products (id, name, description, price, saleprice, category, imageurl, stock, isactive)
           VALUES (${product.id}, ${product.name}, ${product.description}, ${product.price}, 
-                  ${product.sale_price}, ${product.category}, ${product.image_url}, ${product.stock})
+                  ${product.saleprice}, ${product.category}, ${product.imageurl}, ${product.stock}, ${product.isactive})
           ON CONFLICT (id) DO NOTHING
         `
       }
@@ -82,23 +86,54 @@ export async function GET() {
       return NextResponse.json(products)
     }
 
-    // Simple query to get all products
-    const products = await sql`
+    // Check column structure to determine naming convention
+    const columns = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'products'
+    `
+
+    const columnNames = columns.map((col) => col.column_name)
+    console.log("Available columns:", columnNames)
+
+    // Simple query to get all products using the correct column names
+    let query = `
       SELECT 
         id, 
         name, 
         description, 
-        price, 
-        sale_price as "salePrice", 
-        image_url as "imageUrl", 
-        category,
-        stock
-      FROM products
-      LIMIT 100
+        price
     `
 
-    console.log(`Returning ${products.length} products`)
-    return NextResponse.json(products)
+    if (columnNames.includes("saleprice")) {
+      query += `, saleprice as "salePrice"`
+    }
+
+    if (columnNames.includes("imageurl")) {
+      query += `, imageurl as "imageUrl"`
+    }
+
+    if (columnNames.includes("category")) {
+      query += `, category`
+    }
+
+    if (columnNames.includes("stock")) {
+      query += `, stock`
+    }
+
+    query += ` FROM products`
+
+    if (columnNames.includes("isactive")) {
+      query += ` WHERE isactive = true`
+    }
+
+    query += ` LIMIT 100`
+
+    const result = await sql.query(query)
+    console.log(`Returning ${result.rows.length} products`)
+
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Error in simple products API:", error)
     return NextResponse.json(
