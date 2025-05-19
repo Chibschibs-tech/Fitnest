@@ -1,99 +1,154 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { neon } from "@neondatabase/serverless"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export default function DiagnosticPage() {
-  const [diagnosticData, setDiagnosticData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export const dynamic = "force-dynamic"
 
-  useEffect(() => {
-    async function runDiagnostic() {
-      try {
-        setLoading(true)
-        const response = await fetch("/api/diagnostic")
+export default async function ExpressShopDiagnostic() {
+  let diagnosticData = null
+  let error = null
 
-        if (!response.ok) {
-          throw new Error(`API returned status ${response.status}`)
-        }
+  try {
+    const sql = neon(process.env.DATABASE_URL!)
 
-        const data = await response.json()
-        setDiagnosticData(data)
-        setError(null)
-      } catch (err) {
-        console.error("Diagnostic error:", err)
-        setError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setLoading(false)
+    // Test database connection
+    const connectionTest = await sql`SELECT 1 as connection_test`
+
+    // Get all tables
+    const tables = await sql`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `
+
+    // Check if products table exists
+    const productsTableExists = tables.some((t) => t.table_name === "products")
+
+    let productsColumns = []
+    let productCount = 0
+    let sampleProducts = []
+
+    if (productsTableExists) {
+      // Get columns for products table
+      productsColumns = await sql`
+        SELECT column_name, data_type
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'products'
+        ORDER BY ordinal_position
+      `
+
+      // Count products
+      const countResult = await sql`SELECT COUNT(*) as count FROM products`
+      productCount = Number.parseInt(countResult[0].count)
+
+      // Get sample products
+      if (productCount > 0) {
+        sampleProducts = await sql`SELECT * FROM products LIMIT 3`
       }
     }
 
-    runDiagnostic()
-  }, [])
+    diagnosticData = {
+      connectionTest: connectionTest[0],
+      tables: tables.map((t) => t.table_name),
+      productsTable: {
+        exists: productsTableExists,
+        columns: productsColumns,
+        recordCount: productCount,
+        sampleProducts,
+      },
+      timestamp: new Date().toISOString(),
+    }
+  } catch (err) {
+    console.error("Database diagnostic error:", err)
+    error = err instanceof Error ? err.message : String(err)
+  }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto p-6">
       <h1 className="mb-6 text-2xl font-bold">Express Shop Diagnostic</h1>
 
-      {loading ? (
-        <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
-          <p>Running diagnostics...</p>
-        </div>
-      ) : error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-4">
-          <h2 className="mb-2 text-lg font-medium text-red-800">Error</h2>
-          <p className="text-sm text-red-700">{error}</p>
+      {error ? (
+        <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">
+          <h2 className="mb-2 font-semibold">Database Connection Error</h2>
+          <p className="mb-4">{error}</p>
+          <p className="text-sm">
+            Please check your DATABASE_URL environment variable and ensure your Neon database is properly configured.
+          </p>
         </div>
       ) : (
-        <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
-          <h2 className="mb-4 text-lg font-medium">Diagnostic Results</h2>
-
-          <div className="mb-4">
-            <p className="mb-1 font-medium">Database Connection:</p>
-            <p className={diagnosticData.databaseConnected ? "text-green-600" : "text-red-600"}>
-              {diagnosticData.databaseConnected ? "Connected" : "Failed"}
-            </p>
+        <div className="space-y-6">
+          <div className="rounded-lg bg-green-50 p-4 text-green-800">
+            <h2 className="mb-2 font-semibold">Database Connection</h2>
+            <p>✅ Successfully connected to database</p>
           </div>
 
-          <div className="mb-4">
-            <p className="mb-1 font-medium">Environment:</p>
-            <p>{diagnosticData.environment}</p>
+          <div className="rounded-lg border p-4">
+            <h2 className="mb-2 font-semibold">Database Tables</h2>
+            {diagnosticData?.tables.length === 0 ? (
+              <p>No tables found in database</p>
+            ) : (
+              <ul className="list-inside list-disc">
+                {diagnosticData?.tables.map((table) => (
+                  <li key={table}>{table}</li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="mb-4">
-            <p className="mb-1 font-medium">Database URL:</p>
-            <p>{diagnosticData.databaseUrl}</p>
+          <div className="rounded-lg border p-4">
+            <h2 className="mb-2 font-semibold">Products Table</h2>
+            {!diagnosticData?.productsTable.exists ? (
+              <div>
+                <p className="mb-4 text-amber-600">❌ Products table does not exist</p>
+                <Link href="/api/products">
+                  <Button>Create Products Table</Button>
+                </Link>
+              </div>
+            ) : (
+              <div>
+                <p className="text-green-600">✅ Products table exists</p>
+                <p className="mt-2">Total products: {diagnosticData.productsTable.recordCount}</p>
+
+                <h3 className="mt-4 mb-2 font-medium">Columns:</h3>
+                <ul className="mb-4 list-inside list-disc">
+                  {diagnosticData.productsTable.columns.map((col) => (
+                    <li key={col.column_name}>
+                      {col.column_name} ({col.data_type})
+                    </li>
+                  ))}
+                </ul>
+
+                {diagnosticData.productsTable.recordCount === 0 ? (
+                  <div>
+                    <p className="mb-4 text-amber-600">❌ No products found</p>
+                    <Link href="/api/products">
+                      <Button>Seed Products</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="mt-4 mb-2 font-medium">Sample Products:</h3>
+                    <pre className="max-h-60 overflow-auto rounded bg-gray-100 p-2 text-xs">
+                      {JSON.stringify(diagnosticData.productsTable.sampleProducts, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="mb-4">
-            <p className="mb-1 font-medium">Test Query Result:</p>
-            <pre className="mt-2 rounded bg-gray-100 p-2 text-sm">{JSON.stringify(diagnosticData.result, null, 2)}</pre>
-          </div>
-
-          <div className="mt-6">
-            <p className="mb-1 font-medium">Full Diagnostic Data:</p>
-            <pre className="mt-2 max-h-60 overflow-auto rounded bg-gray-100 p-2 text-sm">
-              {JSON.stringify(diagnosticData, null, 2)}
-            </pre>
+          <div className="flex space-x-4">
+            <Link href="/express-shop">
+              <Button>Go to Express Shop</Button>
+            </Link>
+            <Link href="/api/products">
+              <Button variant="outline">Fetch Products API</Button>
+            </Link>
           </div>
         </div>
       )}
-
-      <div className="mt-8 flex space-x-4">
-        <Link href="/express-shop" className="rounded bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300">
-          Back to Express Shop
-        </Link>
-        <Link href="/express-shop/server" className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700">
-          Try Server-Rendered Version
-        </Link>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
-          Run Diagnostics Again
-        </button>
-      </div>
     </div>
   )
 }

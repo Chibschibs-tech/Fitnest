@@ -25,17 +25,24 @@ interface Product {
   stock: number
 }
 
+// Update the interface to include initialDebugInfo
 interface ExpressShopContentProps {
   initialProducts?: Product[]
   initialError?: string | null
+  initialDebugInfo?: any
 }
 
-export function ExpressShopContent({ initialProducts = [], initialError = null }: ExpressShopContentProps) {
+// Update the function signature to accept initialDebugInfo
+export function ExpressShopContent({
+  initialProducts = [],
+  initialError = null,
+  initialDebugInfo = null,
+}: ExpressShopContentProps) {
   const { data: session, status } = useSession()
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [loading, setLoading] = useState(!initialProducts.length)
   const [error, setError] = useState<string | null>(initialError)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(initialDebugInfo)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -58,10 +65,10 @@ export function ExpressShopContent({ initialProducts = [], initialError = null }
         const diagnosticResponse = await fetch("/api/products-diagnostic")
         const diagnosticData = await diagnosticResponse.json()
         console.log("Diagnostic data:", diagnosticData)
-        setDebugInfo(diagnosticData)
+        setDebugInfo((prev) => ({ ...prev, diagnostic: diagnosticData }))
 
         // Then fetch the actual products
-        const response = await fetch("/api/products-simple")
+        const response = await fetch("/api/products")
         console.log("Response status:", response.status)
 
         if (!response.ok) {
@@ -72,6 +79,15 @@ export function ExpressShopContent({ initialProducts = [], initialError = null }
 
         const data = await response.json()
         console.log("Products data:", data)
+
+        if (data.message === "Products table created, please refresh") {
+          // Table was just created, refresh to get products
+          setDebugInfo((prev) => ({ ...prev, tableCreated: true }))
+          setTimeout(() => {
+            window.location.reload()
+          }, 1000)
+          return
+        }
 
         if (!Array.isArray(data)) {
           console.error("API did not return an array:", data)
