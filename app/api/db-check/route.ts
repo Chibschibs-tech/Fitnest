@@ -1,59 +1,49 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+// Force dynamic to prevent caching issues
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
-    // Initialize the Neon SQL client
+    console.log("DB check API called")
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Test database connection
-    const connectionTest = await sql`SELECT 1 as connection_test`
+    // Test the connection with a simple query
+    const result = await sql`SELECT NOW() as time`
 
-    // Get database version
-    const versionInfo = await sql`SELECT version()`
-
-    // Check for existing tables
-    const tables = await sql`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-      ORDER BY table_name
+    // Check if products table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'products'
+      ) as exists
     `
 
-    // Get database user and permissions
-    const currentUser = await sql`SELECT current_user, current_database()`
-
-    // Check if we can create a test table
-    let canCreateTable = false
-    try {
-      await sql`
-        CREATE TABLE IF NOT EXISTS _test_permissions (
-          id SERIAL PRIMARY KEY,
-          test_column TEXT
-        )
-      `
-      await sql`DROP TABLE IF EXISTS _test_permissions`
-      canCreateTable = true
-    } catch (error) {
-      console.error("Permission test failed:", error)
+    // If table exists, count products
+    let productCount = 0
+    if (tableExists[0].exists) {
+      const countResult = await sql`SELECT COUNT(*) as count FROM products`
+      productCount = Number.parseInt(countResult[0].count)
     }
 
     return NextResponse.json({
-      status: "Database connection successful",
-      connection: connectionTest[0],
-      version: versionInfo[0].version,
-      tables: tables.map((row) => row.table_name),
-      user: currentUser[0],
-      permissions: {
-        canCreateTable,
+      success: true,
+      time: result[0].time,
+      database: {
+        connected: true,
+        productsTableExists: tableExists[0].exists,
+        productCount,
       },
     })
   } catch (error) {
-    console.error("Database check failed:", error)
+    console.error("Database connection error:", error)
     return NextResponse.json(
       {
-        status: "Database connection failed",
-        error: error instanceof Error ? error.message : String(error),
+        success: false,
+        error: "Failed to connect to database",
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
     )

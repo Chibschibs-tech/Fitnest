@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
+    console.log("Simple products API called")
     const sql = neon(process.env.DATABASE_URL!)
 
-    // First, check if the products table exists
-    const tableCheck = await sql`
+    // Check if table exists
+    const tableExists = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
@@ -17,88 +18,94 @@ export async function GET() {
       ) as exists
     `
 
-    if (!tableCheck[0].exists) {
-      return NextResponse.json({
-        success: false,
-        error: "Products table does not exist",
-        products: [],
-      })
+    if (!tableExists[0].exists) {
+      console.log("Products table doesn't exist, creating it")
+      // Create table
+      await sql`
+        CREATE TABLE IF NOT EXISTS products (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          price DECIMAL(10, 2) NOT NULL,
+          sale_price DECIMAL(10, 2),
+          category TEXT,
+          image_url TEXT,
+          stock INTEGER NOT NULL DEFAULT 0
+        )
+      `
+
+      // Seed with sample data
+      const sampleProducts = [
+        {
+          id: "protein-bar-1",
+          name: "Protein Bar - Chocolate",
+          description: "Delicious chocolate protein bar with 20g of protein.",
+          price: 25.99,
+          sale_price: null,
+          category: "protein_bars",
+          image_url: "/protein-bar.png",
+          stock: 100,
+        },
+        {
+          id: "protein-bar-2",
+          name: "Protein Bar - Berry",
+          description: "Delicious berry protein bar with 18g of protein.",
+          price: 25.99,
+          sale_price: 19.99,
+          category: "protein_bars",
+          image_url: "/berry-protein-bar.png",
+          stock: 75,
+        },
+        {
+          id: "granola-1",
+          name: "Honey Almond Granola",
+          description: "Crunchy granola with honey and almonds.",
+          price: 45.99,
+          sale_price: null,
+          category: "granola",
+          image_url: "/honey-almond-granola.png",
+          stock: 50,
+        },
+      ]
+
+      for (const product of sampleProducts) {
+        await sql`
+          INSERT INTO products (id, name, description, price, sale_price, category, image_url, stock)
+          VALUES (${product.id}, ${product.name}, ${product.description}, ${product.price}, 
+                  ${product.sale_price}, ${product.category}, ${product.image_url}, ${product.stock})
+          ON CONFLICT (id) DO NOTHING
+        `
+      }
+
+      // Return the newly created products
+      const products = await sql`SELECT * FROM products`
+      return NextResponse.json(products)
     }
 
-    // Check the actual column names in the products table
-    const columnCheck = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_schema = 'public' 
-      AND table_name = 'products'
-    `
-
-    const columns = columnCheck.map((col) => col.column_name)
-    console.log("Available columns:", columns)
-
-    // Dynamically build the query based on available columns
-    let selectClause = "SELECT id, name, description, price"
-
-    if (columns.includes("saleprice")) {
-      selectClause += ', saleprice as "salePrice"'
-    } else if (columns.includes("sale_price")) {
-      selectClause += ', sale_price as "salePrice"'
-    }
-
-    if (columns.includes("imageurl")) {
-      selectClause += ', imageurl as "imageUrl"'
-    } else if (columns.includes("image_url")) {
-      selectClause += ', image_url as "imageUrl"'
-    }
-
-    if (columns.includes("category")) {
-      selectClause += ", category"
-    }
-
-    if (columns.includes("tags")) {
-      selectClause += ", tags"
-    }
-
-    if (columns.includes("stock")) {
-      selectClause += ", stock"
-    }
-
-    let whereClause = ""
-    if (columns.includes("isactive")) {
-      whereClause = "WHERE isactive = true"
-    } else if (columns.includes("is_active")) {
-      whereClause = "WHERE is_active = true"
-    }
-
-    const query = `
-      ${selectClause}
+    // Simple query to get all products
+    const products = await sql`
+      SELECT 
+        id, 
+        name, 
+        description, 
+        price, 
+        sale_price as "salePrice", 
+        image_url as "imageUrl", 
+        category,
+        stock
       FROM products
-      ${whereClause}
-      ORDER BY id ASC
       LIMIT 100
     `
 
-    console.log("Executing query:", query)
-
-    // Execute the query
-    const products = await sql.query(query)
-
-    // Log the first product for debugging
-    if (products.rows.length > 0) {
-      console.log("First product:", products.rows[0])
-    } else {
-      console.log("No products found")
-    }
-
-    return NextResponse.json(products.rows)
+    console.log(`Returning ${products.length} products`)
+    return NextResponse.json(products)
   } catch (error) {
-    console.error("Error fetching products:", error)
+    console.error("Error in simple products API:", error)
     return NextResponse.json(
       {
         success: false,
         error: "Failed to fetch products",
         details: error instanceof Error ? error.message : String(error),
-        products: [],
       },
       { status: 500 },
     )
