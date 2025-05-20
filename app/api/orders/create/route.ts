@@ -5,6 +5,8 @@ import { authOptions } from "../../auth/[...nextauth]/route"
 import { sendOrderConfirmationEmail } from "@/lib/email-utils"
 import { hash } from "bcrypt"
 
+export const dynamic = "force-dynamic"
+
 export async function POST(request: Request) {
   try {
     // Initialize Neon SQL client
@@ -22,25 +24,19 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     let userId = session?.user?.id
 
-    // If user is not authenticated, check if they have an existing account
+    // If user is not authenticated, create a new user account
     if (!userId) {
-      console.log("No authenticated user found, checking if email exists")
+      console.log("No authenticated user found, creating new account from checkout information")
 
       // Check if user with this email already exists
       const existingUser = await sql`
-        SELECT id, email FROM users WHERE email = ${body.customer.email}
+        SELECT id FROM users WHERE email = ${body.customer.email}
       `
 
       if (existingUser.length > 0) {
-        // User exists, but they're not logged in
-        return NextResponse.json(
-          {
-            error: "Account already exists",
-            message: "An account with this email already exists. Please log in to continue.",
-            existingEmail: existingUser[0].email,
-          },
-          { status: 409 }, // 409 Conflict
-        )
+        // User exists, use their ID
+        userId = existingUser[0].id
+        console.log("Found existing user with this email, using their ID:", userId)
       } else {
         // Generate a random password (user can reset it later)
         const tempPassword = Math.random().toString(36).slice(-8)
@@ -159,7 +155,7 @@ export async function POST(request: Request) {
       id: result.orderId,
       customer: {
         ...body.customer,
-        isNewAccount: body.customer.tempPassword ? true : false,
+        isNewAccount: !session?.user && body.customer.tempPassword ? true : false,
       },
       shipping: {
         ...body.shipping,
@@ -198,7 +194,7 @@ export async function POST(request: Request) {
       success: true,
       orderId: result.orderId,
       userId: result.userId,
-      isNewAccount: body.customer.tempPassword ? true : false,
+      isNewAccount: !session?.user && body.customer.tempPassword ? true : false,
       message: "Order created successfully",
     })
   } catch (error) {

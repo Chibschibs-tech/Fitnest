@@ -1,28 +1,29 @@
 import { neon } from "@neondatabase/serverless"
-import Image from "next/image"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import Image from "next/image"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Plus } from "lucide-react"
 
-// Force dynamic rendering
 export const dynamic = "force-dynamic"
 
-export default async function ExpressShop() {
-  console.log("Rendering Express Shop page")
-
-  // Fetch products server-side
-  let products = []
-  let error = null
-
+async function getProducts() {
   try {
-    console.log("Connecting to database")
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Simple query to get products with the correct column names
-    console.log("Fetching products")
-    const result = await sql`
+    // Check if products table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'products'
+      ) as exists
+    `
+
+    if (!tableCheck[0].exists) {
+      return { error: "Products table does not exist" }
+    }
+
+    // Get all products
+    const products = await sql`
       SELECT 
         id, 
         name, 
@@ -30,31 +31,52 @@ export default async function ExpressShop() {
         price, 
         saleprice as "salePrice", 
         imageurl as "imageUrl", 
-        category,
-        stock
+        category, 
+        tags, 
+        stock, 
+        isactive as "isActive"
       FROM products
       WHERE isactive = true
-      ORDER BY id ASC
-      LIMIT 100
+      ORDER BY category, name
     `
 
-    products = result
-    console.log(`Found ${products.length} products`)
-  } catch (err) {
-    console.error("Error fetching products:", err)
-    error = err instanceof Error ? err.message : String(err)
-  }
+    // Group products by category
+    const productsByCategory = products.reduce((acc, product) => {
+      const category = product.category
+      if (!acc[category]) {
+        acc[category] = []
+      }
+      acc[category].push({
+        ...product,
+        price: Number.parseInt(product.price),
+        salePrice: product.salePrice ? Number.parseInt(product.salePrice) : null,
+      })
+      return acc
+    }, {})
 
-  // If there's an error, show a simple error message
+    return { products, productsByCategory, count: products.length }
+  } catch (error) {
+    console.error("Error fetching products:", error)
+    return { error: "Failed to fetch products" }
+  }
+}
+
+export default async function ExpressShopPage() {
+  const { products, productsByCategory, error, count } = await getProducts()
+
   if (error) {
     return (
-      <div className="container mx-auto p-8">
-        <div className="mb-8 rounded-md border border-red-200 bg-red-50 p-4">
-          <h2 className="font-medium text-red-800">Error Loading Products</h2>
-          <p className="mt-2 text-red-700">{error}</p>
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="mb-8 text-3xl font-bold">Express Shop</h1>
+        <div className="rounded-lg bg-red-50 p-6 text-center">
+          <h2 className="mb-2 text-xl font-semibold text-red-700">Error Loading Products</h2>
+          <p className="text-red-600">{error}</p>
           <div className="mt-4">
-            <Link href="/api/rebuild-database">
-              <Button className="bg-green-600 hover:bg-green-700">Rebuild Database</Button>
+            <Link
+              href="/api/rebuild-database"
+              className="inline-block rounded bg-[#2B7A0B] px-4 py-2 text-white hover:bg-[#236209]"
+            >
+              Initialize Database
             </Link>
           </div>
         </div>
@@ -62,104 +84,108 @@ export default async function ExpressShop() {
     )
   }
 
-  // If no products, show a message
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
     return (
-      <div className="container mx-auto p-8">
-        <div className="mb-8 rounded-md border border-amber-200 bg-amber-50 p-4">
-          <h2 className="font-medium text-amber-800">No Products Found</h2>
-          <p className="mt-2 text-amber-700">
-            No products were found in the database. Please rebuild the database or add products.
-          </p>
-          <div className="mt-4">
-            <Link href="/api/rebuild-database">
-              <Button className="bg-green-600 hover:bg-green-700">Rebuild Database</Button>
-            </Link>
-          </div>
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="mb-8 text-3xl font-bold">Express Shop</h1>
+        <div className="rounded-lg bg-amber-50 p-6 text-center">
+          <h2 className="mb-2 text-xl font-semibold text-amber-700">No Products Found</h2>
+          <p className="text-amber-600">There are no products available in the shop at the moment.</p>
         </div>
       </div>
     )
   }
 
-  // Group products by category
-  const productsByCategory = products.reduce((acc, product) => {
-    const category = product.category || "Uncategorized"
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(product)
-    return acc
-  }, {})
+  // Format price for display
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("fr-MA", {
+      style: "currency",
+      currency: "MAD",
+      minimumFractionDigits: 2,
+    }).format(price)
+  }
 
-  // Get unique categories
-  const categories = Object.keys(productsByCategory)
+  // Calculate discount percentage
+  const calculateDiscount = (price, salePrice) => {
+    if (!salePrice) return null
+    const discount = ((price - salePrice) / price) * 100
+    return Math.round(discount)
+  }
+
+  // Format category name for display
+  const formatCategoryName = (category) => {
+    return category
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mb-8 text-center">
-        <h1 className="mb-2 text-4xl font-bold">Express Shop</h1>
-        <p className="mx-auto max-w-2xl text-gray-600">
-          Browse our selection of healthy snacks, protein bars, and more for quick delivery.
-        </p>
-      </div>
+      <h1 className="mb-2 text-3xl font-bold">Express Shop</h1>
+      <p className="mb-8 text-gray-600">
+        Browse our selection of healthy snacks, supplements, and meal prep essentials
+      </p>
 
-      {categories.map((category) => (
-        <div key={category} className="mb-12">
-          <h2 className="mb-6 text-2xl font-semibold capitalize">{category.replace("_", " ")}</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {productsByCategory[category].map((product) => (
-              <Card key={product.id} className="overflow-hidden">
-                <Link href={`/express-shop/${product.id}`}>
-                  <div className="relative h-48 w-full overflow-hidden bg-gray-100">
-                    {product.imageUrl ? (
-                      <Image
-                        src={product.imageUrl || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover transition-transform hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <ShoppingCart className="h-12 w-12 text-gray-300" />
-                      </div>
-                    )}
-                    {product.salePrice && <Badge className="absolute right-2 top-2 bg-green-600">Sale</Badge>}
-                  </div>
-                </Link>
-                <CardHeader className="p-4 pb-0">
-                  <CardTitle className="line-clamp-1 text-lg">{product.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">{product.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      {product.salePrice ? (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg font-bold text-green-600">{product.salePrice} MAD</span>
-                          <span className="text-sm text-gray-500 line-through">{product.price} MAD</span>
-                        </div>
+      <div className="space-y-12">
+        {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
+          <div key={category}>
+            <h2 className="mb-6 text-2xl font-semibold">{formatCategoryName(category)}</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {categoryProducts.map((product) => (
+                <Link href={`/express-shop/${product.id}`} key={product.id}>
+                  <Card className="h-full overflow-hidden transition-all duration-200 hover:shadow-md">
+                    <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+                      {product.imageUrl ? (
+                        <Image
+                          src={product.imageUrl || "/placeholder.svg"}
+                          alt={product.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                          className="object-cover"
+                        />
                       ) : (
-                        <span className="text-lg font-bold">{product.price} MAD</span>
+                        <div className="flex h-full items-center justify-center bg-gray-200">
+                          <span className="text-gray-400">No image</span>
+                        </div>
+                      )}
+                      {product.salePrice && (
+                        <Badge className="absolute right-2 top-2 bg-red-500">
+                          {calculateDiscount(product.price, product.salePrice)}% OFF
+                        </Badge>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                    </Badge>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-4 pt-0">
-                  <Link href={`/express-shop/${product.id}`} className="w-full">
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      View Product
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
+                    <CardContent className="p-4">
+                      <h3 className="mb-1 font-medium">{product.name}</h3>
+                      <div className="mb-2 line-clamp-2 text-sm text-gray-600">{product.description}</div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {product.salePrice ? (
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[#2B7A0B]">{formatPrice(product.salePrice)}</span>
+                              <span className="text-sm text-gray-500 line-through">{formatPrice(product.price)}</span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-[#2B7A0B]">{formatPrice(product.price)}</span>
+                          )}
+                        </div>
+                        <Badge
+                          variant={product.stock > 0 ? "outline" : "secondary"}
+                          className={
+                            product.stock > 0 ? "border-green-500 text-green-700" : "bg-gray-200 text-gray-700"
+                          }
+                        >
+                          {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
