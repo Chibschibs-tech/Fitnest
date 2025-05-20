@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { AlertCircle, CheckCircle, ShoppingCart } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, CheckCircle, ShoppingCart, Info } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "@/components/ui/use-toast"
 
 // Types for meal plan selections
@@ -53,6 +53,7 @@ export function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [apiError, setApiError] = useState<any>(null)
+  const [existingAccountError, setExistingAccountError] = useState<{ email: string } | null>(null)
 
   // State for cart and meal plan data
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -91,14 +92,9 @@ export function CheckoutContent() {
       setIsLoading(true)
       setError(null)
       setApiError(null)
+      setExistingAccountError(null)
 
       try {
-        // Check authentication
-        if (status === "unauthenticated") {
-          router.push("/login?redirect=/checkout")
-          return
-        }
-
         // Load cart data
         try {
           const cartResponse = await fetch("/api/cart")
@@ -165,6 +161,11 @@ export function CheckoutContent() {
     // Clear validation error when field is edited
     if (formErrors[name as keyof typeof formErrors]) {
       setFormErrors((prev) => ({ ...prev, [name]: "" }))
+    }
+
+    // Clear existing account error if email is changed
+    if (name === "email" && existingAccountError) {
+      setExistingAccountError(null)
     }
   }
 
@@ -248,6 +249,18 @@ export function CheckoutContent() {
     return isValid
   }
 
+  // Handle login redirect
+  const handleLoginRedirect = () => {
+    // Save current cart and form data to session storage
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("checkoutFormData", JSON.stringify(formData))
+      sessionStorage.setItem("checkoutRedirect", "true")
+    }
+
+    // Redirect to login page with return URL
+    router.push(`/login?redirect=${encodeURIComponent("/checkout")}`)
+  }
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -266,6 +279,7 @@ export function CheckoutContent() {
 
     setIsSubmitting(true)
     setError(null)
+    setExistingAccountError(null)
 
     try {
       // Check if we have items to checkout
@@ -310,12 +324,22 @@ export function CheckoutContent() {
         body: JSON.stringify(orderData),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create order")
-      }
-
       const result = await response.json()
+
+      if (!response.ok) {
+        // Check for existing account error
+        if (response.status === 409 && result.error === "Account already exists") {
+          setExistingAccountError({ email: result.existingEmail })
+          // Scroll to error message
+          const errorElement = document.getElementById("existing-account-error")
+          if (errorElement) {
+            errorElement.scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+          return
+        }
+
+        throw new Error(result.error || "Failed to create order")
+      }
 
       // Store order confirmation data for the confirmation page
       localStorage.setItem(
@@ -323,6 +347,7 @@ export function CheckoutContent() {
         JSON.stringify({
           orderId: result.orderId,
           orderData,
+          isNewAccount: result.isNewAccount,
           timestamp: new Date().toISOString(),
         }),
       )
@@ -405,7 +430,7 @@ export function CheckoutContent() {
           <h2 className="text-xl font-medium">Your cart is empty</h2>
           <p className="text-gray-600">You need to add items to your cart before checkout.</p>
           <div className="mt-4 space-x-4">
-            <Link href="/express-shop" className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700">
+            <Link href="/express-shop" className="rounded bg-[#2B7A0B] px-4 py-2 text-white hover:bg-[#236209]">
               Browse Express Shop
             </Link>
             <Link href="/meal-plans" className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-50">
@@ -426,6 +451,25 @@ export function CheckoutContent() {
         <Alert variant="destructive" className="mb-6" id="checkout-error">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {existingAccountError && (
+        <Alert className="mb-6 border-amber-500 bg-amber-50" id="existing-account-error">
+          <Info className="h-4 w-4 text-amber-600" />
+          <div className="ml-2">
+            <AlertTitle className="text-amber-800">Account Already Exists</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              An account with the email <strong>{existingAccountError.email}</strong> already exists. Please{" "}
+              <button
+                onClick={handleLoginRedirect}
+                className="font-medium text-[#2B7A0B] underline hover:text-[#236209]"
+              >
+                log in
+              </button>{" "}
+              to continue with your purchase.
+            </AlertDescription>
+          </div>
         </Alert>
       )}
 
@@ -477,7 +521,7 @@ export function CheckoutContent() {
                       type="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={formErrors.email ? "border-red-500" : ""}
+                      className={formErrors.email || existingAccountError ? "border-red-500" : ""}
                       placeholder="Enter your email address"
                     />
                     {formErrors.email && <p className="mt-1 text-sm text-red-500">{formErrors.email}</p>}
@@ -611,7 +655,7 @@ export function CheckoutContent() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3 rounded-md border border-green-200 bg-green-50 p-4">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <CheckCircle className="h-5 w-5 text-[#2B7A0B]" />
                     <div>
                       <Label htmlFor="cash" className="font-medium">
                         Cash on Delivery
@@ -643,11 +687,11 @@ export function CheckoutContent() {
                 </Label>
                 <p className="text-sm text-gray-500">
                   By placing this order, you agree to our{" "}
-                  <Link href="/terms" className="text-green-600 hover:underline">
+                  <Link href="/terms" className="text-[#2B7A0B] hover:underline">
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" className="text-green-600 hover:underline">
+                  <Link href="/privacy" className="text-[#2B7A0B] hover:underline">
                     Privacy Policy
                   </Link>
                   .
@@ -742,8 +786,8 @@ export function CheckoutContent() {
 
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="mt-4 w-full bg-green-600 py-3 font-medium text-white hover:bg-green-700"
+                    disabled={isSubmitting || !!existingAccountError}
+                    className="mt-4 w-full bg-[#2B7A0B] py-3 font-medium text-white hover:bg-[#236209]"
                   >
                     {isSubmitting ? (
                       <>
