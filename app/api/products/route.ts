@@ -1,33 +1,21 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+// Force dynamic to prevent caching issues
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // Initialize Neon SQL client
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if products table exists
-    const tableCheck = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'products'
-      ) as exists
-    `
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get("category")
+    const limit = searchParams.get("limit") ? Number.parseInt(searchParams.get("limit")!) : 20
 
-    if (!tableCheck[0].exists) {
-      return NextResponse.json(
-        {
-          error: "Products table does not exist",
-          message: "Please initialize the database first",
-        },
-        { status: 404 },
-      )
-    }
-
-    // Get all products
-    const products = await sql`
+    // Build query based on parameters
+    // Using the exact column names that match our new schema
+    let query = `
       SELECT 
         id, 
         name, 
@@ -35,41 +23,38 @@ export async function GET(request: Request) {
         price, 
         saleprice as "salePrice", 
         imageurl as "imageUrl", 
-        category, 
-        tags, 
-        stock, 
+        category,
+        tags,
+        stock,
         isactive as "isActive"
       FROM products
-      WHERE isactive = true
-      ORDER BY category, name
+      WHERE 1=1
     `
 
-    // Group products by category
-    const productsByCategory = products.reduce((acc, product) => {
-      const category = product.category
-      if (!acc[category]) {
-        acc[category] = []
-      }
-      acc[category].push({
-        ...product,
-        price: Number.parseInt(product.price),
-        salePrice: product.salePrice ? Number.parseInt(product.salePrice) : null,
-      })
-      return acc
-    }, {})
+    const queryParams = []
 
-    return NextResponse.json(
-      {
-        products,
-        productsByCategory,
-        count: products.length,
-      },
-      { status: 200 },
-    )
+    if (category) {
+      query += ` AND category = $1`
+      queryParams.push(category)
+    }
+
+    query += ` AND isactive = true`
+    query += ` ORDER BY id ASC LIMIT $${queryParams.length + 1}`
+    queryParams.push(limit)
+
+    console.log("Executing query:", query, "with params:", queryParams)
+
+    // Execute query
+    const result = await sql.query(query, queryParams)
+
+    console.log(`Query returned ${result.rows.length} products`)
+
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Error fetching products:", error)
     return NextResponse.json(
       {
+        success: false,
         error: "Failed to fetch products",
         details: error instanceof Error ? error.message : String(error),
       },
