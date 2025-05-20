@@ -1,26 +1,69 @@
-import { getCartId, getCartItems } from "@/lib/db-utils"
 import { CartContent } from "./cart-content"
+import { neon } from "@neondatabase/serverless"
+import { cookies } from "next/headers"
 
 export const dynamic = "force-dynamic"
 
 export default async function Cart() {
-  const cartId = getCartId()
-  const cartItems = await getCartItems(cartId)
+  const cookieStore = cookies()
+  const cartId = cookieStore.get("cartId")?.value
 
-  // Calculate totals
-  let subtotal = 0
-  let discount = 0
-
-  for (const item of cartItems) {
-    const itemPrice = item.salePrice || item.price
-    subtotal += itemPrice * item.quantity
-
-    if (item.salePrice) {
-      discount += (item.price - item.salePrice) * item.quantity
-    }
+  if (!cartId) {
+    // If no cart ID, return empty cart
+    return <CartContent cartItems={[]} summary={{ subtotal: 0, discount: 0, total: 0 }} />
   }
 
-  const total = subtotal
+  try {
+    const sql = neon(process.env.DATABASE_URL!)
 
-  return <CartContent cartItems={cartItems} summary={{ subtotal, discount, total }} />
+    // Get cart items with product details
+    const cartItems = await sql`
+      SELECT c.*, p.name, p.price, p.saleprice, p.imageurl
+      FROM cart c
+      JOIN products p ON c.product_id::text = p.id::text
+      WHERE c.id = ${cartId}
+    `
+
+    // Format cart items
+    const formattedCartItems = cartItems.map((item) => ({
+      id: Number.parseInt(item.product_id),
+      productId: item.product_id,
+      quantity: item.quantity,
+      name: item.name,
+      price: Number.parseFloat(item.price),
+      salePrice: item.saleprice ? Number.parseFloat(item.saleprice) : null,
+      imageUrl: item.imageurl,
+    }))
+
+    // Calculate totals
+    let subtotal = 0
+    let discount = 0
+
+    for (const item of formattedCartItems) {
+      const itemPrice = item.salePrice || item.price
+      subtotal += itemPrice * item.quantity
+
+      if (item.salePrice) {
+        discount += (item.price - item.salePrice) * item.quantity
+      }
+    }
+
+    const total = subtotal
+
+    return <CartContent cartItems={formattedCartItems} summary={{ subtotal, discount, total }} />
+  } catch (error) {
+    console.error("Error fetching cart:", error)
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="mb-8 text-3xl font-bold">Your Cart</h1>
+        <div className="rounded-lg bg-red-50 p-6 text-red-800">
+          <h2 className="text-xl font-medium">Something went wrong</h2>
+          <p className="mt-2">
+            {error instanceof Error ? error.message : "An error occurred while fetching your cart."}
+          </p>
+          <p className="mt-4">Please try again later or contact support if the problem persists.</p>
+        </div>
+      </div>
+    )
+  }
 }

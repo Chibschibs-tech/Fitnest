@@ -101,7 +101,7 @@ export function CartContent({ cartItems, summary }: CartContentProps) {
           <p className="text-gray-600">Add some products to your cart to see them here.</p>
           <Link
             href="/express-shop"
-            className="mt-4 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            className="mt-4 rounded-md bg-fitnest-green px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90"
           >
             Continue Shopping
           </Link>
@@ -131,7 +131,7 @@ export function CartContent({ cartItems, summary }: CartContentProps) {
                     <div className="ml-4 flex flex-1 flex-col">
                       <div>
                         <div className="flex justify-between">
-                          <Link href={`/express-shop/${item.productId}`} className="hover:text-green-600">
+                          <Link href={`/express-shop/${item.productId}`} className="hover:text-fitnest-green">
                             <h3 className="text-lg font-medium">{item.name}</h3>
                           </Link>
                           <button
@@ -145,7 +145,7 @@ export function CartContent({ cartItems, summary }: CartContentProps) {
                         <div className="mt-1">
                           {item.salePrice ? (
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-green-600">{formatPrice(item.salePrice)}</span>
+                              <span className="font-medium text-fitnest-green">{formatPrice(item.salePrice)}</span>
                               <span className="text-sm text-gray-500 line-through">{formatPrice(item.price)}</span>
                             </div>
                           ) : (
@@ -210,7 +210,7 @@ export function CartContent({ cartItems, summary }: CartContentProps) {
                 {summary.discount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Discount</span>
-                    <span className="text-green-600">-{formatPrice(summary.discount)}</span>
+                    <span className="text-fitnest-green">-{formatPrice(summary.discount)}</span>
                   </div>
                 )}
 
@@ -224,14 +224,14 @@ export function CartContent({ cartItems, summary }: CartContentProps) {
 
               <Link
                 href="/checkout"
-                className="mt-6 block w-full rounded-md bg-green-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-green-700"
+                className="mt-6 block w-full rounded-md bg-fitnest-green px-4 py-2 text-center text-sm font-medium text-white hover:bg-opacity-90"
               >
                 Proceed to Checkout
               </Link>
 
               <Link
                 href="/express-shop"
-                className="mt-2 block w-full text-center text-sm text-gray-600 hover:text-green-600"
+                className="mt-2 block w-full text-center text-sm text-gray-600 hover:text-fitnest-green"
               >
                 Continue Shopping
               </Link>

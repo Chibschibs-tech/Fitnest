@@ -17,6 +17,7 @@ export default function Navbar() {
   const routes = [
     { href: "/", label: "Home" },
     { href: "/meal-plans", label: "Meal Plans" },
+    { href: "/meals", label: "Meals" },
     { href: "/express-shop", label: "Express Shop" },
     { href: "/how-it-works", label: "How It Works" },
     { href: "/about", label: "About" },
@@ -47,8 +48,8 @@ export default function Navbar() {
               <Link
                 key={route.href}
                 href={route.href}
-                className={`text-sm font-medium transition-colors hover:text-green-600 ${
-                  isActive(route.href) ? "text-green-600" : "text-gray-600"
+                className={`text-sm font-medium transition-colors hover:text-fitnest-green ${
+                  isActive(route.href) ? "text-fitnest-green" : "text-gray-600"
                 }`}
               >
                 {route.label}
@@ -58,6 +59,12 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
+          <Link
+            href="/order"
+            className="hidden rounded-md bg-fitnest-green px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90 md:block"
+          >
+            Order
+          </Link>
           <div className="hidden md:block">
             <NavbarAuth />
           </div>
@@ -81,14 +88,21 @@ export default function Navbar() {
                     <Link
                       key={route.href}
                       href={route.href}
-                      className={`py-2 text-sm font-medium transition-colors hover:text-green-600 ${
-                        isActive(route.href) ? "text-green-600" : "text-gray-600"
+                      className={`py-2 text-sm font-medium transition-colors hover:text-fitnest-green ${
+                        isActive(route.href) ? "text-fitnest-green" : "text-gray-600"
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
                       {route.label}
                     </Link>
                   ))}
+                  <Link
+                    href="/order"
+                    className="rounded-md bg-fitnest-green px-4 py-2 text-center text-sm font-medium text-white hover:bg-opacity-90"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Order
+                  </Link>
                 </nav>
                 <div className="border-t pt-4">
                   <NavbarAuth />
