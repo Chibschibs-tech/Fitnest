@@ -35,7 +35,7 @@ export async function GET() {
         CREATE TABLE cart (
           id VARCHAR(255) NOT NULL,
           user_id VARCHAR(255),
-          product_id INT NOT NULL,
+          product_id TEXT NOT NULL,
           quantity INT NOT NULL DEFAULT 1,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id, product_id)
@@ -66,7 +66,7 @@ export async function GET() {
 
     // Get cart items with product details
     const cartItems = await sql`
-      SELECT c.*, p.name, p.price, p.image
+      SELECT c.*, p.name, p.price, p.imageurl as image
       FROM cart c
       JOIN products p ON c.product_id = p.id
       WHERE c.id = ${cartId}
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         CREATE TABLE cart (
           id VARCHAR(255) NOT NULL,
           user_id VARCHAR(255),
-          product_id INT NOT NULL,
+          product_id TEXT NOT NULL,
           quantity INT NOT NULL DEFAULT 1,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id, product_id)
