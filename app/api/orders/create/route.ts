@@ -3,23 +3,12 @@ import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../auth/[...nextauth]/route"
 import { sendOrderConfirmationEmail } from "@/lib/email-utils"
+import { hash } from "bcrypt"
 
 export async function POST(request: Request) {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions)
-
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    // Get user ID
-    const userId = session.user.id
-
-    if (!userId) {
-      return NextResponse.json({ error: "User ID not found" }, { status: 400 })
-    }
+    // Initialize Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
 
     // Parse request body
     const body = await request.json()
@@ -29,8 +18,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Initialize Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
+    // Get user session
+    const session = await getServerSession(authOptions)
+    let userId = session?.user?.id
+
+    // If user is not authenticated, create a new user account
+    if (!userId) {
+      console.log("No authenticated user found, creating new account from checkout information")
+
+      // Check if user with this email already exists
+      const existingUser = await sql`
+        SELECT id FROM users WHERE email = ${body.customer.email}
+      `
+
+      if (existingUser.length > 0) {
+        // User exists, use their ID
+        userId = existingUser[0].id
+        console.log("Found existing user with this email, using their ID:", userId)
+      } else {
+        // Generate a random password (user can reset it later)
+        const tempPassword = Math.random().toString(36).slice(-8)
+        const hashedPassword = await hash(tempPassword, 10)
+
+        // Create new user
+        const newUser = await sql`
+          INSERT INTO users (
+            name, 
+            email, 
+            password,
+            role
+          ) 
+          VALUES (
+            ${`${body.customer.firstName} ${body.customer.lastName}`}, 
+            ${body.customer.email}, 
+            ${hashedPassword},
+            'user'
+          )
+          RETURNING id
+        `
+
+        userId = newUser[0].id
+        console.log("Created new user account with ID:", userId)
+
+        // Store the temporary password to send in email
+        body.customer.tempPassword = tempPassword
+      }
+    }
 
     // Create a transaction
     const result = await sql.transaction(async (tx) => {
@@ -103,13 +136,25 @@ export async function POST(request: Request) {
         `
       }
 
-      return { orderId }
+      // Save customer phone number to user profile if not already set
+      if (body.shipping.phone) {
+        await tx`
+          UPDATE users
+          SET phone = COALESCE(phone, ${body.shipping.phone})
+          WHERE id = ${userId}
+        `
+      }
+
+      return { orderId, userId }
     })
 
     // Prepare order data for email
     const orderData = {
       id: result.orderId,
-      customer: body.customer,
+      customer: {
+        ...body.customer,
+        isNewAccount: !session?.user && body.customer.tempPassword ? true : false,
+      },
       shipping: {
         ...body.shipping,
         deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
@@ -146,6 +191,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       orderId: result.orderId,
+      userId: result.userId,
+      isNewAccount: !session?.user && body.customer.tempPassword ? true : false,
       message: "Order created successfully",
     })
   } catch (error) {
