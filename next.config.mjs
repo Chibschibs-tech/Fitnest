@@ -31,6 +31,15 @@ const nextConfig = {
   },
   // Disable source maps in production to reduce bundle size
   productionBrowserSourceMaps: false,
+  // Custom webpack configuration
+  webpack: (config) => {
+    // Provide a fallback for bcrypt
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'bcrypt': 'bcryptjs',
+    };
+    return config;
+  },
 }
 
 export default nextConfig
