@@ -1,45 +1,54 @@
 "use client"
 
 import { type ReactNode, createContext, useState, useEffect } from "react"
-import { SessionProvider } from "next-auth/react"
+import { SessionProvider, useSession } from "next-auth/react"
 
 interface AuthContextType {
   user: any | null
   loading: boolean
+  error: string | null
   setUser?: (user: any) => void
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  error: null,
 })
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function AuthContextProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { data: session, status } = useSession()
 
   useEffect(() => {
-    async function loadUserFromSession() {
-      try {
-        const res = await fetch("/api/auth/session")
-        const data = await res.json()
-
-        if (data.user) {
-          setUser(data.user)
-        }
-      } catch (error) {
-        console.error("Failed to load user session:", error)
-      } finally {
-        setLoading(false)
-      }
+    if (status === "loading") {
+      setLoading(true)
+      return
     }
 
-    loadUserFromSession()
-  }, [])
+    if (status === "authenticated" && session?.user) {
+      setUser(session.user)
+      setLoading(false)
+      setError(null)
+      return
+    }
 
+    if (status === "unauthenticated") {
+      setUser(null)
+      setLoading(false)
+      return
+    }
+  }, [session, status])
+
+  return <AuthContext.Provider value={{ user, loading, error, setUser }}>{children}</AuthContext.Provider>
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <AuthContext.Provider value={{ user, loading, setUser }}>{children}</AuthContext.Provider>
+      <AuthContextProvider>{children}</AuthContextProvider>
     </SessionProvider>
   )
 }

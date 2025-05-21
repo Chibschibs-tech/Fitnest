@@ -4,7 +4,14 @@ import { compare } from "bcryptjs"
 import { neon } from "@neondatabase/serverless"
 
 // Create a SQL client with proper error handling
-const sql = neon(process.env.DATABASE_URL || "")
+const createSqlClient = () => {
+  try {
+    return neon(process.env.DATABASE_URL || "")
+  } catch (error) {
+    console.error("Failed to create SQL client:", error)
+    throw new Error("Database connection failed")
+  }
+}
 
 export const authOptions = {
   providers: [
@@ -20,6 +27,8 @@ export const authOptions = {
             console.log("Missing credentials")
             return null
           }
+
+          const sql = createSqlClient()
 
           let users = []
           try {
@@ -87,7 +96,7 @@ export const authOptions = {
       return session
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
   debug: process.env.NODE_ENV === "development",
 }
 

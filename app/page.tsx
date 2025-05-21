@@ -568,7 +568,7 @@ export default function Home() {
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Breakfast Mixes</h3>
                 <p className="text-gray-600 mb-4">
-                  Quick and nutritious breakfast options including protein pancakes and overnight oats.
+                  Quick and nutritious breakfast options including protein pancakes and overnight oats
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-fitnest-green font-bold">From 50 MAD</span>

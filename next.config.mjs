@@ -7,9 +7,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable image optimization for now to simplify deployment
+  // Configure image optimization
   images: {
-    unoptimized: true,
+    domains: ['obtmksfewry4ishp.public.blob.vercel-storage.com'],
     remotePatterns: [
       {
         protocol: "https",
@@ -29,6 +29,8 @@ const nextConfig = {
       },
     ]
   },
+  // Disable source maps in production to reduce bundle size
+  productionBrowserSourceMaps: false,
 }
 
 export default nextConfig
