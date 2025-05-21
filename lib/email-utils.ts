@@ -7,12 +7,13 @@ function getEnv(key: string, defaultValue = ""): string {
 
 // Create reusable transporter object using environment variables
 const createTransporter = () => {
-  const host = getEnv("EMAIL_SERVER_HOST")
-  const port = Number(getEnv("EMAIL_SERVER_PORT"))
-  const secure = getEnv("EMAIL_SERVER_SECURE") === "true"
-  const user = getEnv("EMAIL_SERVER_USER")
-  const pass = getEnv("EMAIL_SERVER_PASSWORD")
-  const from = getEnv("EMAIL_FROM")
+  // Use the provided email configuration
+  const host = "smtp.gmail.com"
+  const port = 587
+  const secure = false
+  const user = "noreply@fitnest.ma"
+  const pass = "lfih nrfi ybfo asud"
+  const from = "Fitnest.ma <noreply@fitnest.ma>"
 
   // Validate essential config
   if (!host || !port || !user || !pass || !from) {
@@ -49,7 +50,6 @@ const createTransporter = () => {
     maxConnections: 5,
     rateDelta: 1000,
     rateLimit: 5,
-    debug: true, // Enable debug output - change to false in production
   })
 }
 
@@ -76,7 +76,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
     const firstName = name.split(" ")[0]
 
     const mailOptions = {
-      from: getEnv("EMAIL_FROM"),
+      from: "Fitnest.ma <noreply@fitnest.ma>",
       to: email,
       subject: "Welcome to Fitnest.ma!",
       html: `
@@ -167,21 +167,60 @@ The Fitnest.ma Team
   }
 }
 
-// Rest of email functions remain similar but with the same improvements...
-// To keep the response concise, I'm only showing the welcome email function with all improvements
-// Other functions would follow the same pattern with appropriate templates
-
 export async function sendOrderConfirmationEmail(orderData: any) {
-  // Would be implemented with the same improvements as sendWelcomeEmail
-  // Including proper error handling, retries, and both HTML and text versions
   try {
     const transporter = createTransporter()
     await verifyTransporter(transporter)
 
-    // Rest of function implementation (similar to original but with improvements)
-    // ...
+    const mailOptions = {
+      from: "Fitnest.ma <noreply@fitnest.ma>",
+      to: orderData.email,
+      subject: `Order Confirmation #${orderData.orderId}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #4CAF50; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Order Confirmation</h1>
+          </div>
+          <div style="padding: 20px; border: 1px solid #eee;">
+            <p>Hello ${orderData.name},</p>
+            <p>Thank you for your order! We've received your order and are processing it now.</p>
+            <p><strong>Order ID:</strong> ${orderData.orderId}</p>
+            <p><strong>Order Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Total Amount:</strong> ${orderData.total} MAD</p>
+            <p>You can track your order status in your account dashboard.</p>
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://fitnest.ma/dashboard/orders" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Track Your Order</a>
+            </div>
+            <p style="margin-top: 30px;">Best regards,<br>The Fitnest.ma Team</p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
+            <p>If you have any questions, please contact us at support@fitnest.ma</p>
+          </div>
+        </div>
+      `,
+      text: `Order Confirmation #${orderData.orderId}
+      
+Hello ${orderData.name},
 
-    return { success: true } // Simplified return for brevity
+Thank you for your order! We've received your order and are processing it now.
+
+Order ID: ${orderData.orderId}
+Order Date: ${new Date().toLocaleDateString()}
+Total Amount: ${orderData.total} MAD
+
+You can track your order status in your account dashboard.
+
+Best regards,
+The Fitnest.ma Team
+
+© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
+`,
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    console.log(`Order confirmation email sent to ${orderData.email}: ${info.messageId}`)
+    return { success: true, messageId: info.messageId, response: info.response }
   } catch (error) {
     console.error("Error sending order confirmation email:", error)
     return {
@@ -193,16 +232,59 @@ export async function sendOrderConfirmationEmail(orderData: any) {
 }
 
 export async function sendDeliveryUpdateEmail(orderData: any) {
-  // Would be implemented with the same improvements as sendWelcomeEmail
-  // Including proper error handling, retries, and both HTML and text versions
   try {
     const transporter = createTransporter()
     await verifyTransporter(transporter)
 
-    // Rest of function implementation (similar to original but with improvements)
-    // ...
+    const mailOptions = {
+      from: "Fitnest.ma <noreply@fitnest.ma>",
+      to: orderData.email,
+      subject: `Delivery Update for Order #${orderData.orderId}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #4CAF50; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Delivery Update</h1>
+          </div>
+          <div style="padding: 20px; border: 1px solid #eee;">
+            <p>Hello ${orderData.name},</p>
+            <p>We're pleased to inform you that your order #${orderData.orderId} has been ${orderData.status}.</p>
+            <p><strong>Order ID:</strong> ${orderData.orderId}</p>
+            <p><strong>Status:</strong> ${orderData.status}</p>
+            <p><strong>Estimated Delivery:</strong> ${orderData.estimatedDelivery || "As soon as possible"}</p>
+            <p>You can track your order status in your account dashboard.</p>
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://fitnest.ma/dashboard/orders" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Track Your Order</a>
+            </div>
+            <p style="margin-top: 30px;">Best regards,<br>The Fitnest.ma Team</p>
+          </div>
+          <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
+            <p>If you have any questions, please contact us at support@fitnest.ma</p>
+          </div>
+        </div>
+      `,
+      text: `Delivery Update for Order #${orderData.orderId}
+      
+Hello ${orderData.name},
 
-    return { success: true } // Simplified return for brevity
+We're pleased to inform you that your order #${orderData.orderId} has been ${orderData.status}.
+
+Order ID: ${orderData.orderId}
+Status: ${orderData.status}
+Estimated Delivery: ${orderData.estimatedDelivery || "As soon as possible"}
+
+You can track your order status in your account dashboard.
+
+Best regards,
+The Fitnest.ma Team
+
+© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
+`,
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    console.log(`Delivery update email sent to ${orderData.email}: ${info.messageId}`)
+    return { success: true, messageId: info.messageId, response: info.response }
   } catch (error) {
     console.error("Error sending delivery update email:", error)
     return {
@@ -216,12 +298,12 @@ export async function sendDeliveryUpdateEmail(orderData: any) {
 // Helper function to check if emails can be sent
 export async function checkEmailConfig() {
   try {
-    // Validate environment variables
-    const host = getEnv("EMAIL_SERVER_HOST")
-    const port = getEnv("EMAIL_SERVER_PORT")
-    const user = getEnv("EMAIL_SERVER_USER")
-    const pass = getEnv("EMAIL_SERVER_PASSWORD")
-    const from = getEnv("EMAIL_FROM")
+    // Use the hardcoded values for checking
+    const host = "smtp.gmail.com"
+    const port = 587
+    const user = "noreply@fitnest.ma"
+    const pass = "lfih nrfi ybfo asud"
+    const from = "Fitnest.ma <noreply@fitnest.ma>"
 
     if (!host || !port || !user || !pass || !from) {
       return {

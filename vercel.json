@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "buildCommand": "node --max-old-space-size=4096 ./node_modules/.bin/next build",
+  "installCommand": "npm install --no-audit --no-fund",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "env": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  }
+}
