@@ -1,10 +1,18 @@
 {
   "version": 2,
-  "buildCommand": "next build",
-  "installCommand": "node install.js",
-  "framework": "nextjs",
-  "outputDirectory": ".next",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "installCommand": "npm install --no-audit --no-fund --force",
+        "buildCommand": "npm run build"
+      }
+    }
+  ],
   "env": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "MINIMAL_MODE": "false",
+    "DEBUG_MODE": "true"
   }
 }
