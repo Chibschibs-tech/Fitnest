@@ -1,123 +1,99 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { cookies } from "next/headers"
+import { v4 as uuidv4 } from "uuid"
 
+// Force dynamic rendering to avoid caching issues
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions)
+    const cookieStore = cookies()
+    let cartId = cookieStore.get("cartId")?.value
 
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json(
-        {
-          items: [],
-          count: 0,
-          subtotal: 0,
-        },
-        { status: 200 },
-      )
+    // Create a new cart ID if one doesn't exist
+    if (!cartId) {
+      cartId = uuidv4()
+      // This won't actually set the cookie since we're in a GET request
+      // but we'll return the cart ID in the response
     }
 
-    // Get user ID
-    const userId = session.user.id
-
-    if (!userId) {
-      return NextResponse.json(
-        {
-          error: "User ID not found",
-        },
-        { status: 400 },
-      )
-    }
-
-    // Initialize Neon SQL client
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if cart_items table exists
-    const tableCheck = await sql`
+    // Check if cart table exists
+    const tableExists = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
-        WHERE table_name = 'cart_items'
+        WHERE table_schema = 'public' 
+        AND table_name = 'cart'
       ) as exists
     `
 
-    if (!tableCheck[0].exists) {
-      // Create cart_items table if it doesn't exist
+    // Create cart table if it doesn't exist
+    if (!tableExists[0].exists) {
       await sql`
-        CREATE TABLE IF NOT EXISTS cart_items (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
-          quantity INTEGER NOT NULL DEFAULT 1,
-          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        CREATE TABLE cart (
+          id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(255),
+          product_id TEXT NOT NULL,
+          quantity INT NOT NULL DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id, product_id)
         )
       `
+    }
+
+    // Check if products table exists
+    const productsTableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'products'
+      ) as exists
+    `
+
+    if (!productsTableExists[0].exists) {
       return NextResponse.json(
+        { items: [], cartId },
         {
-          items: [],
-          count: 0,
-          subtotal: 0,
-          message: "Cart table created",
+          status: 200,
+          headers: cartId
+            ? { "Set-Cookie": `cartId=${cartId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000` }
+            : undefined,
         },
-        { status: 200 },
       )
     }
 
     // Get cart items with product details
     const cartItems = await sql`
-      SELECT 
-        ci.id, 
-        ci.product_id as "productId", 
-        ci.quantity,
-        p.id as "product.id",
-        p.name as "product.name",
-        p.description as "product.description",
-        p.price as "product.price",
-        p.saleprice as "product.salePrice",
-        p.imageurl as "product.imageUrl",
-        p.category as "product.category"
-      FROM cart_items ci
-      JOIN products p ON ci.product_id = p.id
-      WHERE ci.user_id = ${userId}
+      SELECT c.*, p.name, p.price, p.imageurl as image
+      FROM cart c
+      JOIN products p ON c.product_id = p.id
+      WHERE c.id = ${cartId}
     `
 
-    // Format the cart items
-    const formattedItems = cartItems.map((item) => {
-      const { productId, quantity, ...rest } = item
-      return {
-        id: item.id,
-        productId,
-        quantity,
-        product: {
-          id: rest["product.id"],
-          name: rest["product.name"],
-          description: rest["product.description"],
-          price: Number.parseInt(rest["product.price"]),
-          salePrice: rest["product.salePrice"] ? Number.parseInt(rest["product.salePrice"]) : null,
-          imageUrl: rest["product.imageUrl"],
-          category: rest["product.category"],
-        },
-      }
-    })
-
-    // Calculate subtotal
-    const subtotal = formattedItems.reduce((total, item) => {
-      const price = item.product.salePrice || item.product.price
-      return total + price * item.quantity
-    }, 0)
+    // Format the response
+    const items = cartItems.map((item) => ({
+      id: item.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      product: {
+        id: item.product_id,
+        name: item.name,
+        price: Number(item.price),
+        image: item.image,
+      },
+    }))
 
     return NextResponse.json(
+      { items, cartId },
       {
-        items: formattedItems,
-        count: formattedItems.length,
-        subtotal,
+        status: 200,
+        headers:
+          cartId && !cookieStore.get("cartId")
+            ? { "Set-Cookie": `cartId=${cartId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000` }
+            : undefined,
       },
-      { status: 200 },
     )
   } catch (error) {
     console.error("Error fetching cart:", error)
@@ -126,6 +102,96 @@ export async function GET(request: Request) {
         error: "Failed to fetch cart",
         details: error instanceof Error ? error.message : String(error),
       },
+      { status: 500 },
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const { productId, quantity = 1 } = body
+
+    if (!productId) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
+    }
+
+    const cookieStore = cookies()
+    let cartId = cookieStore.get("cartId")?.value
+
+    // Create a new cart ID if one doesn't exist
+    if (!cartId) {
+      cartId = uuidv4()
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Check if cart table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cart'
+      ) as exists
+    `
+
+    // Create cart table if it doesn't exist
+    if (!tableExists[0].exists) {
+      await sql`
+        CREATE TABLE cart (
+          id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(255),
+          product_id TEXT NOT NULL,
+          quantity INT NOT NULL DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id, product_id)
+        )
+      `
+    }
+
+    // Check if product exists
+    const product = await sql`SELECT id FROM products WHERE id = ${productId}`
+    if (product.length === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    // Check if item already exists in cart
+    const existingItem = await sql`
+      SELECT * FROM cart WHERE id = ${cartId} AND product_id = ${productId}
+    `
+
+    if (existingItem.length > 0) {
+      // Update quantity if item exists
+      await sql`
+        UPDATE cart 
+        SET quantity = quantity + ${quantity} 
+        WHERE id = ${cartId} AND product_id = ${productId}
+      `
+    } else {
+      // Add new item to cart
+      await sql`
+        INSERT INTO cart (id, product_id, quantity) 
+        VALUES (${cartId}, ${productId}, ${quantity})
+      `
+    }
+
+    // Set or update the cartId cookie
+    const response = NextResponse.json({ success: true, message: "Item added to cart" }, { status: 200 })
+
+    response.cookies.set({
+      name: "cartId",
+      value: cartId,
+      httpOnly: true,
+      path: "/",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    })
+
+    return response
+  } catch (error) {
+    console.error("Error adding to cart:", error)
+    return NextResponse.json(
+      { error: "Failed to add item to cart", details: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     )
   }
