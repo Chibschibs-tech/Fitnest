@@ -1,64 +1,103 @@
 import { NextResponse } from "next/server"
-import nodemailer from "nodemailer"
+import { sendWelcomeEmail, sendOrderConfirmationEmail, sendDeliveryUpdateEmail } from "@/lib/email-utils"
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { email, subject, message } = body
+    const { type, email, name } = body
 
-    if (!email || !subject || !message) {
-      return NextResponse.json({ success: false, error: "Email, subject, and message are required" }, { status: 400 })
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 })
     }
 
-    // Use the provided email configuration
-    const host = "smtp.gmail.com"
-    const port = 587
-    const secure = false
-    const user = "noreply@fitnest.ma"
-    const pass = "lfih nrfi ybfo asud"
-    const from = "Fitnest.ma <noreply@fitnest.ma>"
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    }
 
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: {
-        user,
-        pass,
-      },
-    })
+    let result
 
-    // Verify connection
-    await transporter.verify()
+    switch (type) {
+      case "welcome":
+        result = await sendWelcomeEmail(email, name)
+        break
 
-    // Send email
-    const info = await transporter.sendMail({
-      from,
-      to: email,
-      subject,
-      text: message,
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee;">
-        <h1 style="color: #4CAF50;">Fitnest.ma</h1>
-        <p>${message}</p>
-        <p style="margin-top: 30px;">Best regards,<br>The Fitnest.ma Team</p>
-        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; margin-top: 20px;">
-          <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
-        </div>
-      </div>`,
-    })
+      case "order_confirmation":
+        // Mock order data for testing
+        const mockOrderData = {
+          id: "TEST-" + Math.floor(Math.random() * 10000),
+          customer: {
+            name,
+            email,
+            firstName: name.split(" ")[0],
+          },
+          items: [
+            {
+              name: "Healthy Meal Plan - 1 Week",
+              quantity: 1,
+              price: 349.99,
+            },
+            {
+              name: "Protein Bar Sampler",
+              quantity: 2,
+              price: 59.99,
+            },
+          ],
+          subtotal: 469.97,
+          shipping: 0,
+          total: 469.97,
+          shipping: {
+            address: "123 Test Street, Casablanca, Morocco",
+            deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+          },
+        }
 
-    return NextResponse.json({
-      success: true,
-      messageId: info.messageId,
-      response: info.response,
-    })
+        result = await sendOrderConfirmationEmail(mockOrderData)
+        break
+
+      case "delivery_update":
+        // Mock delivery data for testing
+        const mockDeliveryData = {
+          id: "TEST-" + Math.floor(Math.random() * 10000),
+          customer: {
+            name,
+            email,
+            firstName: name.split(" ")[0],
+          },
+          shipping: {
+            address: "123 Test Street, Casablanca, Morocco",
+            deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+          },
+        }
+
+        result = await sendDeliveryUpdateEmail(mockDeliveryData)
+        break
+
+      default:
+        return NextResponse.json({ error: "Invalid email type" }, { status: 400 })
+    }
+
+    if (result.success) {
+      return NextResponse.json({
+        success: true,
+        message: `${type.replace("_", " ")} email sent successfully`,
+        messageId: result.messageId,
+      })
+    } else {
+      console.error(`Failed to send ${type} email:`, result.error)
+      return NextResponse.json(
+        {
+          error: `Failed to send ${type} email: ${result.error}`,
+          details: result.details,
+        },
+        { status: 500 },
+      )
+    }
   } catch (error) {
-    console.error("Error sending test email:", error)
+    console.error("Test email sending error:", error)
     return NextResponse.json(
       {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: "Failed to send test email",
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
     )

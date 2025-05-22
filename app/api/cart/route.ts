@@ -1,240 +1,131 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { sql } from "@/lib/db"
-import { v4 as uuidv4 } from "uuid"
 import { neon } from "@neondatabase/serverless"
+import { getServerSession } from "next-auth"
+import { authOptions } from "../auth/[...nextauth]/route"
 
-// Force dynamic rendering to avoid caching issues
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
   try {
-    // Get cart ID from cookies
-    const cookieStore = cookies()
-    const cartId = cookieStore.get("cartId")?.value
+    // Get user session
+    const session = await getServerSession(authOptions)
 
-    if (!cartId) {
-      return NextResponse.json({ items: [] })
+    // Check if user is authenticated
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          items: [],
+          count: 0,
+          subtotal: 0,
+        },
+        { status: 200 },
+      )
     }
 
-    // Query the database for cart items
-    const cartItems = await sql`
-      SELECT 
-        c.id, 
-        c.product_id, 
-        c.quantity, 
-        c.created_at,
-        p.name, 
-        p.price, 
-        p.image_url
-      FROM cart_items c
-      JOIN products p ON c.product_id = p.id
-      WHERE c.cart_id = ${cartId}
-      ORDER BY c.created_at DESC
+    // Get user ID
+    const userId = session.user.id
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          error: "User ID not found",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Initialize Neon SQL client
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Check if cart_items table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'cart_items'
+      ) as exists
     `
 
-    // Calculate totals
-    let subtotal = 0
-    const items = cartItems.map((item: any) => {
-      const itemTotal = Number.parseFloat(item.price) * item.quantity
-      subtotal += itemTotal
+    if (!tableCheck[0].exists) {
+      // Create cart_items table if it doesn't exist
+      await sql`
+        CREATE TABLE IF NOT EXISTS cart_items (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `
+      return NextResponse.json(
+        {
+          items: [],
+          count: 0,
+          subtotal: 0,
+          message: "Cart table created",
+        },
+        { status: 200 },
+      )
+    }
+
+    // Get cart items with product details
+    const cartItems = await sql`
+      SELECT 
+        ci.id, 
+        ci.product_id as "productId", 
+        ci.quantity,
+        p.id as "product.id",
+        p.name as "product.name",
+        p.description as "product.description",
+        p.price as "product.price",
+        p.saleprice as "product.salePrice",
+        p.imageurl as "product.imageUrl",
+        p.category as "product.category"
+      FROM cart_items ci
+      JOIN products p ON ci.product_id = p.id
+      WHERE ci.user_id = ${userId}
+    `
+
+    // Format the cart items
+    const formattedItems = cartItems.map((item) => {
+      const { productId, quantity, ...rest } = item
       return {
         id: item.id,
-        productId: item.product_id,
-        name: item.name,
-        price: Number.parseFloat(item.price),
-        imageUrl: item.image_url,
-        quantity: item.quantity,
-        total: itemTotal,
+        productId,
+        quantity,
+        product: {
+          id: rest["product.id"],
+          name: rest["product.name"],
+          description: rest["product.description"],
+          price: Number.parseInt(rest["product.price"]),
+          salePrice: rest["product.salePrice"] ? Number.parseInt(rest["product.salePrice"]) : null,
+          imageUrl: rest["product.imageUrl"],
+          category: rest["product.category"],
+        },
       }
     })
 
-    // Apply tax and calculate final total
-    const tax = subtotal * 0.05 // 5% tax
-    const total = subtotal + tax
+    // Calculate subtotal
+    const subtotal = formattedItems.reduce((total, item) => {
+      const price = item.product.salePrice || item.product.price
+      return total + price * item.quantity
+    }, 0)
 
-    return NextResponse.json({
-      items,
-      summary: {
+    return NextResponse.json(
+      {
+        items: formattedItems,
+        count: formattedItems.length,
         subtotal,
-        tax,
-        total,
-        itemCount: items.reduce((sum: number, item: any) => sum + item.quantity, 0),
       },
-    })
+      { status: 200 },
+    )
   } catch (error) {
     console.error("Error fetching cart:", error)
     return NextResponse.json(
-      { error: "Failed to fetch cart", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    )
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    let body
-    try {
-      body = await request.json()
-    } catch (parseError) {
-      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 })
-    }
-
-    const { productId, quantity = 1 } = body
-
-    if (!productId) {
-      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
-    }
-
-    const cookieStore = cookies()
-    let cartId = cookieStore.get("cartId")?.value
-
-    // Create a new cart ID if one doesn't exist
-    if (!cartId) {
-      cartId = uuidv4()
-    }
-
-    // Use a try-catch block for the database connection
-    let sql
-    try {
-      sql = neon(process.env.DATABASE_URL || "")
-    } catch (dbConnError) {
-      console.error("Database connection error:", dbConnError)
-      return NextResponse.json(
-        {
-          error: "Database connection failed",
-          details: dbConnError instanceof Error ? dbConnError.message : String(dbConnError),
-        },
-        { status: 500 },
-      )
-    }
-
-    // Check if cart table exists
-    let tableExists
-    try {
-      tableExists = await sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'cart'
-        ) as exists
-      `
-    } catch (tableCheckError) {
-      console.error("Error checking if cart table exists:", tableCheckError)
-      return NextResponse.json(
-        {
-          error: "Failed to check if cart table exists",
-          details: tableCheckError instanceof Error ? tableCheckError.message : String(tableCheckError),
-        },
-        { status: 500 },
-      )
-    }
-
-    // Create cart table if it doesn't exist
-    if (!tableExists[0].exists) {
-      try {
-        await sql`
-          CREATE TABLE cart (
-            id VARCHAR(255) NOT NULL,
-            user_id VARCHAR(255),
-            product_id TEXT NOT NULL,
-            quantity INT NOT NULL DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id, product_id)
-          )
-        `
-      } catch (createTableError) {
-        console.error("Error creating cart table:", createTableError)
-        return NextResponse.json(
-          {
-            error: "Failed to create cart table",
-            details: createTableError instanceof Error ? createTableError.message : String(createTableError),
-          },
-          { status: 500 },
-        )
-      }
-    }
-
-    // Check if product exists
-    let product
-    try {
-      product = await sql`SELECT id FROM products WHERE id = ${productId}`
-    } catch (productCheckError) {
-      console.error("Error checking if product exists:", productCheckError)
-      return NextResponse.json(
-        {
-          error: "Failed to check if product exists",
-          details: productCheckError instanceof Error ? productCheckError.message : String(productCheckError),
-        },
-        { status: 500 },
-      )
-    }
-
-    if (product.length === 0) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 })
-    }
-
-    // Check if item already exists in cart
-    let existingItem
-    try {
-      existingItem = await sql`
-        SELECT * FROM cart WHERE id = ${cartId} AND product_id = ${productId}
-      `
-    } catch (existingItemCheckError) {
-      console.error("Error checking if item exists in cart:", existingItemCheckError)
-      return NextResponse.json(
-        {
-          error: "Failed to check if item exists in cart",
-          details:
-            existingItemCheckError instanceof Error ? existingItemCheckError.message : String(existingItemCheckError),
-        },
-        { status: 500 },
-      )
-    }
-
-    try {
-      if (existingItem.length > 0) {
-        // Update quantity if item exists
-        await sql`
-          UPDATE cart 
-          SET quantity = quantity + ${quantity} 
-          WHERE id = ${cartId} AND product_id = ${productId}
-        `
-      } else {
-        // Add new item to cart
-        await sql`
-          INSERT INTO cart (id, product_id, quantity) 
-          VALUES (${cartId}, ${productId}, ${quantity})
-        `
-      }
-    } catch (updateCartError) {
-      console.error("Error updating cart:", updateCartError)
-      return NextResponse.json(
-        {
-          error: "Failed to update cart",
-          details: updateCartError instanceof Error ? updateCartError.message : String(updateCartError),
-        },
-        { status: 500 },
-      )
-    }
-
-    // Set or update the cartId cookie
-    const response = NextResponse.json({ success: true, message: "Item added to cart" }, { status: 200 })
-
-    response.cookies.set({
-      name: "cartId",
-      value: cartId,
-      httpOnly: true,
-      path: "/",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    })
-
-    return response
-  } catch (error) {
-    console.error("Error adding to cart:", error)
-    return NextResponse.json(
-      { error: "Failed to add item to cart", details: error instanceof Error ? error.message : String(error) },
+      {
+        error: "Failed to fetch cart",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     )
   }

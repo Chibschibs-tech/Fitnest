@@ -1,46 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-serverless"
 import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, date, unique, jsonb } from "drizzle-orm/pg-core"
-import { neon } from "@neondatabase/serverless"
-
-// Helper function to get the database URL with fallbacks
-function getDatabaseUrl(): string {
-  // Try different environment variables in order of preference
-  const dbUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL
-
-  if (!dbUrl) {
-    throw new Error("No database URL found in environment variables")
-  }
-
-  return dbUrl
-}
-
-// Create a reusable SQL client
-export function createDbClient() {
-  try {
-    const dbUrl = getDatabaseUrl()
-    return neon(dbUrl)
-  } catch (error) {
-    console.error("Failed to create database client:", error)
-    throw error
-  }
-}
-
-// Export a singleton instance for reuse
-export const sql = createDbClient()
-
-// Create the drizzle instance that other parts of the codebase expect
-export const db = drizzle(sql)
-
-// Helper function to safely execute database queries with error handling
-export async function executeQuery(query: string, params: any[] = []) {
-  try {
-    const dbClient = createDbClient()
-    return await dbClient(query, params)
-  } catch (error) {
-    console.error("Database query error:", error)
-    throw error
-  }
-}
+import { getPool } from "./db-connection"
 
 // Create the schema
 export const userRoleEnum = pgEnum("user_role", ["admin", "customer"])
@@ -252,20 +212,18 @@ export const notificationPreferences = pgTable(
   },
 )
 
+// Create the db instance
+export const db = drizzle(getPool())
+
 // Add a helper function to check database connectivity
 export async function checkDatabaseConnection() {
   try {
-    const dbClient = createDbClient()
-    const result = await dbClient`SELECT NOW()`
-    return {
-      connected: true,
-      serverTime: result[0]?.now,
-    }
+    const pool = getPool()
+    const client = await pool.connect()
+    client.release()
+    return true
   } catch (error) {
     console.error("Database connection check failed:", error)
-    return {
-      connected: false,
-      error: error instanceof Error ? error.message : String(error),
-    }
+    return false
   }
 }

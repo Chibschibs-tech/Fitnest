@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 
+// Helper function to safely get environmental variables with default values
+function getEnv(key: string, defaultValue = ""): string {
+  return process.env[key] || defaultValue
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { email, provider = "gmail" } = body
+    const { email, provider = "custom" } = body
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 })
@@ -12,37 +17,51 @@ export async function POST(request: Request) {
 
     console.log(`Running email diagnostic for provider: ${provider}`)
 
-    // Use the provided email configuration
-    const host = "smtp.gmail.com"
-    const port = 587
-    const secure = false
-    const user = "noreply@fitnest.ma"
-    const pass = "lfih nrfi ybfo asud"
-    const from = "Fitnest.ma <noreply@fitnest.ma>"
-
     // Collect environment variables
     const diagnosticResults: any = {
       environmentVariables: {
-        host: host ? "✓ Set" : "✗ Missing",
-        port: port ? "✓ Set" : "✗ Missing",
-        secure: secure !== undefined ? "✓ Set" : "✗ Missing",
-        user: user ? "✓ Set" : "✗ Missing",
-        password: pass ? "✓ Set (length: " + pass.length + ")" : "✗ Missing",
-        from: from ? "✓ Set" : "✗ Missing",
+        host: getEnv("EMAIL_SERVER_HOST") ? "✓ Set" : "✗ Missing",
+        port: getEnv("EMAIL_SERVER_PORT") ? "✓ Set" : "✗ Missing",
+        secure: getEnv("EMAIL_SERVER_SECURE") ? "✓ Set" : "✗ Missing",
+        user: getEnv("EMAIL_SERVER_USER") ? "✓ Set" : "✗ Missing",
+        password: getEnv("EMAIL_SERVER_PASSWORD")
+          ? "✓ Set (length: " + getEnv("EMAIL_SERVER_PASSWORD").length + ")"
+          : "✗ Missing",
+        from: getEnv("EMAIL_FROM") ? "✓ Set" : "✗ Missing",
       },
       smtpConnection: null,
       emailSending: null,
       providerSpecific: {},
     }
 
+    // Add provider-specific checks
+    if (provider === "gmail") {
+      const user = getEnv("EMAIL_SERVER_USER")
+      if (user && !user.includes("@gmail.com")) {
+        diagnosticResults.providerSpecific.gmailUsername = {
+          status: "warning",
+          message: "Gmail SMTP requires full email address as username",
+        }
+      }
+
+      const secure = getEnv("EMAIL_SERVER_SECURE")
+      const port = getEnv("EMAIL_SERVER_PORT")
+      if (secure !== "true" || port !== "465") {
+        diagnosticResults.providerSpecific.gmailSecurity = {
+          status: "warning",
+          message: "Gmail typically requires secure=true and port=465",
+        }
+      }
+    }
+
     // Test SMTP connection with detailed error capture
     console.log("Testing SMTP connection with the following config:")
     console.log({
-      host,
-      port,
-      secure,
+      host: getEnv("EMAIL_SERVER_HOST"),
+      port: Number(getEnv("EMAIL_SERVER_PORT")),
+      secure: getEnv("EMAIL_SERVER_SECURE") === "true",
       auth: {
-        user,
+        user: getEnv("EMAIL_SERVER_USER"),
         pass: "********", // Don't log passwords
       },
     })
@@ -50,12 +69,12 @@ export async function POST(request: Request) {
     let transporter
     try {
       transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
+        host: getEnv("EMAIL_SERVER_HOST"),
+        port: Number(getEnv("EMAIL_SERVER_PORT")),
+        secure: getEnv("EMAIL_SERVER_SECURE") === "true",
         auth: {
-          user,
-          pass,
+          user: getEnv("EMAIL_SERVER_USER"),
+          pass: getEnv("EMAIL_SERVER_PASSWORD"),
         },
         debug: true, // Include debug information
         logger: true, // Log information about the transport
@@ -106,12 +125,13 @@ export async function POST(request: Request) {
       console.log("Attempting to send diagnostic email...")
 
       // Check if EMAIL_FROM is properly formatted
-      if (!from.includes("@")) {
+      const fromEmail = getEnv("EMAIL_FROM")
+      if (!fromEmail.includes("@")) {
         throw new Error("EMAIL_FROM is not properly formatted. It should contain an email address.")
       }
 
       const info = await transporter.sendMail({
-        from,
+        from: fromEmail,
         to: email,
         subject: "Fitnest.ma Email Diagnostic Test",
         text: "This is a diagnostic test email from Fitnest.ma to verify email functionality.",
@@ -122,11 +142,11 @@ export async function POST(request: Request) {
             <p>If you're receiving this email, it means your email configuration is working correctly.</p>
             <h2>Configuration Details</h2>
             <ul>
-              <li><strong>Host:</strong> ${host}</li>
-              <li><strong>Port:</strong> ${port}</li>
-              <li><strong>Secure:</strong> ${secure}</li>
-              <li><strong>User:</strong> ${user}</li>
-              <li><strong>From:</strong> ${from}</li>
+              <li><strong>Host:</strong> ${getEnv("EMAIL_SERVER_HOST")}</li>
+              <li><strong>Port:</strong> ${getEnv("EMAIL_SERVER_PORT")}</li>
+              <li><strong>Secure:</strong> ${getEnv("EMAIL_SERVER_SECURE")}</li>
+              <li><strong>User:</strong> ${getEnv("EMAIL_SERVER_USER")}</li>
+              <li><strong>From:</strong> ${getEnv("EMAIL_FROM")}</li>
               <li><strong>Provider:</strong> ${provider}</li>
               <li><strong>Timestamp:</strong> ${new Date().toLocaleString()}</li>
             </ul>

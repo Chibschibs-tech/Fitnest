@@ -138,6 +138,15 @@ export async function POST(request: Request) {
         `
       }
 
+      // Save customer phone number to user profile if not already set
+      if (body.customer.phone) {
+        await tx`
+          UPDATE users
+          SET phone = COALESCE(phone, ${body.customer.phone})
+          WHERE id = ${userId}
+        `
+      }
+
       return { orderId, userId }
     })
 

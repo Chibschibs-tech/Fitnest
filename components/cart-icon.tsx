@@ -10,14 +10,10 @@ import { useSession } from "next-auth/react"
 export function CartIcon() {
   const [count, setCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const { status } = useSession()
   const pathname = usePathname()
 
   useEffect(() => {
-    // Reset error state on path change
-    setError(null)
-
     // Only fetch cart count if user is authenticated
     if (status === "authenticated") {
       fetchCartCount()
@@ -30,41 +26,21 @@ export function CartIcon() {
   const fetchCartCount = async () => {
     try {
       setIsLoading(true)
-      setError(null)
-
-      const response = await fetch("/api/cart/count", {
-        // Add cache control headers
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      })
+      const response = await fetch("/api/cart/count")
 
       if (response.ok) {
         const data = await response.json()
-        setCount(data.count || 0)
+        setCount(data.count)
       } else {
         console.error("Failed to fetch cart count")
-        setError("Failed to fetch cart count")
         setCount(0)
       }
     } catch (error) {
       console.error("Error fetching cart count:", error)
-      setError("Error fetching cart count")
       setCount(0)
     } finally {
       setIsLoading(false)
     }
-  }
-
-  // If there's an error, don't show the count badge
-  if (error) {
-    return (
-      <Link href="/cart" className="relative">
-        <ShoppingCart className="h-6 w-6" />
-      </Link>
-    )
   }
 
   return (
