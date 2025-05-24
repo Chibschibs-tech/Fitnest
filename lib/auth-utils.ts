@@ -1,52 +1,41 @@
-import { getPool } from "./db-connection"
-import { neon } from "@neondatabase/serverless"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
 
-/**
- * Tests the database connection specifically for authentication
- */
-export async function testAuthDbConnection() {
+export async function getCurrentUser() {
   try {
-    // Test pool connection
-    const pool = getPool()
-    const client = await pool.connect()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    try {
-      const result = await client.query("SELECT 1 as test")
-      return {
-        poolConnection: true,
-        poolResult: result.rows[0],
-      }
-    } finally {
-      client.release()
+    if (!sessionId) {
+      return null
     }
-  } catch (poolError) {
-    console.error("Pool connection test failed:", poolError)
 
-    // If pool fails, try direct neon connection as fallback
-    try {
-      const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "")
-      const result = await sql`SELECT 1 as test`
-      return {
-        poolConnection: false,
-        directConnection: true,
-        directResult: result[0],
-      }
-    } catch (directError) {
-      console.error("Direct connection test failed:", directError)
-      return {
-        poolConnection: false,
-        directConnection: false,
-        error: directError,
-      }
-    }
+    const user = await getSessionUser(sessionId)
+    return user
+  } catch (error) {
+    console.error("Error getting current user:", error)
+    return null
   }
 }
 
-/**
- * Validates that all required environment variables for auth are set
- */
+export async function requireAuth() {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error("Authentication required")
+  }
+  return user
+}
+
+export async function requireAdmin() {
+  const user = await requireAuth()
+  if (user.role !== "admin") {
+    throw new Error("Admin access required")
+  }
+  return user
+}
+
 export function validateAuthEnvironment() {
-  const requiredVars = ["NEXTAUTH_URL", "NEXTAUTH_SECRET", "DATABASE_URL"]
+  const requiredVars = ["DATABASE_URL", "NEXTAUTH_SECRET"]
 
   const missing = requiredVars.filter((varName) => !process.env[varName])
 

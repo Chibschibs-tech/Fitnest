@@ -1,38 +1,33 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
 
 export async function GET() {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
+
+    if (!sessionId) {
+      return NextResponse.json({ user: null, authenticated: false })
+    }
+
+    const user = await getSessionUser(sessionId)
+
+    if (!user) {
+      return NextResponse.json({ user: null, authenticated: false })
+    }
 
     return NextResponse.json({
-      status: "success",
-      authenticated: !!session,
-      session: session
-        ? {
-            user: {
-              name: session.user?.name,
-              email: session.user?.email,
-              role: session.user?.role,
-            },
-          }
-        : null,
-      timestamp: new Date().toISOString(),
-      env: {
-        hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
-        hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
-        nodeEnv: process.env.NODE_ENV,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
       },
+      authenticated: true,
     })
   } catch (error) {
-    console.error("Auth status check failed:", error)
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 },
-    )
+    console.error("Error checking auth status:", error)
+    return NextResponse.json({ user: null, authenticated: false })
   }
 }
