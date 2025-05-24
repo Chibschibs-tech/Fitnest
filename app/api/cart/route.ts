@@ -18,11 +18,11 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get cart items with product details using the 'cart' table
+    // Get cart items with product details - fix the data type mismatch
     const cartItems = await sql`
       SELECT c.*, p.name, p.price, p.image_url as image
       FROM cart c
-      JOIN products p ON c.product_id::text = p.id
+      JOIN products p ON c.product_id = p.id::integer
       WHERE c.id = ${cartId}
     `
 
@@ -80,15 +80,21 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
+    // Convert productId to integer for cart table
+    const productIdInt = Number.parseInt(productId)
+    if (isNaN(productIdInt)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
     // Check if product exists
-    const product = await sql`SELECT id FROM products WHERE id = ${productId}`
+    const product = await sql`SELECT id FROM products WHERE id = ${productIdInt}`
     if (product.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
     // Check if item already exists in cart
     const existingItem = await sql`
-      SELECT * FROM cart WHERE id = ${cartId} AND product_id = ${productId}
+      SELECT * FROM cart WHERE id = ${cartId} AND product_id = ${productIdInt}
     `
 
     if (existingItem.length > 0) {
@@ -96,13 +102,13 @@ export async function POST(request: Request) {
       await sql`
         UPDATE cart 
         SET quantity = quantity + ${quantity} 
-        WHERE id = ${cartId} AND product_id = ${productId}
+        WHERE id = ${cartId} AND product_id = ${productIdInt}
       `
     } else {
       // Add new item to cart
       await sql`
         INSERT INTO cart (id, product_id, quantity) 
-        VALUES (${cartId}, ${productId}, ${quantity})
+        VALUES (${cartId}, ${productIdInt}, ${quantity})
       `
     }
 
@@ -133,7 +139,7 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { productId, quantity } = body
 
-    if (!productId || !quantity) {
+    if (!productId || quantity === undefined) {
       return NextResponse.json({ error: "Product ID and quantity are required" }, { status: 400 })
     }
 
@@ -146,18 +152,24 @@ export async function PUT(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
+    // Convert productId to integer
+    const productIdInt = Number.parseInt(productId)
+    if (isNaN(productIdInt)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
     if (quantity <= 0) {
       // Remove item if quantity is 0 or negative
       await sql`
         DELETE FROM cart 
-        WHERE id = ${cartId} AND product_id = ${productId}
+        WHERE id = ${cartId} AND product_id = ${productIdInt}
       `
     } else {
       // Update quantity
       await sql`
         UPDATE cart 
         SET quantity = ${quantity}
-        WHERE id = ${cartId} AND product_id = ${productId}
+        WHERE id = ${cartId} AND product_id = ${productIdInt}
       `
     }
 
@@ -189,9 +201,15 @@ export async function DELETE(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
+    // Convert productId to integer
+    const productIdInt = Number.parseInt(productId)
+    if (isNaN(productIdInt)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
     await sql`
       DELETE FROM cart 
-      WHERE id = ${cartId} AND product_id = ${productId}
+      WHERE id = ${cartId} AND product_id = ${productIdInt}
     `
 
     return NextResponse.json({ success: true, message: "Item removed from cart" })
