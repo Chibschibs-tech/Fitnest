@@ -1,41 +1,22 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { getSessionUser } from "@/lib/simple-auth"
+import { initTables } from "@/lib/simple-auth"
 
 export async function GET() {
   try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
+    await initTables()
 
-    const healthCheck = {
+    return NextResponse.json({
       status: "healthy",
+      auth: "session-based",
       timestamp: new Date().toISOString(),
-      auth: {
-        sessionBased: true,
-        hasSession: !!sessionId,
-      },
-      database: {
-        connected: true, // We'll assume this for now
-      },
-    }
-
-    if (sessionId) {
-      const user = await getSessionUser(sessionId)
-      healthCheck.auth = {
-        ...healthCheck.auth,
-        userAuthenticated: !!user,
-        userId: user?.id || null,
-      }
-    }
-
-    return NextResponse.json(healthCheck)
+    })
   } catch (error) {
-    console.error("Auth health check error:", error)
+    console.error("Auth health check failed:", error)
     return NextResponse.json(
       {
-        status: "unhealthy",
+        status: "error",
+        error: "Auth system unavailable",
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
