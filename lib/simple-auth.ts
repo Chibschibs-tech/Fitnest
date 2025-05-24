@@ -36,6 +36,7 @@ export async function initTables() {
       )
     `
 
+    console.log("Tables initialized successfully")
     return true
   } catch (error) {
     console.error("Error initializing tables:", error)
@@ -75,15 +76,18 @@ export async function authenticateUser(email: string, password: string) {
     const user = users[0]
 
     if (!user) {
+      console.log("User not found:", email)
       return null
     }
 
     // Verify password
     const hashedPassword = simpleHash(password)
     if (hashedPassword !== user.password) {
+      console.log("Password mismatch for user:", email)
       return null
     }
 
+    console.log("User authenticated successfully:", email)
     // Return user without password
     return {
       id: user.id,
@@ -99,18 +103,39 @@ export async function authenticateUser(email: string, password: string) {
 
 export async function createSession(userId: number) {
   try {
+    console.log("Creating session for user ID:", userId)
+
+    // Ensure sessions table exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
     const sessionId = uuidv4()
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7) // 7 days from now
 
-    await sql`
+    console.log("Session details:", { sessionId, userId, expiresAt })
+
+    const result = await sql`
       INSERT INTO sessions (id, user_id, expires_at)
       VALUES (${sessionId}, ${userId}, ${expiresAt})
+      RETURNING id
     `
 
+    console.log("Session created successfully:", result)
     return sessionId
   } catch (error) {
     console.error("Error creating session:", error)
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      userId,
+    })
     return null
   }
 }
