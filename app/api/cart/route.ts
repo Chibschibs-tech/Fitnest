@@ -14,61 +14,15 @@ export async function GET() {
     // Create a new cart ID if one doesn't exist
     if (!cartId) {
       cartId = uuidv4()
-      // This won't actually set the cookie since we're in a GET request
-      // but we'll return the cart ID in the response
     }
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if cart table exists
-    const tableExists = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'cart'
-      ) as exists
-    `
-
-    // Create cart table if it doesn't exist
-    if (!tableExists[0].exists) {
-      await sql`
-        CREATE TABLE cart (
-          id VARCHAR(255) NOT NULL,
-          user_id VARCHAR(255),
-          product_id TEXT NOT NULL,
-          quantity INT NOT NULL DEFAULT 1,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (id, product_id)
-        )
-      `
-    }
-
-    // Check if products table exists
-    const productsTableExists = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'products'
-      ) as exists
-    `
-
-    if (!productsTableExists[0].exists) {
-      return NextResponse.json(
-        { items: [], cartId },
-        {
-          status: 200,
-          headers: cartId
-            ? { "Set-Cookie": `cartId=${cartId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000` }
-            : undefined,
-        },
-      )
-    }
-
-    // Get cart items with product details
+    // Get cart items with product details using the 'cart' table
     const cartItems = await sql`
-      SELECT c.*, p.name, p.price, p.imageurl as image
+      SELECT c.*, p.name, p.price, p.image_url as image
       FROM cart c
-      JOIN products p ON c.product_id = p.id
+      JOIN products p ON c.product_id::text = p.id
       WHERE c.id = ${cartId}
     `
 
@@ -126,29 +80,6 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if cart table exists
-    const tableExists = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'cart'
-      ) as exists
-    `
-
-    // Create cart table if it doesn't exist
-    if (!tableExists[0].exists) {
-      await sql`
-        CREATE TABLE cart (
-          id VARCHAR(255) NOT NULL,
-          user_id VARCHAR(255),
-          product_id TEXT NOT NULL,
-          quantity INT NOT NULL DEFAULT 1,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (id, product_id)
-        )
-      `
-    }
-
     // Check if product exists
     const product = await sql`SELECT id FROM products WHERE id = ${productId}`
     if (product.length === 0) {
@@ -192,6 +123,82 @@ export async function POST(request: Request) {
     console.error("Error adding to cart:", error)
     return NextResponse.json(
       { error: "Failed to add item to cart", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json()
+    const { productId, quantity } = body
+
+    if (!productId || !quantity) {
+      return NextResponse.json({ error: "Product ID and quantity are required" }, { status: 400 })
+    }
+
+    const cookieStore = cookies()
+    const cartId = cookieStore.get("cartId")?.value
+
+    if (!cartId) {
+      return NextResponse.json({ error: "No cart found" }, { status: 400 })
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
+
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or negative
+      await sql`
+        DELETE FROM cart 
+        WHERE id = ${cartId} AND product_id = ${productId}
+      `
+    } else {
+      // Update quantity
+      await sql`
+        UPDATE cart 
+        SET quantity = ${quantity}
+        WHERE id = ${cartId} AND product_id = ${productId}
+      `
+    }
+
+    return NextResponse.json({ success: true, message: "Cart updated" })
+  } catch (error) {
+    console.error("Error updating cart:", error)
+    return NextResponse.json(
+      { error: "Failed to update cart", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url)
+    const productId = url.searchParams.get("id")
+
+    if (!productId) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
+    }
+
+    const cookieStore = cookies()
+    const cartId = cookieStore.get("cartId")?.value
+
+    if (!cartId) {
+      return NextResponse.json({ error: "No cart found" }, { status: 400 })
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
+
+    await sql`
+      DELETE FROM cart 
+      WHERE id = ${cartId} AND product_id = ${productId}
+    `
+
+    return NextResponse.json({ success: true, message: "Item removed from cart" })
+  } catch (error) {
+    console.error("Error removing from cart:", error)
+    return NextResponse.json(
+      { error: "Failed to remove item", details: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     )
   }
