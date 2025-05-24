@@ -16,9 +16,13 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       bcrypt: require.resolve('./lib/bcrypt-stub.ts'),
+      '@prisma/client': require.resolve('./lib/db-connection.ts'),
     };
     
     return config;
+  },
+  experimental: {
+    memoryBasedWorkersCount: true,
   },
 };
 

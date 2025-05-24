@@ -1,38 +1,49 @@
-// Stub implementation of bcrypt using Node.js crypto
-import crypto from "crypto"
+/**
+ * Bcrypt stub implementation using Node.js crypto
+ */
 
-// Simple hash function using built-in crypto only
+import * as crypto from "crypto"
+
+// Simple hash function using crypto
 export function hash(data: string, saltOrRounds: string | number): Promise<string> {
-  const salt = typeof saltOrRounds === "string" ? saltOrRounds : crypto.randomBytes(16).toString("hex")
+  return new Promise((resolve) => {
+    const salt = typeof saltOrRounds === "string" ? saltOrRounds : crypto.randomBytes(16).toString("hex")
 
-  const hash = crypto
-    .createHash("sha256")
-    .update(data + salt + "fitnest-salt-2024")
-    .digest("hex")
+    const hash = crypto
+      .createHash("sha256")
+      .update(data + salt)
+      .digest("hex")
 
-  return Promise.resolve(`$2b$10$${salt}$${hash}`)
+    resolve(`${salt}:${hash}`)
+  })
 }
 
 // Simple compare function
 export function compare(data: string, encrypted: string): Promise<boolean> {
-  try {
-    const parts = encrypted.split("$")
-    if (parts.length < 4) return Promise.resolve(false)
+  return new Promise((resolve) => {
+    const [salt, originalHash] = encrypted.split(":")
 
-    const salt = parts[3]
-    const newHash = crypto
+    if (!salt || !originalHash) {
+      resolve(false)
+      return
+    }
+
+    const hash = crypto
       .createHash("sha256")
-      .update(data + salt + "fitnest-salt-2024")
+      .update(data + salt)
       .digest("hex")
 
-    const expectedFormat = `$2b$10$${salt}$${newHash}`
-    return Promise.resolve(expectedFormat === encrypted)
-  } catch (error) {
-    return Promise.resolve(false)
-  }
+    resolve(hash === originalHash)
+  })
 }
 
-// Other bcrypt functions that might be imported
-export function genSalt(rounds: number): Promise<string> {
+// Export other bcrypt functions as needed
+export const genSalt = (rounds: number): Promise<string> => {
   return Promise.resolve(crypto.randomBytes(16).toString("hex"))
+}
+
+export default {
+  hash,
+  compare,
+  genSalt,
 }
