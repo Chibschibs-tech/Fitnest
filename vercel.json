@@ -4,13 +4,14 @@
       "src": "package.json",
       "use": "@vercel/next",
       "config": {
-        "installCommand": "npm install --no-optional --no-package-lock --force",
-        "buildCommand": "node build.js"
+        "installCommand": "npm install",
+        "buildCommand": "next build"
       }
     }
   ],
   "env": {
     "NEXT_TELEMETRY_DISABLED": "1",
     "NODE_OPTIONS": "--max-old-space-size=4096"
-  }
+  },
+  "framework": "nextjs"
 }
