@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-simple-auth"
 
 interface LogoutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
