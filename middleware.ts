@@ -16,6 +16,7 @@ export function middleware(request: NextRequest) {
     "/meal-plans",
     "/meals",
     "/express-shop",
+    "/debug-login-test",
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/session",
