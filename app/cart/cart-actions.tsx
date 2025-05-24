@@ -55,10 +55,16 @@ export default function CartActions({ item }: CartActionsProps) {
       })
 
       if (!response.ok) {
-        const errorData = await response.text()
+        const errorData = await response.json()
         console.error("Update failed:", errorData)
-        throw new Error("Failed to update cart")
+        throw new Error(errorData.error || "Failed to update cart")
       }
+
+      setQuantity(newQuantity)
+      toast({
+        title: "Cart updated",
+        description: "Item quantity has been updated",
+      })
 
       // Force page refresh to show changes
       window.location.reload()
@@ -82,7 +88,9 @@ export default function CartActions({ item }: CartActionsProps) {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to remove item from cart")
+        const errorData = await response.json()
+        console.error("Remove failed:", errorData)
+        throw new Error(errorData.error || "Failed to remove item from cart")
       }
 
       toast({
