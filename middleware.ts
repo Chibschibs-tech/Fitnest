@@ -1,55 +1,65 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/simple-auth"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
+  const sessionId = request.cookies.get("session-id")?.value
   const { pathname } = request.nextUrl
 
-  // Skip middleware for static files and API routes that don't need auth
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/health") ||
-    pathname.startsWith("/api/test") ||
-    pathname.startsWith("/api/init") ||
-    pathname.startsWith("/api/seed") ||
-    pathname.includes(".")
-  ) {
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/register",
+    "/about",
+    "/contact",
+    "/how-it-works",
+    "/meal-plans",
+    "/meals",
+    "/express-shop",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/session",
+    "/api/products",
+    "/api/health",
+  ]
+
+  // Check if the current path is public
+  const isPublicRoute = publicRoutes.some((route) => {
+    if (route.includes("[") || route.includes("*")) {
+      // Handle dynamic routes
+      const routePattern = route.replace(/\[.*?\]/g, "[^/]+")
+      const regex = new RegExp(`^${routePattern}`)
+      return regex.test(pathname)
+    }
+    return pathname === route || pathname.startsWith(route + "/")
+  })
+
+  // If it's a public route, allow access
+  if (isPublicRoute) {
     return NextResponse.next()
   }
 
-  // Protected routes
-  const protectedRoutes = ["/dashboard", "/admin", "/orders"]
-  const adminRoutes = ["/admin"]
-
-  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
-  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route))
-
-  if (isProtectedRoute) {
-    const sessionId = request.cookies.get("session-id")?.value
-
-    if (!sessionId) {
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
-
-    try {
-      const user = await getSessionUser(sessionId)
-
-      if (!user) {
-        return NextResponse.redirect(new URL("/login", request.url))
-      }
-
-      if (isAdminRoute && user.role !== "admin") {
-        return NextResponse.redirect(new URL("/dashboard", request.url))
-      }
-    } catch (error) {
-      console.error("Middleware auth error:", error)
-      return NextResponse.redirect(new URL("/login", request.url))
-    }
+  // For protected routes, check if user has a session
+  if (!sessionId) {
+    // Redirect to login if no session
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("redirect", pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
+  // If session exists, continue to the route
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
+  ],
 }

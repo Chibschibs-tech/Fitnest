@@ -1,11 +1,11 @@
 import { neon } from "@neondatabase/serverless"
+import crypto from "crypto"
+import { v4 as uuidv4 } from "uuid"
 
-const sql = neon(process.env.DATABASE_URL || "")
+const sql = neon(process.env.DATABASE_URL!)
 
 // Simple hash function using built-in crypto only
 function simpleHash(password: string): string {
-  // Use built-in Node.js crypto module
-  const crypto = require("crypto")
   return crypto
     .createHash("sha256")
     .update(password + "fitnest-salt-2024")
@@ -14,21 +14,21 @@ function simpleHash(password: string): string {
 
 export async function initTables() {
   try {
-    // Create users table
+    // Create users table if it doesn't exist
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) DEFAULT 'user',
+        role VARCHAR(50) DEFAULT 'customer',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `
 
-    // Create sessions table
+    // Create sessions table if it doesn't exist
     await sql`
-      CREATE TABLE IF NOT EXISTS user_sessions (
+      CREATE TABLE IF NOT EXISTS sessions (
         id VARCHAR(255) PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
         expires_at TIMESTAMP NOT NULL,
@@ -36,19 +36,28 @@ export async function initTables() {
       )
     `
 
-    console.log("Tables initialized successfully")
+    return true
   } catch (error) {
     console.error("Error initializing tables:", error)
+    return false
   }
 }
 
 export async function createUser(name: string, email: string, password: string) {
   try {
+    // Check if user already exists
+    const existingUser = await sql`SELECT id FROM users WHERE email = ${email}`
+    if (existingUser.length > 0) {
+      return null
+    }
+
+    // Hash password with crypto
     const hashedPassword = simpleHash(password)
 
+    // Create user
     const result = await sql`
-      INSERT INTO users (name, email, password, role)
-      VALUES (${name}, ${email}, ${hashedPassword}, 'user')
+      INSERT INTO users (name, email, password)
+      VALUES (${name}, ${email}, ${hashedPassword})
       RETURNING id, name, email, role
     `
 
@@ -61,15 +70,27 @@ export async function createUser(name: string, email: string, password: string) 
 
 export async function authenticateUser(email: string, password: string) {
   try {
+    // Get user
+    const users = await sql`SELECT * FROM users WHERE email = ${email}`
+    const user = users[0]
+
+    if (!user) {
+      return null
+    }
+
+    // Verify password
     const hashedPassword = simpleHash(password)
+    if (hashedPassword !== user.password) {
+      return null
+    }
 
-    const result = await sql`
-      SELECT id, name, email, role
-      FROM users
-      WHERE email = ${email} AND password = ${hashedPassword}
-    `
-
-    return result[0] || null
+    // Return user without password
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }
   } catch (error) {
     console.error("Error authenticating user:", error)
     return null
@@ -78,11 +99,12 @@ export async function authenticateUser(email: string, password: string) {
 
 export async function createSession(userId: number) {
   try {
-    const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36)
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    const sessionId = uuidv4()
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days from now
 
     await sql`
-      INSERT INTO user_sessions (id, user_id, expires_at)
+      INSERT INTO sessions (id, user_id, expires_at)
       VALUES (${sessionId}, ${userId}, ${expiresAt})
     `
 
@@ -95,14 +117,25 @@ export async function createSession(userId: number) {
 
 export async function getSessionUser(sessionId: string) {
   try {
-    const result = await sql`
-      SELECT u.id, u.name, u.email, u.role
-      FROM users u
-      JOIN user_sessions s ON u.id = s.user_id
-      WHERE s.id = ${sessionId} AND s.expires_at > NOW()
+    const sessions = await sql`
+      SELECT s.*, u.id as user_id, u.name, u.email, u.role
+      FROM sessions s
+      JOIN users u ON s.user_id = u.id
+      WHERE s.id = ${sessionId}
+      AND s.expires_at > NOW()
     `
 
-    return result[0] || null
+    const session = sessions[0]
+    if (!session) {
+      return null
+    }
+
+    return {
+      id: session.user_id,
+      name: session.name,
+      email: session.email,
+      role: session.role,
+    }
   } catch (error) {
     console.error("Error getting session user:", error)
     return null
@@ -111,8 +144,33 @@ export async function getSessionUser(sessionId: string) {
 
 export async function deleteSession(sessionId: string) {
   try {
-    await sql`DELETE FROM user_sessions WHERE id = ${sessionId}`
+    await sql`DELETE FROM sessions WHERE id = ${sessionId}`
+    return true
   } catch (error) {
     console.error("Error deleting session:", error)
+    return false
+  }
+}
+
+// Create admin user if it doesn't exist
+export async function ensureAdminUser() {
+  try {
+    const adminEmail = "admin@fitnest.ma"
+    const existingAdmin = await sql`SELECT id FROM users WHERE email = ${adminEmail}`
+
+    if (existingAdmin.length === 0) {
+      const hashedPassword = simpleHash("admin123")
+
+      await sql`
+        INSERT INTO users (name, email, password, role)
+        VALUES ('Admin', ${adminEmail}, ${hashedPassword}, 'admin')
+      `
+      console.log("Admin user created")
+    }
+
+    return true
+  } catch (error) {
+    console.error("Error ensuring admin user:", error)
+    return false
   }
 }

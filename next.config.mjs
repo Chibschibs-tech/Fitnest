@@ -1,34 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Ignore build errors to prevent deployment failures
+  reactStrictMode: true,
+  swcMinify: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable image optimization for now to simplify deployment
   images: {
     unoptimized: true,
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "obtmksfewry4ishp.public.blob.vercel-storage.com",
-        port: "",
-        pathname: "/**",
-      },
-    ],
   },
-  // Add redirects for common paths
-  async redirects() {
-    return [
-      {
-        source: '/shop',
-        destination: '/express-shop',
-        permanent: true,
-      },
-    ]
+  webpack: (config, { isServer }) => {
+    // Handle problematic imports
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      bcrypt: require.resolve('./lib/bcrypt-stub.ts'),
+    };
+    
+    return config;
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;
