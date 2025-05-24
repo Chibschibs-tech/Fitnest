@@ -1,5 +1,14 @@
 {
-  "buildCommand": "node build.js",
-  "installCommand": "npm install",
-  "framework": "nextjs"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "installCommand": "npm install --no-package-lock --force"
+      }
+    }
+  ],
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
 }
