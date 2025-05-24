@@ -1,31 +1,65 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-// This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
-  // Skip middleware for API routes and static files
-  if (
-    request.nextUrl.pathname.startsWith("/api/") ||
-    request.nextUrl.pathname.startsWith("/_next/") ||
-    request.nextUrl.pathname.includes(".")
-  ) {
+  const sessionId = request.cookies.get("session-id")?.value
+  const { pathname } = request.nextUrl
+
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/register",
+    "/about",
+    "/contact",
+    "/how-it-works",
+    "/meal-plans",
+    "/meals",
+    "/express-shop",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/session",
+    "/api/products",
+    "/api/health",
+  ]
+
+  // Check if the current path is public
+  const isPublicRoute = publicRoutes.some((route) => {
+    if (route.includes("[") || route.includes("*")) {
+      // Handle dynamic routes
+      const routePattern = route.replace(/\[.*?\]/g, "[^/]+")
+      const regex = new RegExp(`^${routePattern}`)
+      return regex.test(pathname)
+    }
+    return pathname === route || pathname.startsWith(route + "/")
+  })
+
+  // If it's a public route, allow access
+  if (isPublicRoute) {
     return NextResponse.next()
   }
 
-  // Continue with normal middleware logic
+  // For protected routes, check if user has a session
+  if (!sessionId) {
+    // Redirect to login if no session
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("redirect", pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // If session exists, continue to the route
   return NextResponse.next()
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public folder
      */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
   ],
 }

@@ -1,45 +1,36 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Check environment variables
-    const envCheck = {
-      NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
-      NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
-      DATABASE_URL: !!process.env.DATABASE_URL,
+    // Get session from cookie header
+    const cookieHeader = request.headers.get("cookie")
+    const sessionId = cookieHeader
+      ?.split(";")
+      .find((c) => c.trim().startsWith("session-id="))
+      ?.split("=")[1]
+
+    if (!sessionId) {
+      return NextResponse.json({
+        authenticated: false,
+        user: null,
+        message: "No session found",
+      })
     }
 
-    // Check database connection
-    let dbStatus = "unknown"
-    let dbError = null
-
-    try {
-      const sql = neon(process.env.DATABASE_URL || "")
-      const result = await sql`SELECT NOW()`
-      dbStatus = "connected"
-    } catch (error) {
-      dbStatus = "error"
-      dbError = (error as Error).message
-    }
+    const user = await getSessionUser(sessionId)
 
     return NextResponse.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      environmentVariables: envCheck,
-      database: {
-        status: dbStatus,
-        error: dbError,
-      },
+      authenticated: !!user,
+      user: user,
+      message: user ? "Session valid" : "Session invalid",
     })
   } catch (error) {
-    return NextResponse.json(
-      {
-        status: "error",
-        message: (error as Error).message,
-      },
-      { status: 500 },
-    )
+    console.error("Auth health check error:", error)
+    return NextResponse.json({
+      authenticated: false,
+      user: null,
+      error: "Auth health check failed",
+    })
   }
 }

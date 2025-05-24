@@ -1,21 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { authenticateUser, createSession, initSessionTable } from "@/lib/simple-auth"
+import { createUser, createSession, initSessionTable } from "@/lib/simple-auth"
 
 export async function POST(request: NextRequest) {
   try {
     // Ensure session table exists
     await initSessionTable()
 
-    const { email, password } = await request.json()
+    const { name, email, password } = await request.json()
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password required" }, { status: 400 })
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: "Name, email and password required" }, { status: 400 })
     }
 
-    const user = await authenticateUser(email, password)
+    const user = await createUser(name, email, password)
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+      return NextResponse.json({ error: "User already exists or creation failed" }, { status: 409 })
     }
 
     const sessionId = await createSession(user.id)
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error("Login error:", error)
+    console.error("Register error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
