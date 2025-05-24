@@ -2,7 +2,12 @@ import crypto from "crypto"
 
 // Simple hash function using built-in crypto
 export function hashPassword(password: string): string {
-  return `hashed_${password}`
+  const salt = crypto.randomBytes(16).toString("hex")
+  const hash = crypto
+    .createHash("sha256")
+    .update(password + salt)
+    .digest("hex")
+  return `${salt}:${hash}`
 }
 
 // Simple verify function
@@ -21,7 +26,13 @@ export function verifyPassword(password: string, hashedPassword: string): boolea
 
 // Add the missing export
 export function validateAuthEnvironment() {
-  return true
+  const requiredVars = ["DATABASE_URL"]
+  const missing = requiredVars.filter((varName) => !process.env[varName])
+
+  return {
+    valid: missing.length === 0,
+    missing,
+  }
 }
 
 export async function getCurrentUser() {
