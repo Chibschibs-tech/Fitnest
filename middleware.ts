@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export function middleware(request: NextRequest) {
-  const sessionId = request.cookies.get("session-id")?.value
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
@@ -10,68 +9,57 @@ export function middleware(request: NextRequest) {
     "/",
     "/login",
     "/register",
-    "/about",
-    "/contact",
-    "/how-it-works",
+    "/express-shop",
     "/meal-plans",
     "/meals",
-    "/express-shop",
+    "/how-it-works",
+    "/about",
+    "/contact",
+    "/blog",
+    "/terms",
+    "/privacy",
+    "/careers",
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/session",
+    "/api/auth/logout",
     "/api/products",
-    "/api/health",
-    "/api/create-admin",
-    "/api/debug-login",
-    "/api/fix-sessions-table",
-    "/debug-login-test",
-    "/api/init-db",
-    "/api/seed-products",
-    "/api/cart-debug-actions",
     "/api/cart",
     "/api/cart/add",
     "/api/cart/remove",
     "/api/cart/update",
     "/api/cart/count",
+    "/api/health",
+    "/api/init-db",
+    "/api/seed-products",
+    "/api/create-admin",
+    "/api/fix-sessions-table",
+    "/api/debug-login",
+    "/api/check-cart-structure",
+    "/api/cart-debug-actions",
+    "/api/cart-simple-test",
+    "/debug-login-test",
   ]
 
-  // Check if the current path is public
-  const isPublicRoute = publicRoutes.some((route) => {
-    if (route.includes("[") || route.includes("*")) {
-      // Handle dynamic routes
-      const routePattern = route.replace(/\[.*?\]/g, "[^/]+")
-      const regex = new RegExp(`^${routePattern}`)
-      return regex.test(pathname)
-    }
-    return pathname === route || pathname.startsWith(route + "/")
-  })
+  // Check if the route is public
+  const isPublicRoute = publicRoutes.some((route) => pathname === route || pathname.startsWith(route + "/"))
 
-  // If it's a public route, allow access
   if (isPublicRoute) {
     return NextResponse.next()
   }
 
-  // For protected routes, check if user has a session
-  if (!sessionId) {
-    // Redirect to login if no session
+  // For protected routes, check authentication
+  const sessionCookie = request.cookies.get("session")
+
+  if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("redirect", pathname)
+    loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // If session exists, continue to the route
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$).*)"],
 }
