@@ -2,13 +2,13 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL || "")
 
-// Simple hash function using built-in crypto
+// Simple hash function using built-in crypto only
 function simpleHash(password: string): string {
-  // Use a simple hash for demo purposes - in production you'd want something stronger
+  // Use built-in Node.js crypto module
   const crypto = require("crypto")
   return crypto
     .createHash("sha256")
-    .update(password + "salt")
+    .update(password + "fitnest-salt-2024")
     .digest("hex")
 }
 
