@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import crypto from "crypto"
 
+const sql = neon(process.env.DATABASE_URL!)
+
 // Simple hash function using built-in crypto only
 function simpleHash(password: string): string {
   return crypto
@@ -12,106 +14,50 @@ function simpleHash(password: string): string {
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    // First, let's check what admin users exist
+    const existingAdmins = await sql`
+      SELECT id, name, email, role, created_at 
+      FROM users 
+      WHERE role = 'admin' OR email LIKE '%admin%' OR email = 'chihab@ekwip.ma'
+    `
 
-    // Check if tables exist - handle different response formats
-    let tables
-    try {
-      tables = await sql`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public'
-      `
-    } catch (error) {
-      console.log("Error checking tables, will create users table:", error)
-      tables = []
-    }
+    console.log("Existing admin users:", existingAdmins)
 
-    // Handle different response formats from Neon
-    let existingTables = []
-    if (Array.isArray(tables)) {
-      existingTables = tables.map((row) => row.table_name)
-    } else if (tables && tables.rows && Array.isArray(tables.rows)) {
-      existingTables = tables.rows.map((row) => row.table_name)
-    }
-
-    console.log("Existing tables:", existingTables)
-
-    // Create users table if it doesn't exist
-    if (!existingTables.includes("users")) {
-      console.log("Creating users table...")
-      await sql`
-        CREATE TABLE IF NOT EXISTS users (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) UNIQUE NOT NULL,
-          password VARCHAR(255) NOT NULL,
-          role VARCHAR(50) DEFAULT 'customer',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `
-      console.log("Users table created")
-    }
-
-    // Check if admin already exists
+    // Create/update the admin user with known credentials
     const adminEmail = "chihab@ekwip.ma"
-    let existingAdmin
-    try {
-      existingAdmin = await sql`SELECT id FROM users WHERE email = ${adminEmail}`
-    } catch (error) {
-      console.log("Error checking existing admin:", error)
-      existingAdmin = []
-    }
-
-    // Handle different response formats
-    const adminExists = Array.isArray(existingAdmin) ? existingAdmin.length > 0 : false
-
-    if (adminExists) {
-      const adminId = Array.isArray(existingAdmin) ? existingAdmin[0].id : existingAdmin.id
-      return NextResponse.json({
-        status: "success",
-        message: "Admin user already exists",
-        userId: adminId,
-      })
-    }
-
-    // Create admin user with specified credentials
-    const adminName = "Admin"
     const adminPassword = "FITnest123!"
     const hashedPassword = simpleHash(adminPassword)
 
-    console.log("Creating admin user...")
+    // Delete existing admin if exists and recreate
+    await sql`DELETE FROM users WHERE email = ${adminEmail}`
+
+    // Create new admin user
     const result = await sql`
       INSERT INTO users (name, email, password, role)
-      VALUES (${adminName}, ${adminEmail}, ${hashedPassword}, 'admin')
-      RETURNING id
+      VALUES ('Chihab Admin', ${adminEmail}, ${hashedPassword}, 'admin')
+      RETURNING id, name, email, role
     `
 
-    console.log("Admin user created, result:", result)
-
-    // Handle different response formats
-    const userId = Array.isArray(result) ? result[0].id : result.id
+    const newAdmin = result[0]
 
     return NextResponse.json({
       status: "success",
-      message: "Admin user created successfully",
-      userId: userId,
-      debug: {
-        tablesFound: existingTables.length,
-        adminEmail: adminEmail,
+      message: "Admin user created/updated successfully",
+      admin: newAdmin,
+      credentials: {
+        email: adminEmail,
+        password: adminPassword,
+        note: "Use these exact credentials to log in",
       },
+      existingAdmins: existingAdmins,
     })
   } catch (error) {
-    console.error("Error creating admin user:", error)
+    console.error("Error creating admin:", error)
     return NextResponse.json(
       {
         status: "error",
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-        debug: {
-          errorType: typeof error,
-          errorConstructor: error?.constructor?.name,
-        },
+        message: "Failed to create admin user",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
