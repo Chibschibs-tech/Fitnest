@@ -8,26 +8,39 @@ export async function GET() {
     const sessionId = cookieStore.get("session-id")?.value
 
     if (!sessionId) {
-      return NextResponse.json({ user: null, authenticated: false })
+      return NextResponse.json({
+        status: "success",
+        authenticated: false,
+        session: null,
+        timestamp: new Date().toISOString(),
+      })
     }
 
     const user = await getSessionUser(sessionId)
 
-    if (!user) {
-      return NextResponse.json({ user: null, authenticated: false })
-    }
-
     return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      authenticated: true,
+      status: "success",
+      authenticated: !!user,
+      session: user
+        ? {
+            user: {
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            },
+          }
+        : null,
+      timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error("Error checking auth status:", error)
-    return NextResponse.json({ user: null, authenticated: false })
+    console.error("Auth status check failed:", error)
+    return NextResponse.json(
+      {
+        status: "error",
+        message: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    )
   }
 }

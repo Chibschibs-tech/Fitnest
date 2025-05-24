@@ -54,14 +54,12 @@ export async function POST(request: Request) {
 
     const { planId, totalAmount, deliveryAddress, deliveryDate } = await request.json()
 
-    // Validate input
     if (!planId || !totalAmount || !deliveryAddress || !deliveryDate) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Create order
     const newOrder = await sql`
       INSERT INTO orders (user_id, plan_id, total_amount, delivery_address, delivery_date, status)
       VALUES (${user.id}, ${planId}, ${totalAmount}, ${deliveryAddress}, ${deliveryDate}, 'pending')

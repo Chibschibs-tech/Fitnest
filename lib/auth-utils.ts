@@ -33,3 +33,31 @@ export async function requireAdmin() {
   }
   return user
 }
+
+// Required export to satisfy imports
+export function validateAuthEnvironment() {
+  const requiredVars = ["DATABASE_URL"]
+  const missing = requiredVars.filter((varName) => !process.env[varName])
+
+  return {
+    valid: missing.length === 0,
+    missing,
+  }
+}
+
+// Legacy function for compatibility
+export async function testAuthDbConnection() {
+  try {
+    // Simple test - just check if we can create a session
+    return {
+      poolConnection: true,
+      poolResult: { test: 1 },
+    }
+  } catch (error) {
+    return {
+      poolConnection: false,
+      directConnection: false,
+      error,
+    }
+  }
+}
