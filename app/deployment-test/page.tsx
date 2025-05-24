@@ -1,80 +1,45 @@
-"use client"
+import { sql } from "@/lib/db"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+export default async function DeploymentTest() {
+  let dbStatus = "Unknown"
+  let error = null
 
-export default function DeploymentTestPage() {
-  const [diagnostics, setDiagnostics] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-
-  const runDiagnostics = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch("/api/deployment-diagnostic")
-      const data = await response.json()
-      setDiagnostics(data)
-    } catch (error) {
-      console.error("Diagnostics failed:", error)
-      setDiagnostics({ error: "Failed to run diagnostics" })
-    } finally {
-      setLoading(false)
-    }
+  try {
+    // Test database connection
+    const result = await sql`SELECT 1 as test`
+    dbStatus = result[0]?.test === 1 ? "Connected" : "Error"
+  } catch (err: any) {
+    dbStatus = "Error"
+    error = err.message
   }
 
-  useEffect(() => {
-    runDiagnostics()
-  }, [])
-
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Deployment Test</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={runDiagnostics} disabled={loading} className="mb-4">
-            {loading ? "Running..." : "Run Diagnostics"}
-          </Button>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Deployment Test</h1>
 
-          {diagnostics && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold">Status: {diagnostics.status}</h3>
-                <p className="text-sm text-gray-600">Auth System: {diagnostics.authSystem}</p>
-              </div>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Database Status</h2>
+        <p className={`mt-2 ${dbStatus === "Connected" ? "text-green-600" : "text-red-600"}`}>{dbStatus}</p>
+        {error && (
+          <div className="mt-2 p-4 bg-red-50 text-red-800 rounded">
+            <p className="font-mono text-sm">{error}</p>
+          </div>
+        )}
+      </div>
 
-              {diagnostics.environment && (
-                <div>
-                  <h4 className="font-medium">Environment:</h4>
-                  <ul className="text-sm">
-                    {Object.entries(diagnostics.environment).map(([key, value]) => (
-                      <li key={key}>
-                        {key}: {value as string}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Environment Variables</h2>
+        <ul className="mt-2 space-y-1">
+          <li>DATABASE_URL: {process.env.DATABASE_URL ? "✅ Set" : "❌ Missing"}</li>
+          <li>NEXTAUTH_URL: {process.env.NEXTAUTH_URL ? "✅ Set" : "❌ Missing"}</li>
+          <li>NEXTAUTH_SECRET: {process.env.NEXTAUTH_SECRET ? "✅ Set" : "❌ Missing"}</li>
+        </ul>
+      </div>
 
-              {diagnostics.dependencies && (
-                <div>
-                  <h4 className="font-medium">Dependencies:</h4>
-                  <ul className="text-sm">
-                    {Object.entries(diagnostics.dependencies).map(([key, value]) => (
-                      <li key={key}>
-                        {key}: {value as string}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {diagnostics.error && <div className="text-red-600">Error: {diagnostics.error}</div>}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Node.js Version</h2>
+        <p className="mt-2">{process.version}</p>
+      </div>
     </div>
   )
 }

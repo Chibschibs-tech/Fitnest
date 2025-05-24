@@ -1,49 +1,32 @@
-/**
- * Bcrypt stub implementation using Node.js crypto
- */
+import crypto from "crypto"
 
-import * as crypto from "crypto"
-
-// Simple hash function using crypto
 export function hash(data: string, saltOrRounds: string | number): Promise<string> {
-  return new Promise((resolve) => {
-    const salt = typeof saltOrRounds === "string" ? saltOrRounds : crypto.randomBytes(16).toString("hex")
-
-    const hash = crypto
-      .createHash("sha256")
-      .update(data + salt)
-      .digest("hex")
-
-    resolve(`${salt}:${hash}`)
-  })
+  const salt = crypto.randomBytes(16).toString("hex")
+  const hash = crypto
+    .createHash("sha256")
+    .update(data + salt)
+    .digest("hex")
+  return Promise.resolve(`$2b$10$${salt}$${hash}`)
 }
 
-// Simple compare function
 export function compare(data: string, encrypted: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const [salt, originalHash] = encrypted.split(":")
+  try {
+    const parts = encrypted.split("$")
+    if (parts.length < 4) return Promise.resolve(false)
 
-    if (!salt || !originalHash) {
-      resolve(false)
-      return
-    }
-
-    const hash = crypto
+    const salt = parts[3]
+    const newHash = crypto
       .createHash("sha256")
       .update(data + salt)
       .digest("hex")
 
-    resolve(hash === originalHash)
-  })
+    const expectedFormat = `$2b$10$${salt}$${newHash}`
+    return Promise.resolve(expectedFormat === encrypted)
+  } catch (error) {
+    return Promise.resolve(false)
+  }
 }
 
-// Export other bcrypt functions as needed
-export const genSalt = (rounds: number): Promise<string> => {
+export function genSalt(rounds: number): Promise<string> {
   return Promise.resolve(crypto.randomBytes(16).toString("hex"))
-}
-
-export default {
-  hash,
-  compare,
-  genSalt,
 }

@@ -1,3 +1,4 @@
+import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-serverless"
 import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, date, unique, jsonb } from "drizzle-orm/pg-core"
 import { getPool } from "./db-connection"
@@ -224,6 +225,97 @@ export async function checkDatabaseConnection() {
     return true
   } catch (error) {
     console.error("Database connection check failed:", error)
+    return false
+  }
+}
+
+// Create a SQL client
+const sql = neon(process.env.DATABASE_URL!)
+
+export { sql }
+
+// Simple query function
+export async function query(text: string, params: any[] = []) {
+  try {
+    return await sql(text, params)
+  } catch (error) {
+    console.error("Database query error:", error)
+    throw error
+  }
+}
+
+// Simple function to get a user by email
+export async function getUserByEmail(email: string) {
+  try {
+    const result = await sql`
+      SELECT * FROM users WHERE email = ${email} LIMIT 1
+    `
+    return result[0] || null
+  } catch (error) {
+    console.error("Error getting user by email:", error)
+    return null
+  }
+}
+
+// Simple function to create a user
+export async function createUser(userData: any) {
+  try {
+    const result = await sql`
+      INSERT INTO users (name, email, password)
+      VALUES (${userData.name}, ${userData.email}, ${userData.password})
+      RETURNING id, name, email
+    `
+    return result[0] || null
+  } catch (error) {
+    console.error("Error creating user:", error)
+    return null
+  }
+}
+
+// Simple function to create a session
+export async function createSession(userId: string, token: string) {
+  try {
+    const expires = new Date()
+    expires.setDate(expires.getDate() + 30) // 30 days from now
+
+    await sql`
+      INSERT INTO sessions (user_id, token, expires)
+      VALUES (${userId}, ${token}, ${expires.toISOString()})
+    `
+    return true
+  } catch (error) {
+    console.error("Error creating session:", error)
+    return false
+  }
+}
+
+// Simple function to get a session by token
+export async function getSessionByToken(token: string) {
+  try {
+    const result = await sql`
+      SELECT s.*, u.id as user_id, u.name, u.email, u.role
+      FROM sessions s
+      JOIN users u ON s.user_id = u.id
+      WHERE s.token = ${token}
+      AND s.expires > NOW()
+      LIMIT 1
+    `
+    return result[0] || null
+  } catch (error) {
+    console.error("Error getting session by token:", error)
+    return null
+  }
+}
+
+// Simple function to delete a session
+export async function deleteSession(token: string) {
+  try {
+    await sql`
+      DELETE FROM sessions WHERE token = ${token}
+    `
+    return true
+  } catch (error) {
+    console.error("Error deleting session:", error)
     return false
   }
 }

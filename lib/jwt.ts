@@ -1,74 +1,60 @@
-/**
- * JWT stub implementation using simple session management
- */
+export async function login(formData: FormData) {
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
 
-import { cookies } from "next/headers"
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
 
-// Simple encrypt function (not actual JWT)
-export function encrypt(payload: any): string {
+    const data = await response.json()
+    return data
+  } catch (error) {
+    return { success: false, message: "Login failed" }
+  }
+}
+
+export async function logout() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" })
+    return { success: true }
+  } catch (error) {
+    return { success: false }
+  }
+}
+
+export async function getSession() {
+  try {
+    const response = await fetch("/api/auth/session")
+    const data = await response.json()
+    return data.user
+  } catch (error) {
+    return null
+  }
+}
+
+export async function decrypt(token: string) {
+  // Simple stub implementation
+  try {
+    return JSON.parse(Buffer.from(token, "base64").toString())
+  } catch {
+    return null
+  }
+}
+
+export async function encrypt(payload: any) {
+  // Simple stub implementation
   return Buffer.from(JSON.stringify(payload)).toString("base64")
 }
 
-// Simple decrypt function (not actual JWT)
-export function decrypt(token: string): any {
+export async function verify(token: string) {
+  // Simple stub implementation
   try {
-    return JSON.parse(Buffer.from(token, "base64").toString("utf-8"))
-  } catch (error) {
-    return null
-  }
-}
-
-// Simple verify function
-export function verify(token: string): boolean {
-  try {
-    const payload = decrypt(token)
-    return !!payload && typeof payload === "object"
-  } catch (error) {
+    JSON.parse(Buffer.from(token, "base64").toString())
+    return true
+  } catch {
     return false
   }
-}
-
-// Get session from cookies
-export function getSession() {
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get("session")
-
-  if (!sessionCookie?.value) {
-    return null
-  }
-
-  try {
-    return decrypt(sessionCookie.value)
-  } catch (error) {
-    return null
-  }
-}
-
-// Login function
-export async function login(credentials: { email: string; password: string }) {
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(credentials),
-  })
-
-  return response.json()
-}
-
-// Logout function
-export async function logout() {
-  await fetch("/api/auth/logout", {
-    method: "POST",
-  })
-}
-
-export default {
-  encrypt,
-  decrypt,
-  verify,
-  getSession,
-  login,
-  logout,
 }
