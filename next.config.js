@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
+  swcMinify: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,7 +10,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-  }
-};
+  },
+}
 
-export default nextConfig;
+module.exports = nextConfig
