@@ -22,6 +22,7 @@ export function middleware(request: NextRequest) {
     "/api/products",
     "/api/health",
     "/api/create-admin",
+    "/api/debug-login",
   ]
 
   // Check if the current path is public
