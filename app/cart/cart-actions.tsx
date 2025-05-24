@@ -55,12 +55,12 @@ export default function CartActions({ item }: CartActionsProps) {
       })
 
       if (!response.ok) {
+        const errorData = await response.text()
+        console.error("Update failed:", errorData)
         throw new Error("Failed to update cart")
       }
 
-      setQuantity(newQuantity)
-
-      // Refresh the page to show updated cart
+      // Force page refresh to show changes
       window.location.reload()
     } catch (error) {
       console.error("Error updating cart:", error)
