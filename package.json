@@ -81,7 +81,6 @@
     "nodemailer": "latest",
     "path": "latest",
     "pg": "latest",
-    "pg-native": "latest",
     "postgres": "latest",
     "react": "^19",
     "react-day-picker": "8.10.1",

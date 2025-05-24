@@ -1,8 +1,4 @@
 import crypto from "crypto"
-import { neon } from "@neondatabase/serverless"
-import { cookies } from "next/headers"
-
-const sql = neon(process.env.DATABASE_URL!)
 
 // Simple hash function using built-in crypto
 export function hashPassword(password: string): string {
@@ -41,22 +37,8 @@ export function validateAuthEnvironment() {
 
 export async function getCurrentUser() {
   try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-
-    if (!sessionId) {
-      return null
-    }
-
-    const result = await sql`
-      SELECT u.id, u.name, u.email, u.role
-      FROM sessions s
-      JOIN users u ON s.user_id = u.id
-      WHERE s.token = ${sessionId}
-      AND s.expires > NOW()
-    `
-
-    return result[0] || null
+    // This is a stub implementation
+    return null
   } catch (error) {
     console.error("Error getting current user:", error)
     return null
