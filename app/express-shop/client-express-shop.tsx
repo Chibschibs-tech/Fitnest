@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
-import { Loader2, ShoppingCart, Plus, Filter, AlertCircle, Bug } from "lucide-react"
+import { Loader2, ShoppingCart, Plus, Filter, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -28,44 +28,22 @@ export default function ClientExpressShop() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [rawResponse, setRawResponse] = useState<any>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [addingToCart, setAddingToCart] = useState<number | null>(null)
   const [retryCount, setRetryCount] = useState(0)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Always authenticated in v0 preview
   const [categories, setCategories] = useState<string[]>(["all"])
 
   useEffect(() => {
-    // Check authentication status
-    checkAuthStatus()
-
     // Fetch products
     fetchProducts()
   }, [retryCount])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/auth-direct")
-      const data = await response.json()
-      console.log("Auth status:", data)
-      setIsAuthenticated(data.isAuthenticated)
-      setDebugInfo(data)
-    } catch (error) {
-      console.error("Error checking auth status:", error)
-      setIsAuthenticated(false)
-    }
-  }
 
   async function fetchProducts() {
     try {
       setLoading(true)
       console.log("Fetching products...")
 
-      // First ensure products exist
-      await fetch("/api/seed-products")
-
-      // Then fetch products
       const response = await fetch("/api/products")
       console.log("Response status:", response.status)
 
@@ -98,15 +76,6 @@ export default function ClientExpressShop() {
     activeCategory === "all" ? products : products.filter((product) => product.category === activeCategory)
 
   const handleAddToCart = async (productId: number) => {
-    if (!isAuthenticated) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please log in to add items to your cart",
-      })
-      return
-    }
-
     setAddingToCart(productId)
     try {
       console.log("Adding product to cart:", productId)
@@ -122,20 +91,13 @@ export default function ClientExpressShop() {
 
       console.log("Cart API response status:", response.status)
 
-      const responseText = await response.text()
-      console.log("Cart API response:", responseText)
-
-      let responseData
-      try {
-        responseData = JSON.parse(responseText)
-      } catch (e) {
-        console.error("Failed to parse response as JSON:", e)
-        throw new Error("Invalid response from server")
-      }
-
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.details || "Failed to add item to cart")
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.details || "Failed to add item to cart")
       }
+
+      const responseData = await response.json()
+      console.log("Cart API response:", responseData)
 
       toast({
         title: "Added to cart",
@@ -158,7 +120,6 @@ export default function ClientExpressShop() {
 
   const handleRetry = () => {
     setError(null)
-    setRawResponse(null)
     setRetryCount((prev) => prev + 1)
   }
 
@@ -179,15 +140,6 @@ export default function ClientExpressShop() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
 
-        {rawResponse && (
-          <div className="mb-6 rounded-md bg-gray-100 p-4">
-            <h3 className="mb-2 flex items-center text-sm font-medium">
-              <Bug className="mr-2 h-4 w-4" /> Debug Information
-            </h3>
-            <pre className="max-h-60 overflow-auto text-xs">{JSON.stringify(rawResponse, null, 2)}</pre>
-          </div>
-        )}
-
         <div className="flex justify-center">
           <Button onClick={handleRetry}>Try Again</Button>
         </div>
@@ -203,20 +155,6 @@ export default function ClientExpressShop() {
           Browse our selection of healthy snacks, protein bars, and more for quick delivery.
         </p>
       </div>
-
-      {!isAuthenticated && (
-        <Alert className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Required</AlertTitle>
-          <AlertDescription>
-            Please{" "}
-            <Link href="/login" className="font-medium underline">
-              log in
-            </Link>{" "}
-            to add items to your cart.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
@@ -293,7 +231,7 @@ export default function ClientExpressShop() {
                         <Button
                           className="w-full"
                           onClick={() => handleAddToCart(product.id)}
-                          disabled={addingToCart === product.id || !isAuthenticated}
+                          disabled={addingToCart === product.id}
                         >
                           {addingToCart === product.id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,235 +1,104 @@
-import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
-
-// Helper function to get column names
-async function getTableColumns(tableName: string) {
-  const sql = neon(process.env.DATABASE_URL!)
-
-  const columns = await sql`
-    SELECT column_name 
-    FROM information_schema.columns 
-    WHERE table_name = ${tableName}
-  `
-
-  return columns.map((col) => col.column_name)
-}
+import { type NextRequest, NextResponse } from "next/server"
+import { mockDb, getCurrentUser } from "@/lib/mock-db"
 
 export async function GET() {
-  return NextResponse.json({ message: "Cart Direct API is working" })
+  try {
+    const user = getCurrentUser()
+    const items = await mockDb.getCartItems(user.id)
+
+    return NextResponse.json({
+      items,
+      count: items.reduce((total, item) => total + item.quantity, 0),
+    })
+  } catch (error) {
+    console.error("Error fetching cart:", error)
+    return NextResponse.json({ error: "Failed to fetch cart items" }, { status: 500 })
+  }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions)
+    const user = getCurrentUser()
+    const { productId, quantity = 1 } = await request.json()
 
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    if (!productId) {
+      return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
-
-    // Get user ID
-    const userId = session.user.id
-
-    if (!userId) {
-      return NextResponse.json({ error: "User ID not found" }, { status: 400 })
-    }
-
-    // Parse request body
-    const body = await request.json()
-    const { productId, quantity } = body
-
-    // Validate input
-    if (!productId || !quantity || quantity < 1) {
-      return NextResponse.json({ error: "Invalid product ID or quantity" }, { status: 400 })
-    }
-
-    // Initialize Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
-
-    // Ensure cart table exists
-    await sql`
-      CREATE TABLE IF NOT EXISTS cart_items (
-        id SERIAL PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
 
     // Check if product exists
-    const product = await sql`SELECT id FROM products WHERE id = ${productId}`
-
-    if (product.length === 0) {
+    const product = await mockDb.getProduct(Number.parseInt(productId))
+    if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
-    // Check if item already exists in cart
-    const existingItem = await sql`
-      SELECT id, quantity FROM cart_items 
-      WHERE user_id = ${userId} AND product_id = ${productId}
-    `
+    const cartItem = await mockDb.addToCart(user.id, Number.parseInt(productId), quantity)
 
-    if (existingItem.length > 0) {
-      // Update existing cart item
-      const newQuantity = existingItem[0].quantity + quantity
-
-      await sql`
-        UPDATE cart_items 
-        SET quantity = ${newQuantity}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${existingItem[0].id}
-      `
-
-      return NextResponse.json({
-        success: true,
-        message: "Cart updated successfully",
-        quantity: newQuantity,
-      })
-    } else {
-      // Add new item to cart
-      await sql`
-        INSERT INTO cart_items (user_id, product_id, quantity)
-        VALUES (${userId}, ${productId}, ${quantity})
-      `
-
-      return NextResponse.json({
-        success: true,
-        message: "Item added to cart successfully",
-        quantity,
-      })
-    }
+    return NextResponse.json({
+      success: true,
+      item: cartItem,
+      message: "Item added to cart",
+    })
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: "Failed to add item to cart",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Error adding to cart:", error)
+    return NextResponse.json({ error: "Failed to add item to cart" }, { status: 500 })
   }
 }
 
-// Add PUT and DELETE methods for updating and removing cart items
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
-    const data = await request.json()
+    const { itemId, quantity } = await request.json()
 
-    // Get user session
-    const session = await getServerSession(authOptions)
-
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    if (!itemId || quantity === undefined) {
+      return NextResponse.json({ error: "Item ID and quantity are required" }, { status: 400 })
     }
 
-    const userId = session.user.id
+    const success = await mockDb.updateCartItem(itemId, quantity)
 
-    const sql = neon(process.env.DATABASE_URL!)
-
-    // Validate required fields
-    if (!data.itemId || !data.quantity) {
-      return NextResponse.json({ error: "Missing required fields: itemId and quantity are required" }, { status: 400 })
-    }
-
-    // Check if the item exists and belongs to the user
-    const existingItem = await sql`
-      SELECT id FROM cart_items
-      WHERE id = ${data.itemId} AND user_id = ${userId}
-      LIMIT 1
-    `
-
-    if (existingItem.length === 0) {
+    if (!success) {
       return NextResponse.json({ error: "Cart item not found" }, { status: 404 })
     }
 
-    // Update the item quantity
-    const result = await sql`
-      UPDATE cart_items
-      SET quantity = ${data.quantity}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${data.itemId}
-      RETURNING id, product_id as "productId", quantity
-    `
-
     return NextResponse.json({
-      ...result[0],
-      message: "Cart updated",
+      success: true,
+      message: "Cart updated successfully",
     })
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: "Failed to update cart item",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Error updating cart:", error)
+    return NextResponse.json({ error: "Failed to update cart" }, { status: 500 })
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const itemId = searchParams.get("id")
-    const clearAll = searchParams.get("clearAll")
-
-    // Get user session
-    const session = await getServerSession(authOptions)
-
-    // Check if user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const userId = session.user.id
-
-    const sql = neon(process.env.DATABASE_URL!)
+    const url = new URL(request.url)
+    const itemId = url.searchParams.get("id")
+    const clearAll = url.searchParams.get("clearAll")
+    const user = getCurrentUser()
 
     if (clearAll === "true") {
-      // Clear all items from the cart
-      await sql`
-        DELETE FROM cart_items
-        WHERE user_id = ${userId}
-      `
-
+      const success = await mockDb.clearCart(user.id)
       return NextResponse.json({
-        message: "Cart cleared",
+        success,
+        message: "Cart cleared successfully",
       })
     }
 
     if (!itemId) {
-      return NextResponse.json({ error: "Missing required parameter: id" }, { status: 400 })
+      return NextResponse.json({ error: "Item ID is required" }, { status: 400 })
     }
 
-    // Check if the item exists and belongs to the user
-    const existingItem = await sql`
-      SELECT id FROM cart_items
-      WHERE id = ${itemId} AND user_id = ${userId}
-      LIMIT 1
-    `
+    const success = await mockDb.removeCartItem(Number.parseInt(itemId))
 
-    if (existingItem.length === 0) {
+    if (!success) {
       return NextResponse.json({ error: "Cart item not found" }, { status: 404 })
     }
 
-    // Delete the item
-    await sql`
-      DELETE FROM cart_items
-      WHERE id = ${itemId}
-    `
-
     return NextResponse.json({
+      success: true,
       message: "Item removed from cart",
     })
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: "Failed to remove cart item",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("Error removing from cart:", error)
+    return NextResponse.json({ error: "Failed to remove item from cart" }, { status: 500 })
   }
 }

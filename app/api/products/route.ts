@@ -1,75 +1,32 @@
-import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { type NextRequest, NextResponse } from "next/server"
+import { mockDb } from "@/lib/mock-db"
 
+// Force dynamic to prevent caching issues
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // Initialize Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get("category")
 
-    // Check if products table exists
-    const tableCheck = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'products'
-      ) as exists
-    `
+    // Get products from mock database
+    let products = mockDb.getProducts()
 
-    if (!tableCheck[0].exists) {
-      return NextResponse.json(
-        {
-          error: "Products table does not exist",
-          message: "Please initialize the database first",
-        },
-        { status: 404 },
-      )
+    // Filter by category if provided
+    if (category) {
+      products = products.filter((product) => product.category === category)
     }
 
-    // Get all products
-    const products = await sql`
-      SELECT 
-        id, 
-        name, 
-        description, 
-        price, 
-        saleprice as "salePrice", 
-        imageurl as "imageUrl", 
-        category, 
-        tags, 
-        stock, 
-        isactive as "isActive"
-      FROM products
-      WHERE isactive = true
-      ORDER BY category, name
-    `
+    // Only return active products
+    products = products.filter((product) => product.isActive)
 
-    // Group products by category
-    const productsByCategory = products.reduce((acc, product) => {
-      const category = product.category
-      if (!acc[category]) {
-        acc[category] = []
-      }
-      acc[category].push({
-        ...product,
-        price: Number.parseInt(product.price),
-        salePrice: product.salePrice ? Number.parseInt(product.salePrice) : null,
-      })
-      return acc
-    }, {})
-
-    return NextResponse.json(
-      {
-        products,
-        productsByCategory,
-        count: products.length,
-      },
-      { status: 200 },
-    )
+    return NextResponse.json(products)
   } catch (error) {
     console.error("Error fetching products:", error)
     return NextResponse.json(
       {
+        success: false,
         error: "Failed to fetch products",
         details: error instanceof Error ? error.message : String(error),
       },
