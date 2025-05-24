@@ -1,16 +1,23 @@
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
 import { DashboardContent } from "./dashboard-content"
 
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const cookieStore = cookies()
+  const sessionId = cookieStore.get("session-id")?.value
 
-  if (!session) {
+  if (!sessionId) {
     redirect("/login?redirect=/dashboard")
   }
 
-  return <DashboardContent user={session.user} />
+  const user = await getSessionUser(sessionId)
+
+  if (!user) {
+    redirect("/login?redirect=/dashboard")
+  }
+
+  return <DashboardContent user={user} />
 }

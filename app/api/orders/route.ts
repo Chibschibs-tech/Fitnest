@@ -1,28 +1,33 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { db, orders } from "@/lib/db"
-import { eq } from "drizzle-orm"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    if (!session || !session.user) {
+    if (!sessionId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
+    const user = await getSessionUser(sessionId)
+
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get("userId")
 
     let userOrders
 
-    if (userId) {
-      userOrders = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.userId, Number.parseInt(userId)))
+    if (userId && user.role === "admin") {
+      userOrders = await sql`SELECT * FROM orders WHERE user_id = ${userId}`
     } else {
-      userOrders = await db.select().from(orders)
+      userOrders = await sql`SELECT * FROM orders WHERE user_id = ${user.id}`
     }
 
     return NextResponse.json(userOrders)
@@ -34,9 +39,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    if (!session || !session.user) {
+    if (!sessionId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+
+    if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
@@ -47,20 +59,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    const userId = Number.parseInt(session.user.id as string)
+    const sql = neon(process.env.DATABASE_URL!)
 
     // Create order
-    const newOrder = await db
-      .insert(orders)
-      .values({
-        userId,
-        planId,
-        totalAmount,
-        deliveryAddress,
-        deliveryDate: new Date(deliveryDate),
-        status: "pending",
-      })
-      .returning()
+    const newOrder = await sql`
+      INSERT INTO orders (user_id, plan_id, total_amount, delivery_address, delivery_date, status)
+      VALUES (${user.id}, ${planId}, ${totalAmount}, ${deliveryAddress}, ${deliveryDate}, 'pending')
+      RETURNING *
+    `
 
     return NextResponse.json(newOrder[0], { status: 201 })
   } catch (error) {

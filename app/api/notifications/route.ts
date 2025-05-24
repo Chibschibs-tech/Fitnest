@@ -1,25 +1,32 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { db, notifications } from "@/lib/db"
-import { eq, and } from "drizzle-orm"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET() {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    if (!session || !session.user) {
+    if (!sessionId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = Number.parseInt(session.user.id as string)
+    const user = await getSessionUser(sessionId)
+
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const sql = neon(process.env.DATABASE_URL!)
 
     // Get user's notifications
-    const userNotifications = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy({ createdAt: "desc" })
-      .limit(20)
+    const userNotifications = await sql`
+      SELECT * FROM notifications 
+      WHERE user_id = ${user.id} 
+      ORDER BY created_at DESC 
+      LIMIT 20
+    `
 
     return NextResponse.json(userNotifications)
   } catch (error) {
@@ -30,9 +37,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    if (!session || !session.user || session.user.role !== "admin") {
+    if (!sessionId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+
+    if (!user || user.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
@@ -43,16 +57,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
+    const sql = neon(process.env.DATABASE_URL!)
+
     // Create notification
-    const newNotification = await db
-      .insert(notifications)
-      .values({
-        userId,
-        title,
-        description,
-        type,
-      })
-      .returning()
+    const newNotification = await sql`
+      INSERT INTO notifications (user_id, title, description, type)
+      VALUES (${userId}, ${title}, ${description}, ${type})
+      RETURNING *
+    `
 
     return NextResponse.json(newNotification[0], { status: 201 })
   } catch (error) {
@@ -63,13 +75,19 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    if (!session || !session.user) {
+    if (!sessionId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = Number.parseInt(session.user.id as string)
+    const user = await getSessionUser(sessionId)
+
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
     const { notificationId, isRead } = await request.json()
 
     // Validate input
@@ -77,11 +95,14 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: "Missing notification ID" }, { status: 400 })
     }
 
+    const sql = neon(process.env.DATABASE_URL!)
+
     // Update notification
-    await db
-      .update(notifications)
-      .set({ isRead: isRead === undefined ? true : isRead })
-      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)))
+    await sql`
+      UPDATE notifications 
+      SET is_read = ${isRead === undefined ? true : isRead}
+      WHERE id = ${notificationId} AND user_id = ${user.id}
+    `
 
     return NextResponse.json({ message: "Notification updated" })
   } catch (error) {
