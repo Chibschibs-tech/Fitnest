@@ -11,11 +11,9 @@ export function CartIcon() {
 
   const fetchCartCount = async () => {
     try {
-      const response = await fetch("/api/cart-direct/count")
-      if (response.ok) {
-        const data = await response.json()
-        setCount(data.count || 0)
-      }
+      const response = await fetch("/api/cart/count")
+      const data = await response.json()
+      setCount(data.count || 0)
     } catch (error) {
       console.error("Error fetching cart count:", error)
     } finally {

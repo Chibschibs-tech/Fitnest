@@ -5,8 +5,6 @@ import { authOptions } from "../../auth/[...nextauth]/route"
 import { sendOrderConfirmationEmail } from "@/lib/email-utils"
 import { hash } from "bcrypt"
 
-export const dynamic = "force-dynamic"
-
 export async function POST(request: Request) {
   try {
     // Initialize Neon SQL client
@@ -54,7 +52,7 @@ export async function POST(request: Request) {
             ${`${body.customer.firstName} ${body.customer.lastName}`}, 
             ${body.customer.email}, 
             ${hashedPassword},
-            'customer'
+            'user'
           )
           RETURNING id
         `
@@ -135,6 +133,15 @@ export async function POST(request: Request) {
           UPDATE orders
           SET plan_id = ${body.order.mealPlan.planId || null}
           WHERE id = ${orderId}
+        `
+      }
+
+      // Save customer phone number to user profile if not already set
+      if (body.shipping.phone) {
+        await tx`
+          UPDATE users
+          SET phone = COALESCE(phone, ${body.shipping.phone})
+          WHERE id = ${userId}
         `
       }
 

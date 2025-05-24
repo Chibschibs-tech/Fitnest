@@ -80,7 +80,7 @@ export async function GET() {
       product: {
         id: item.product_id,
         name: item.name,
-        price: Number(item.price),
+        price: Number.parseFloat(item.price),
         image: item.image,
       },
     }))
