@@ -14,17 +14,32 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if tables exist
-    const tables = await sql`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `
+    // Check if tables exist - handle different response formats
+    let tables
+    try {
+      tables = await sql`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+      `
+    } catch (error) {
+      console.log("Error checking tables, will create users table:", error)
+      tables = []
+    }
 
-    const existingTables = tables.rows.map((row) => row.table_name)
+    // Handle different response formats from Neon
+    let existingTables = []
+    if (Array.isArray(tables)) {
+      existingTables = tables.map((row) => row.table_name)
+    } else if (tables && tables.rows && Array.isArray(tables.rows)) {
+      existingTables = tables.rows.map((row) => row.table_name)
+    }
+
+    console.log("Existing tables:", existingTables)
 
     // Create users table if it doesn't exist
     if (!existingTables.includes("users")) {
+      console.log("Creating users table...")
       await sql`
         CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
@@ -35,17 +50,28 @@ export async function GET() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `
+      console.log("Users table created")
     }
 
     // Check if admin already exists
     const adminEmail = "chihab@ekwip.ma"
-    const existingAdmin = await sql`SELECT id FROM users WHERE email = ${adminEmail}`
+    let existingAdmin
+    try {
+      existingAdmin = await sql`SELECT id FROM users WHERE email = ${adminEmail}`
+    } catch (error) {
+      console.log("Error checking existing admin:", error)
+      existingAdmin = []
+    }
 
-    if (existingAdmin.length > 0) {
+    // Handle different response formats
+    const adminExists = Array.isArray(existingAdmin) ? existingAdmin.length > 0 : false
+
+    if (adminExists) {
+      const adminId = Array.isArray(existingAdmin) ? existingAdmin[0].id : existingAdmin.id
       return NextResponse.json({
         status: "success",
         message: "Admin user already exists",
-        userId: existingAdmin[0].id,
+        userId: adminId,
       })
     }
 
@@ -54,16 +80,26 @@ export async function GET() {
     const adminPassword = "FITnest123!"
     const hashedPassword = simpleHash(adminPassword)
 
+    console.log("Creating admin user...")
     const result = await sql`
       INSERT INTO users (name, email, password, role)
       VALUES (${adminName}, ${adminEmail}, ${hashedPassword}, 'admin')
       RETURNING id
     `
 
+    console.log("Admin user created, result:", result)
+
+    // Handle different response formats
+    const userId = Array.isArray(result) ? result[0].id : result.id
+
     return NextResponse.json({
       status: "success",
       message: "Admin user created successfully",
-      userId: result[0].id,
+      userId: userId,
+      debug: {
+        tablesFound: existingTables.length,
+        adminEmail: adminEmail,
+      },
     })
   } catch (error) {
     console.error("Error creating admin user:", error)
@@ -72,6 +108,10 @@ export async function GET() {
         status: "error",
         message: error instanceof Error ? error.message : "Unknown error",
         stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        debug: {
+          errorType: typeof error,
+          errorConstructor: error?.constructor?.name,
+        },
       },
       { status: 500 },
     )
