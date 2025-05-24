@@ -33,14 +33,3 @@ export async function requireAdmin() {
   }
   return user
 }
-
-export function validateAuthEnvironment() {
-  const requiredVars = ["DATABASE_URL", "NEXTAUTH_SECRET"]
-
-  const missing = requiredVars.filter((varName) => !process.env[varName])
-
-  return {
-    valid: missing.length === 0,
-    missing,
-  }
-}

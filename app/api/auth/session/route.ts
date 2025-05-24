@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ user })
   } catch (error) {
-    console.error("Session check error:", error)
+    console.error("Session error:", error)
     return NextResponse.json({ user: null })
   }
 }

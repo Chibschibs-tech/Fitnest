@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createUser, createSession, initSessionTable } from "@/lib/simple-auth"
+import { createUser, createSession, initTables } from "@/lib/simple-auth"
 
 export async function POST(request: NextRequest) {
   try {
-    // Ensure session table exists
-    await initSessionTable()
+    await initTables()
 
     const { name, email, password } = await request.json()
 
@@ -20,7 +19,12 @@ export async function POST(request: NextRequest) {
 
     const sessionId = await createSession(user.id)
 
+    if (!sessionId) {
+      return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
+    }
+
     const response = NextResponse.json({
+      success: true,
       user: {
         id: user.id,
         name: user.name,
@@ -29,7 +33,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Set HTTP-only cookie
     response.cookies.set("session-id", sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
