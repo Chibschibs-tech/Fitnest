@@ -8,6 +8,9 @@ import { Providers } from "@/components/providers"
 export const metadata: Metadata = {
   title: "Fitnest.ma",
   description: "Healthy meal delivery service",
+  icons: {
+    icon: "/favicon.ico",
+  },
     generator: 'v0.dev'
 }
 

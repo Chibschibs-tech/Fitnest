@@ -6,16 +6,12 @@ import { ChevronRight } from "lucide-react"
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section - Updated to fill viewport height */}
-      <section className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 text-white min-h-[calc(100vh-73px)] flex items-center">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
-            Making Healthy Eating <span className="text-white">Simple</span> & Enjoyable
-          </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-200">
-            Personalized, nutrient-rich meals delivered to your door. We empower you to take charge of your health—one
-            meal, one habit at a time.
-          </p>
+      {/* Hero Section - Full banner image */}
+      <section className="relative min-h-[calc(100vh-73px)] flex items-end">
+        <div className="absolute inset-0">
+          <Image src="/hero-banner-full.png" alt="Fitnest.ma Hero Banner" fill className="object-cover" priority />
+        </div>
+        <div className="relative z-10 container mx-auto px-4 pb-16">
           <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
               <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 w-full sm:w-auto">
