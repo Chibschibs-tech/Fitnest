@@ -42,8 +42,28 @@ export function OrdersContent() {
         }
 
         const data = await response.json()
-        // The API returns the orders array directly, not wrapped in an object
-        setOrders(Array.isArray(data) ? data : [])
+        console.log("Raw orders data:", data) // Debug log
+
+        // Transform the database orders to match the expected format
+        const transformedOrders = Array.isArray(data)
+          ? data.map((order) => ({
+              id: order.id,
+              date: new Date(order.created_at).toLocaleDateString(),
+              status:
+                order.status === "pending"
+                  ? "Active"
+                  : order.status === "completed"
+                    ? "Completed"
+                    : order.status === "cancelled"
+                      ? "Cancelled"
+                      : order.status,
+              mealPlan: order.plan_id ? `Plan ${order.plan_id}` : "Unknown Plan",
+              totalAmount: `${(order.total_amount / 100).toFixed(2)} MAD`,
+            }))
+          : []
+
+        console.log("Transformed orders:", transformedOrders) // Debug log
+        setOrders(transformedOrders)
       } catch (error) {
         console.error("Error loading orders:", error)
         setError("Failed to load your orders. Please try again.")
