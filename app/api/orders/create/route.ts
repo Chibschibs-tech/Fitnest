@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
     if (cartId) {
       try {
-        // Query cart table directly (cart table has: id, product_id, quantity, created_at)
+        // Query cart table directly using the correct structure
         const items = await sql`
           SELECT 
             c.product_id,
@@ -91,19 +91,11 @@ export async function POST(request: Request) {
 
         console.log("Raw cart items from DB:", items)
 
-        if (items.length === 0) {
-          // Try to find any cart items for debugging
-          const allCartItems = await sql`
-            SELECT id, product_id, quantity FROM cart LIMIT 5
-          `
-          console.log("All cart items for debugging:", allCartItems)
-        }
-
         cartItems = items.map((item) => ({
           productId: item.product_id,
           quantity: item.quantity,
           name: item.name,
-          price: (item.saleprice || item.price) / 100, // Convert from cents to dollars
+          price: (item.saleprice || item.price) / 100, // Convert from cents
         }))
 
         cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -126,15 +118,10 @@ export async function POST(request: Request) {
     // Check if we have either cart items or meal plan
     if (cartItems.length === 0 && !mealPlan) {
       console.log("No cart items or meal plan found")
-      console.log("Cart ID used:", cartId)
       return NextResponse.json(
         {
           error: "No items in cart or meal plan selected",
-          debug: {
-            cartId,
-            cartItemsFound: cartItems.length,
-            mealPlanExists: !!mealPlan,
-          },
+          debug: { cartId, cartItemsFound: cartItems.length, mealPlanExists: !!mealPlan },
         },
         { status: 400 },
       )
@@ -146,17 +133,11 @@ export async function POST(request: Request) {
 
     console.log("Final totals:", { cartSubtotal, mealPlanPrice, shippingCost, totalAmount })
 
-    // Prepare required fields for orders table
+    // Prepare delivery address
     const deliveryAddress = `${body.shipping.address}, ${body.shipping.city}, ${body.shipping.postalCode}`
     const now = new Date()
 
-    console.log("Order details:", {
-      userId,
-      totalAmount: Math.round(totalAmount * 100),
-      deliveryAddress,
-    })
-
-    // Create order with existing database structure
+    // Create order using existing database structure with correct column names
     let orderResult
     try {
       orderResult = await sql`
@@ -164,8 +145,6 @@ export async function POST(request: Request) {
           user_id, 
           total_amount,
           status,
-          shipping_address,
-          billing_address,
           created_at,
           updated_at
         ) 
@@ -173,8 +152,6 @@ export async function POST(request: Request) {
           ${userId}, 
           ${Math.round(totalAmount * 100)},
           'pending',
-          ${deliveryAddress},
-          ${deliveryAddress},
           ${now.toISOString()},
           ${now.toISOString()}
         )
