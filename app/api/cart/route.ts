@@ -18,17 +18,26 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get cart items with product details - fix the column name issue
+    // Get cart items with product details using correct table names
     const cartItems = await sql`
-      SELECT c.*, p.name, p.price, p.imageurl as image
-      FROM cart c
-      JOIN products p ON c.product_id = p.id::integer
-      WHERE c.id = ${cartId}
+      SELECT 
+        ci.id,
+        ci.product_id,
+        ci.quantity,
+        p.name,
+        p.price,
+        p.sale_price,
+        p.image_url
+      FROM cart_items ci
+      JOIN products p ON ci.product_id = p.id
+      WHERE ci.cart_id = ${cartId}
+      ORDER BY ci.created_at DESC
     `
 
     // Calculate subtotal
     const subtotal = cartItems.reduce((sum, item) => {
-      return sum + Number.parseFloat(item.price) * item.quantity
+      const price = item.sale_price || item.price
+      return sum + Number.parseFloat(price) * item.quantity
     }, 0)
 
     // Format the response
@@ -36,12 +45,10 @@ export async function GET() {
       id: item.id,
       productId: item.product_id,
       quantity: item.quantity,
-      product: {
-        id: item.product_id,
-        name: item.name,
-        price: Number.parseFloat(item.price),
-        image: item.image,
-      },
+      name: item.name,
+      price: Number.parseFloat(item.price),
+      salePrice: item.sale_price ? Number.parseFloat(item.sale_price) : null,
+      imageUrl: item.image_url,
     }))
 
     return NextResponse.json(
@@ -85,35 +92,31 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Convert productId to integer for cart table
-    const productIdInt = Number.parseInt(productId)
-    if (isNaN(productIdInt)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
-
     // Check if product exists
-    const product = await sql`SELECT id FROM products WHERE id = ${productIdInt}`
+    const product = await sql`SELECT id FROM products WHERE id = ${productId}`
     if (product.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
     // Check if item already exists in cart
     const existingItem = await sql`
-      SELECT * FROM cart WHERE id = ${cartId} AND product_id = ${productIdInt}
+      SELECT id, quantity FROM cart_items
+      WHERE cart_id = ${cartId} AND product_id = ${productId}
     `
 
     if (existingItem.length > 0) {
       // Update quantity if item exists
+      const newQuantity = existingItem[0].quantity + quantity
       await sql`
-        UPDATE cart 
-        SET quantity = quantity + ${quantity} 
-        WHERE id = ${cartId} AND product_id = ${productIdInt}
+        UPDATE cart_items
+        SET quantity = ${newQuantity}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${existingItem[0].id}
       `
     } else {
       // Add new item to cart
       await sql`
-        INSERT INTO cart (id, product_id, quantity) 
-        VALUES (${cartId}, ${productIdInt}, ${quantity})
+        INSERT INTO cart_items (cart_id, product_id, quantity)
+        VALUES (${cartId}, ${productId}, ${quantity})
       `
     }
 
@@ -157,24 +160,18 @@ export async function PUT(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Convert productId to integer
-    const productIdInt = Number.parseInt(productId)
-    if (isNaN(productIdInt)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
-
     if (quantity <= 0) {
       // Remove item if quantity is 0 or negative
       await sql`
-        DELETE FROM cart 
-        WHERE id = ${cartId} AND product_id = ${productIdInt}
+        DELETE FROM cart_items 
+        WHERE cart_id = ${cartId} AND product_id = ${productId}
       `
     } else {
       // Update quantity
       await sql`
-        UPDATE cart 
-        SET quantity = ${quantity}
-        WHERE id = ${cartId} AND product_id = ${productIdInt}
+        UPDATE cart_items 
+        SET quantity = ${quantity}, updated_at = CURRENT_TIMESTAMP
+        WHERE cart_id = ${cartId} AND product_id = ${productId}
       `
     }
 
@@ -206,15 +203,9 @@ export async function DELETE(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Convert productId to integer
-    const productIdInt = Number.parseInt(productId)
-    if (isNaN(productIdInt)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
-
     await sql`
-      DELETE FROM cart 
-      WHERE id = ${cartId} AND product_id = ${productIdInt}
+      DELETE FROM cart_items 
+      WHERE cart_id = ${cartId} AND product_id = ${productId}
     `
 
     return NextResponse.json({ success: true, message: "Item removed from cart" })

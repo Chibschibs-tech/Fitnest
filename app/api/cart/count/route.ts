@@ -16,12 +16,12 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if cart table exists
+    // Check if cart_items table exists first
     const tableExists = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND table_name = 'cart'
+        AND table_name = 'cart_items'
       ) as exists
     `
 
@@ -29,16 +29,18 @@ export async function GET() {
       return NextResponse.json({ count: 0 })
     }
 
-    // Get cart count
+    // Get cart count from cart_items table
     const result = await sql`
-      SELECT SUM(quantity) as count FROM cart WHERE id = ${cartId}
+      SELECT COALESCE(SUM(quantity), 0) as count 
+      FROM cart_items 
+      WHERE cart_id = ${cartId}
     `
 
-    const count = result[0]?.count ? Number(result[0].count) : 0
+    const count = Number(result[0]?.count) || 0
 
     return NextResponse.json({ count })
   } catch (error) {
     console.error("Error getting cart count:", error)
-    return NextResponse.json({ count: 0 })
+    return NextResponse.json({ count: 0 }, { status: 200 }) // Return 0 instead of error
   }
 }
