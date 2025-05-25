@@ -170,9 +170,11 @@ export function OrdersContent() {
                   </div>
                 </div>
                 <div className="mt-4 flex justify-end">
-                  <Button variant="outline" size="sm" className="mr-2">
-                    View Details
-                  </Button>
+                  <Link href={`/dashboard/orders/${order.id}`}>
+                    <Button variant="outline" size="sm" className="mr-2">
+                      View Details
+                    </Button>
+                  </Link>
                   {order.status === "Active" && (
                     <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
                       Cancel Subscription
