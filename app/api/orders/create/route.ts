@@ -76,26 +76,34 @@ export async function POST(request: Request) {
 
     if (cartId) {
       try {
-        // First, get cart items from cart table (cart.id = cartId)
+        // Query cart table directly (cart table has: id, product_id, quantity, created_at)
         const items = await sql`
           SELECT 
             c.product_id,
             c.quantity,
             p.name,
             p.price,
-            p.sale_price
+            p.saleprice
           FROM cart c
-          JOIN products p ON c.product_id = p.id::text
+          JOIN products p ON c.product_id = p.id
           WHERE c.id = ${cartId}
         `
 
         console.log("Raw cart items from DB:", items)
 
+        if (items.length === 0) {
+          // Try to find any cart items for debugging
+          const allCartItems = await sql`
+            SELECT id, product_id, quantity FROM cart LIMIT 5
+          `
+          console.log("All cart items for debugging:", allCartItems)
+        }
+
         cartItems = items.map((item) => ({
           productId: item.product_id,
           quantity: item.quantity,
           name: item.name,
-          price: Number(item.sale_price || item.price), // Keep as decimal, don't divide by 100
+          price: (item.saleprice || item.price) / 100, // Convert from cents to dollars
         }))
 
         cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -103,34 +111,6 @@ export async function POST(request: Request) {
         console.log("Cart subtotal:", cartSubtotal)
       } catch (cartError) {
         console.log("Error fetching cart items:", cartError)
-
-        // Try alternative query if the first one fails
-        try {
-          const items = await sql`
-            SELECT 
-              c.product_id,
-              c.quantity,
-              p.name,
-              p.price,
-              p.sale_price
-            FROM cart c
-            JOIN products p ON c.product_id::text = p.id
-            WHERE c.id = ${cartId}
-          `
-
-          cartItems = items.map((item) => ({
-            productId: item.product_id,
-            quantity: item.quantity,
-            name: item.name,
-            price: Number(item.sale_price || item.price),
-          }))
-
-          cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-          console.log("Alternative query - Processed cart items:", cartItems)
-          console.log("Alternative query - Cart subtotal:", cartSubtotal)
-        } catch (altError) {
-          console.log("Alternative cart query also failed:", altError)
-        }
       }
     }
 
@@ -146,7 +126,18 @@ export async function POST(request: Request) {
     // Check if we have either cart items or meal plan
     if (cartItems.length === 0 && !mealPlan) {
       console.log("No cart items or meal plan found")
-      return NextResponse.json({ error: "No items in cart or meal plan selected" }, { status: 400 })
+      console.log("Cart ID used:", cartId)
+      return NextResponse.json(
+        {
+          error: "No items in cart or meal plan selected",
+          debug: {
+            cartId,
+            cartItemsFound: cartItems.length,
+            mealPlanExists: !!mealPlan,
+          },
+        },
+        { status: 400 },
+      )
     }
 
     // Calculate totals
