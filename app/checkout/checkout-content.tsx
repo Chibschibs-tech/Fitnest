@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { LoadingSpinner } from "@/components/loading-spinner"
@@ -33,7 +34,7 @@ export function CheckoutContent() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  // Form state
+  // Form state - matching the API expectations
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -42,7 +43,8 @@ export function CheckoutContent() {
     address: "",
     city: "",
     postalCode: "",
-    country: "Morocco",
+    notes: "",
+    deliveryOption: "standard",
   })
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export function CheckoutContent() {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
@@ -88,27 +90,58 @@ export function CheckoutContent() {
     setError(null)
 
     try {
+      // Format the order data to match the API expectations
+      const orderData = {
+        customer: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        },
+        shipping: {
+          address: formData.address,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          notes: formData.notes,
+          deliveryOption: formData.deliveryOption,
+        },
+        order: {
+          cartItems: cart.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.salePrice || item.price,
+          })),
+          mealPlan: null, // No meal plan for express shop orders
+          cartSubtotal: cart.subtotal,
+          mealPlanTotal: 0,
+          shipping: formData.deliveryOption === "express" ? 30 : 0,
+        },
+      }
+
+      console.log("Sending order data:", orderData)
+
       const response = await fetch("/api/orders/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          items: cart.items,
-          customerInfo: formData,
-          total: cart.subtotal,
-        }),
+        body: JSON.stringify(orderData),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error("Order creation failed:", errorData)
         throw new Error(errorData.error || "Failed to create order")
       }
 
       const result = await response.json()
+      console.log("Order created successfully:", result)
 
       // Clear cart after successful order
       await fetch("/api/cart/clear", { method: "POST" })
+
+      // Dispatch cart update event
+      window.dispatchEvent(new CustomEvent("cartUpdated"))
 
       // Redirect to confirmation
       router.push(`/checkout/confirmation?orderId=${result.orderId}`)
@@ -131,7 +164,7 @@ export function CheckoutContent() {
     )
   }
 
-  if (error) {
+  if (error && !cart) {
     return (
       <div className="container mx-auto px-4 py-12">
         <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
@@ -163,36 +196,20 @@ export function CheckoutContent() {
     )
   }
 
+  const shippingCost = formData.deliveryOption === "express" ? 30 : 0
+  const total = cart.subtotal + shippingCost
+
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* Order Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {cart.items.map((item) => (
-                <div key={`${item.productId}-${item.id}`} className="flex justify-between">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                  </div>
-                  <p className="font-medium">${((item.salePrice || item.price) * item.quantity).toFixed(2)}</p>
-                </div>
-              ))}
-              <Separator />
-              <div className="flex justify-between font-bold">
-                <p>Total</p>
-                <p>${cart.subtotal.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {error && (
+        <div className="mb-6 rounded-md bg-red-50 p-4">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
 
+      <div className="grid gap-8 lg:grid-cols-2">
         {/* Checkout Form */}
         <Card>
           <CardHeader>
@@ -203,7 +220,7 @@ export function CheckoutContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium mb-1">
-                    First Name
+                    First Name *
                   </label>
                   <Input
                     id="firstName"
@@ -215,7 +232,7 @@ export function CheckoutContent() {
                 </div>
                 <div>
                   <label htmlFor="lastName" className="block text-sm font-medium mb-1">
-                    Last Name
+                    Last Name *
                   </label>
                   <Input
                     id="lastName"
@@ -229,7 +246,7 @@ export function CheckoutContent() {
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium mb-1">
-                  Email
+                  Email *
                 </label>
                 <Input
                   id="email"
@@ -243,7 +260,7 @@ export function CheckoutContent() {
 
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium mb-1">
-                  Phone
+                  Phone *
                 </label>
                 <Input
                   id="phone"
@@ -251,27 +268,36 @@ export function CheckoutContent() {
                   type="tel"
                   value={formData.phone}
                   onChange={handleInputChange}
+                  placeholder="e.g., 0612345678"
                   required
                 />
               </div>
 
               <div>
                 <label htmlFor="address" className="block text-sm font-medium mb-1">
-                  Address
+                  Address *
                 </label>
-                <Input id="address" name="address" value={formData.address} onChange={handleInputChange} required />
+                <Textarea
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="Enter your full delivery address"
+                  required
+                  rows={3}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium mb-1">
-                    City
+                    City *
                   </label>
                   <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required />
                 </div>
                 <div>
                   <label htmlFor="postalCode" className="block text-sm font-medium mb-1">
-                    Postal Code
+                    Postal Code *
                   </label>
                   <Input
                     id="postalCode"
@@ -283,12 +309,86 @@ export function CheckoutContent() {
                 </div>
               </div>
 
-              {error && <div className="text-red-600 text-sm">{error}</div>}
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium mb-1">
+                  Delivery Notes (Optional)
+                </label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  placeholder="Any special delivery instructions"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Delivery Option</label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="standard"
+                      checked={formData.deliveryOption === "standard"}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    Standard Delivery (Free) - 2-3 business days
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="express"
+                      checked={formData.deliveryOption === "express"}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    Express Delivery (+30 MAD) - Same day
+                  </label>
+                </div>
+              </div>
 
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? "Processing..." : "Place Order"}
+                {submitting ? "Processing..." : `Place Order (${total.toFixed(2)} MAD)`}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Order Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {cart.items.map((item) => (
+                <div key={`${item.productId}-${item.id}`} className="flex justify-between">
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                  </div>
+                  <p className="font-medium">{((item.salePrice || item.price) * item.quantity).toFixed(2)} MAD</p>
+                </div>
+              ))}
+              <Separator />
+              <div className="flex justify-between">
+                <p>Subtotal</p>
+                <p>{cart.subtotal.toFixed(2)} MAD</p>
+              </div>
+              <div className="flex justify-between">
+                <p>Shipping</p>
+                <p>{shippingCost === 0 ? "Free" : `${shippingCost.toFixed(2)} MAD`}</p>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-bold text-lg">
+                <p>Total</p>
+                <p>{total.toFixed(2)} MAD</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
