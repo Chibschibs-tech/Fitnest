@@ -1,26 +1,30 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
 export function CartIcon() {
   const [count, setCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [forceUpdate, setForceUpdate] = useState(0) // Force re-render trigger
 
   const fetchCartCount = useCallback(async () => {
     try {
       console.log("Fetching cart count...")
       const response = await fetch("/api/cart/count", {
-        cache: 'no-store', // Ensure fresh data
+        cache: "no-store",
         headers: {
-          'Cache-Control': 'no-cache'
-        }
+          "Cache-Control": "no-cache",
+        },
       })
       const data = await response.json()
       console.log("Cart count response:", data)
-      setCount(data.count || 0)
+
+      const newCount = data.count || 0
+      setCount(newCount)
+      setForceUpdate((prev) => prev + 1) // Force component re-render
     } catch (error) {
       console.error("Error fetching cart count:", error)
     } finally {
@@ -31,7 +35,6 @@ export function CartIcon() {
   useEffect(() => {
     fetchCartCount()
 
-    // Listen for cart updates with backup event
     const handleCartUpdate = () => {
       console.log("Cart update event received, fetching new count...")
       fetchCartCount()
@@ -41,20 +44,16 @@ export function CartIcon() {
     window.addEventListener("cart:updated", handleCartUpdate)
     window.addEventListener("cartModified", handleCartUpdate)
 
-    // Also listen for focus events as backup
-    window.addEventListener("focus", handleCartUpdate)
-
     console.log("Cart icon event listeners added")
 
     return () => {
       window.removeEventListener("cart:updated", handleCartUpdate)
       window.removeEventListener("cartModified", handleCartUpdate)
-      window.removeEventListener("focus", handleCartUpdate)
     }
   }, [fetchCartCount])
 
   return (
-    <Link href="/cart" className="relative">
+    <Link href="/cart" className="relative" key={forceUpdate}>
       <ShoppingCart className="h-6 w-6" />
       {!loading && count > 0 && (
         <Badge
