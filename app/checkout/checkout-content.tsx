@@ -72,6 +72,25 @@ export function CheckoutContent() {
 
   const loadMealPlanData = () => {
     try {
+      // Check multiple possible keys for meal plan data
+      const possibleKeys = [
+        "selectedMealPlan",
+        "mealPlanCustomizations",
+        "mealPlanDelivery",
+        "mealPlan",
+        "orderData",
+        "checkoutData",
+      ]
+
+      console.log("=== CHECKING LOCALSTORAGE FOR MEAL PLAN DATA ===")
+
+      for (const key of possibleKeys) {
+        const data = localStorage.getItem(key)
+        if (data) {
+          console.log(`Found data in localStorage[${key}]:`, data)
+        }
+      }
+
       // Load meal plan data from localStorage
       const savedMealPlan = localStorage.getItem("selectedMealPlan")
       const savedCustomizations = localStorage.getItem("mealPlanCustomizations")
@@ -94,6 +113,8 @@ export function CheckoutContent() {
 
         setMealPlan(mealPlanData)
         console.log("Loaded meal plan data:", mealPlanData)
+      } else {
+        console.log("No meal plan data found in localStorage")
       }
     } catch (error) {
       console.error("Error loading meal plan data:", error)
@@ -141,6 +162,7 @@ export function CheckoutContent() {
     setError(null)
 
     try {
+      // Use the EXACT same structure as the working order creation
       const orderData = {
         customer: {
           firstName: formData.firstName,
@@ -164,11 +186,12 @@ export function CheckoutContent() {
             })) || [],
           cartSubtotal: cart?.subtotal || 0,
           shipping: formData.deliveryOption === "express" ? 30 : 0,
-          mealPlan: mealPlan, // Include meal plan data
+          mealPlan: mealPlan, // Include meal plan data if exists
         },
       }
 
-      console.log("Sending order data:", orderData)
+      console.log("=== SENDING ORDER DATA ===")
+      console.log("Order data:", JSON.stringify(orderData, null, 2))
 
       const response = await fetch("/api/orders/create", {
         method: "POST",
@@ -178,10 +201,18 @@ export function CheckoutContent() {
         body: JSON.stringify(orderData),
       })
 
+      console.log("Response status:", response.status)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Order creation failed:", errorData)
-        throw new Error(errorData.error || "Failed to create order")
+        const errorText = await response.text()
+        console.error("Order creation failed - Response text:", errorText)
+
+        try {
+          const errorData = JSON.parse(errorText)
+          throw new Error(errorData.error || "Failed to create order")
+        } catch (parseError) {
+          throw new Error(`Server error: ${response.status} - ${errorText}`)
+        }
       }
 
       const result = await response.json()
@@ -477,6 +508,13 @@ export function CheckoutContent() {
                   <Separator />
                 </>
               )}
+
+              {/* Debug Info */}
+              <div className="bg-gray-50 p-2 rounded text-xs">
+                <p>
+                  Debug: Cart items: {cart?.items.length || 0}, Meal plan: {mealPlan ? "Yes" : "No"}
+                </p>
+              </div>
 
               {/* Totals Section */}
               {cart && cart.items.length > 0 && (
