@@ -22,9 +22,12 @@ export async function POST(request: Request) {
       WHERE id = ${cartId}
     `
 
+    console.log(`Cart ${cartId} cleared successfully`)
+
     return NextResponse.json({
       success: true,
       message: "Cart cleared successfully",
+      count: 0,
     })
   } catch (error) {
     console.error("Error clearing cart:", error)
