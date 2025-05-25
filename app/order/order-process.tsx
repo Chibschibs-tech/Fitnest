@@ -371,6 +371,31 @@ export function OrderProcess() {
         setStep(step + 1)
         window.scrollTo(0, 0)
       } else {
+        // Save meal plan data to localStorage before going to checkout
+        const mealPlanData = {
+          planId: selectedPlanId,
+          planName: selectedPlan?.title,
+          planPrice: calculateTotalPrice(),
+          duration: paymentCycle === "weekly" ? "1 week" : paymentCycle === "monthly" ? "4 weeks" : "12 weeks",
+          mealsPerWeek: selectedDays.length,
+          customizations: {
+            dietaryRestrictions: selectedAllergies
+              .map((id) => allergies.find((a) => a.id === id)?.label)
+              .filter(Boolean),
+            mealTypes: selectedMealTypes,
+            snacks: selectedSnacks,
+          },
+          deliverySchedule: {
+            frequency: paymentCycle,
+            selectedDays: selectedDays,
+            startDate: startDate?.toISOString(),
+          },
+        }
+
+        // Save to localStorage
+        localStorage.setItem("selectedMealPlan", JSON.stringify(mealPlanData))
+        console.log("Saved meal plan data to localStorage:", mealPlanData)
+
         // Submit order
         router.push("/checkout")
       }
