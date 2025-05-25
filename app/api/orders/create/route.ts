@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+// Map meal plan IDs to database plan IDs
+const getPlanDatabaseId = (planId: string): number => {
+  const planMapping: Record<string, number> = {
+    "weight-loss": 1,
+    "stay-fit": 2,
+    "muscle-gain": 3,
+    keto: 4,
+  }
+  return planMapping[planId] || 1 // Default to plan 1 if not found
+}
+
 export async function POST(request: Request) {
   try {
     const sql = neon(process.env.DATABASE_URL!)
@@ -113,10 +124,10 @@ export async function POST(request: Request) {
 
     if (mealPlan) {
       mealPlanPrice = mealPlan.planPrice || mealPlan.price || 0
-      planId = mealPlan.planId || mealPlan.id || 1
+      planId = getPlanDatabaseId(mealPlan.planId) // Use the mapping function
       console.log("Meal plan data:", mealPlan)
       console.log("Meal plan price:", mealPlanPrice)
-      console.log("Plan ID:", planId)
+      console.log("Plan ID (mapped):", planId)
     }
 
     // Check if we have either cart items or meal plan
