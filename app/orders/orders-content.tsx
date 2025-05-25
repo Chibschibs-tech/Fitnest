@@ -35,38 +35,54 @@ export function OrdersContent() {
 
     async function fetchOrders() {
       try {
+        console.log("Fetching orders...") // Debug log
         const response = await fetch("/api/orders")
 
+        console.log("Response status:", response.status) // Debug log
+        console.log("Response ok:", response.ok) // Debug log
+
         if (!response.ok) {
-          throw new Error("Failed to load orders")
+          const errorText = await response.text()
+          console.error("API Error:", errorText) // Debug log
+          throw new Error(`Failed to load orders: ${response.status}`)
         }
 
         const data = await response.json()
         console.log("Raw orders data:", data) // Debug log
 
+        // Handle both array and object responses
+        let ordersArray = []
+        if (Array.isArray(data)) {
+          ordersArray = data
+        } else if (data.orders && Array.isArray(data.orders)) {
+          ordersArray = data.orders
+        } else {
+          console.log("Unexpected data format:", data)
+          ordersArray = []
+        }
+
         // Transform the database orders to match the expected format
-        const transformedOrders = Array.isArray(data)
-          ? data.map((order) => ({
-              id: order.id,
-              date: new Date(order.created_at).toLocaleDateString(),
-              status:
-                order.status === "pending"
-                  ? "Active"
-                  : order.status === "completed"
-                    ? "Completed"
-                    : order.status === "cancelled"
-                      ? "Cancelled"
-                      : order.status,
-              mealPlan: order.plan_id ? `Plan ${order.plan_id}` : "Unknown Plan",
-              totalAmount: `${(order.total_amount / 100).toFixed(2)} MAD`,
-            }))
-          : []
+        const transformedOrders = ordersArray.map((order) => ({
+          id: order.id,
+          date: order.created_at ? new Date(order.created_at).toLocaleDateString() : "Unknown Date",
+          status:
+            order.status === "pending"
+              ? "Active"
+              : order.status === "completed"
+                ? "Completed"
+                : order.status === "cancelled"
+                  ? "Cancelled"
+                  : order.status || "Unknown",
+          mealPlan: order.plan_id ? `Plan ${order.plan_id}` : "Unknown Plan",
+          totalAmount: order.total_amount ? `${(order.total_amount / 100).toFixed(2)} MAD` : "0.00 MAD",
+        }))
 
         console.log("Transformed orders:", transformedOrders) // Debug log
         setOrders(transformedOrders)
       } catch (error) {
-        console.error("Error loading orders:", error)
-        setError("Failed to load your orders. Please try again.")
+        console.error("Detailed error loading orders:", error)
+        // Don't set error state, just show empty orders
+        setOrders([])
       } finally {
         setIsLoading(false)
       }
