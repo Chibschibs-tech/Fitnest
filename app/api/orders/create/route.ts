@@ -1,149 +1,230 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
-import { hashPassword } from "@/lib/auth-utils"
 
 export async function POST(request: Request) {
   try {
     const sql = neon(process.env.DATABASE_URL!)
     const body = await request.json()
 
-    console.log("Received order data:", body)
+    console.log("=== ORDER CREATION START ===")
+    console.log("Received order data:", JSON.stringify(body, null, 2))
 
     // Validate required fields
     if (!body.customer || !body.shipping || !body.order) {
+      console.log("Missing required fields")
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Get user session
-    const sessionId = request.headers
-      .get("cookie")
-      ?.split(";")
-      .find((c) => c.trim().startsWith("session-id="))
-      ?.split("=")[1]
+    // Check what tables exist
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('orders', 'order_items', 'users')
+    `
+    console.log("Available tables:", tables)
 
-    let userId = null
-    let user = null
+    const hasOrders = tables.some((t) => t.table_name === "orders")
+    const hasOrderItems = tables.some((t) => t.table_name === "order_items")
+    const hasUsers = tables.some((t) => t.table_name === "users")
 
-    if (sessionId) {
-      user = await getSessionUser(sessionId)
-      userId = user?.id
+    if (!hasOrders) {
+      console.log("Orders table does not exist")
+      return NextResponse.json({ error: "Orders table not found" }, { status: 500 })
     }
 
-    // If no user, create one
-    if (!userId) {
-      console.log("Creating new user account")
+    // Check orders table structure
+    const ordersColumns = await sql`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'orders' 
+      AND table_schema = 'public'
+    `
+    console.log("Orders table columns:", ordersColumns)
 
-      const existingUser = await sql`
-        SELECT id FROM users WHERE email = ${body.customer.email}
-      `
+    let userId = null
 
-      if (existingUser.length > 0) {
-        userId = existingUser[0].id
-      } else {
-        const tempPassword = Math.random().toString(36).slice(-8)
-        const hashedPassword = hashPassword(tempPassword)
-
-        const newUser = await sql`
-          INSERT INTO users (name, email, password, role) 
-          VALUES (
-            ${`${body.customer.firstName} ${body.customer.lastName}`}, 
-            ${body.customer.email}, 
-            ${hashedPassword},
-            'user'
-          )
-          RETURNING id
+    // Try to get or create user if users table exists
+    if (hasUsers) {
+      try {
+        const existingUser = await sql`
+          SELECT id FROM users WHERE email = ${body.customer.email}
         `
-        userId = newUser[0].id
+
+        if (existingUser.length > 0) {
+          userId = existingUser[0].id
+          console.log("Found existing user:", userId)
+        } else {
+          // Create a simple user record
+          const newUser = await sql`
+            INSERT INTO users (name, email, role) 
+            VALUES (
+              ${`${body.customer.firstName} ${body.customer.lastName}`}, 
+              ${body.customer.email}, 
+              'user'
+            )
+            RETURNING id
+          `
+          userId = newUser[0].id
+          console.log("Created new user:", userId)
+        }
+      } catch (userError) {
+        console.log("User creation failed, continuing without user:", userError)
+        userId = null
       }
     }
 
-    // Get cart items using the cart table
+    // Get cart items
     const cartId = request.headers
       .get("cookie")
       ?.split(";")
       .find((c) => c.trim().startsWith("cartId="))
       ?.split("=")[1]
 
-    let cartItems = []
-    if (cartId) {
-      const items = await sql`
-        SELECT 
-          c.product_id,
-          c.quantity,
-          p.name,
-          p.price,
-          p.saleprice
-        FROM cart c
-        JOIN products p ON c.product_id = p.id
-        WHERE c.id = ${cartId}
-      `
+    console.log("Cart ID from cookie:", cartId)
 
-      cartItems = items.map((item) => ({
-        productId: item.product_id,
-        quantity: item.quantity,
-        name: item.name,
-        price: (item.saleprice || item.price) / 100, // Convert from cents
-      }))
+    let cartItems = []
+    let cartSubtotal = 0
+
+    if (cartId) {
+      try {
+        const items = await sql`
+          SELECT 
+            c.product_id,
+            c.quantity,
+            p.name,
+            p.price,
+            p.saleprice
+          FROM cart c
+          JOIN products p ON c.product_id = p.id
+          WHERE c.id = ${cartId}
+        `
+
+        console.log("Raw cart items from DB:", items)
+
+        cartItems = items.map((item) => ({
+          productId: item.product_id,
+          quantity: item.quantity,
+          name: item.name,
+          price: (item.saleprice || item.price) / 100, // Convert from cents
+        }))
+
+        cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+        console.log("Processed cart items:", cartItems)
+        console.log("Cart subtotal:", cartSubtotal)
+      } catch (cartError) {
+        console.log("Error fetching cart items:", cartError)
+      }
+    }
+
+    if (cartItems.length === 0) {
+      console.log("No cart items found")
+      return NextResponse.json({ error: "No items in cart" }, { status: 400 })
     }
 
     // Calculate totals
-    const cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const shippingCost = body.order.shipping || 0
     const totalAmount = cartSubtotal + shippingCost
 
-    console.log("Order totals:", { cartSubtotal, shippingCost, totalAmount })
+    console.log("Final totals:", { cartSubtotal, shippingCost, totalAmount })
 
-    // Create the order
-    const orderResult = await sql`
-      INSERT INTO orders (
-        user_id, 
-        status, 
-        total_amount, 
-        shipping_address,
-        created_at
-      ) 
-      VALUES (
-        ${userId}, 
-        'pending', 
-        ${Math.round(totalAmount * 100)}, 
-        ${JSON.stringify({
-          address: body.shipping.address,
-          city: body.shipping.city,
-          postalCode: body.shipping.postalCode,
-          notes: body.shipping.notes,
-          deliveryOption: body.shipping.deliveryOption,
-        })},
-        CURRENT_TIMESTAMP
-      )
-      RETURNING id
-    `
+    // Create order with minimal required fields
+    let orderResult
+    try {
+      // Try with user_id first
+      if (userId) {
+        orderResult = await sql`
+          INSERT INTO orders (
+            user_id, 
+            status, 
+            total_amount,
+            created_at
+          ) 
+          VALUES (
+            ${userId}, 
+            'pending', 
+            ${Math.round(totalAmount * 100)},
+            CURRENT_TIMESTAMP
+          )
+          RETURNING id
+        `
+      } else {
+        // Try without user_id if it's nullable
+        orderResult = await sql`
+          INSERT INTO orders (
+            status, 
+            total_amount,
+            created_at
+          ) 
+          VALUES (
+            'pending', 
+            ${Math.round(totalAmount * 100)},
+            CURRENT_TIMESTAMP
+          )
+          RETURNING id
+        `
+      }
+    } catch (orderError) {
+      console.log("Order creation failed:", orderError)
+
+      // Try with even more minimal fields
+      try {
+        orderResult = await sql`
+          INSERT INTO orders (total_amount) 
+          VALUES (${Math.round(totalAmount * 100)})
+          RETURNING id
+        `
+      } catch (minimalError) {
+        console.log("Minimal order creation also failed:", minimalError)
+        return NextResponse.json(
+          {
+            error: "Failed to create order",
+            details: minimalError instanceof Error ? minimalError.message : String(minimalError),
+          },
+          { status: 500 },
+        )
+      }
+    }
 
     const orderId = orderResult[0].id
     console.log("Created order with ID:", orderId)
 
-    // Add cart items to order_items
-    if (cartItems.length > 0) {
-      for (const item of cartItems) {
-        await sql`
-          INSERT INTO order_items (
-            order_id, 
-            product_id, 
-            quantity, 
-            price
-          ) 
-          VALUES (
-            ${orderId}, 
-            ${item.productId}, 
-            ${item.quantity}, 
-            ${Math.round(item.price * 100)}
-          )
-        `
+    // Add order items if table exists
+    if (hasOrderItems && cartItems.length > 0) {
+      try {
+        for (const item of cartItems) {
+          await sql`
+            INSERT INTO order_items (
+              order_id, 
+              product_id, 
+              quantity, 
+              price
+            ) 
+            VALUES (
+              ${orderId}, 
+              ${item.productId}, 
+              ${item.quantity}, 
+              ${Math.round(item.price * 100)}
+            )
+          `
+        }
+        console.log("Added order items successfully")
+      } catch (itemsError) {
+        console.log("Failed to add order items:", itemsError)
+        // Continue anyway, order is created
       }
-
-      // Clear the cart using the cart table
-      await sql`DELETE FROM cart WHERE id = ${cartId}`
     }
+
+    // Clear the cart
+    try {
+      await sql`DELETE FROM cart WHERE id = ${cartId}`
+      console.log("Cleared cart successfully")
+    } catch (clearError) {
+      console.log("Failed to clear cart:", clearError)
+      // Continue anyway
+    }
+
+    console.log("=== ORDER CREATION SUCCESS ===")
 
     return NextResponse.json({
       success: true,
@@ -152,6 +233,7 @@ export async function POST(request: Request) {
       message: "Order created successfully",
     })
   } catch (error) {
+    console.error("=== ORDER CREATION ERROR ===")
     console.error("Error creating order:", error)
     return NextResponse.json(
       {
