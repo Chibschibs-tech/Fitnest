@@ -6,18 +6,15 @@ import { v4 as uuidv4 } from "uuid"
 // Force dynamic rendering to avoid caching issues
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    const cookieStore = cookies()
+    const cartId = cookieStore.get("cartId")?.value
 
-    // Get cart ID from cookies
-    const cartId = request.headers
-      .get("cookie")
-      ?.split(";")
-      .find((c) => c.trim().startsWith("cartId="))
-      ?.split("=")[1]
+    console.log("GET /api/cart - Cart ID from cookie:", cartId)
 
     if (!cartId) {
+      console.log("GET /api/cart - No cart ID found, returning empty cart")
       return NextResponse.json({
         items: [],
         subtotal: 0,
@@ -25,42 +22,112 @@ export async function GET(request: Request) {
       })
     }
 
-    // Get cart items with product details
-    const items = await sql`
-      SELECT 
-        c.id,
-        c.product_id as "productId",
-        c.quantity,
-        p.name,
-        p.price,
-        p.saleprice,
-        p.imageurl as "imageUrl"
-      FROM cart_items c
-      JOIN products p ON c.product_id::text = p.id::text
-      WHERE c.cart_id = ${cartId}
-    `
+    const sql = neon(process.env.DATABASE_URL!)
 
-    // Format items and calculate subtotal
-    const formattedItems = items.map((item) => ({
-      id: item.id.toString(),
-      productId: item.productId,
-      quantity: item.quantity,
-      name: item.name,
-      price: item.price / 100, // Convert from cents to MAD
-      salePrice: item.saleprice ? item.saleprice / 100 : null,
-      imageUrl: item.imageUrl,
-    }))
+    // First, let's check what tables exist and their structure
+    try {
+      const tables = await sql`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name IN ('cart', 'cart_items', 'products')
+      `
+      console.log("Available tables:", tables)
 
-    const subtotal = formattedItems.reduce((sum, item) => {
-      const price = item.salePrice || item.price
-      return sum + price * item.quantity
-    }, 0)
+      // Check if we have cart_items table (preferred) or cart table
+      const hasCartItems = tables.some((t) => t.table_name === "cart_items")
+      const hasCart = tables.some((t) => t.table_name === "cart")
+      const hasProducts = tables.some((t) => t.table_name === "products")
 
-    return NextResponse.json({
-      items: formattedItems,
-      subtotal,
-      cartId,
-    })
+      if (!hasProducts) {
+        console.log("Products table not found")
+        return NextResponse.json({
+          items: [],
+          subtotal: 0,
+          cartId,
+        })
+      }
+
+      let cartItems = []
+
+      if (hasCartItems) {
+        // Use cart_items table
+        console.log("Using cart_items table")
+        cartItems = await sql`
+          SELECT 
+            ci.id,
+            ci.product_id,
+            ci.quantity,
+            p.name,
+            p.price,
+            p.saleprice,
+            p.imageurl
+          FROM cart_items ci
+          JOIN products p ON ci.product_id = p.id
+          WHERE ci.cart_id = ${cartId}
+          ORDER BY ci.created_at DESC
+        `
+      } else if (hasCart) {
+        // Use cart table
+        console.log("Using cart table")
+        cartItems = await sql`
+          SELECT 
+            c.id,
+            c.product_id,
+            c.quantity,
+            p.name,
+            p.price,
+            p.saleprice,
+            p.imageurl
+          FROM cart c
+          JOIN products p ON c.product_id = p.id
+          WHERE c.id = ${cartId}
+          ORDER BY c.created_at DESC
+        `
+      } else {
+        console.log("No cart table found")
+        return NextResponse.json({
+          items: [],
+          subtotal: 0,
+          cartId,
+        })
+      }
+
+      console.log("GET /api/cart - Raw cart items:", cartItems)
+
+      // Format the response
+      const items = cartItems.map((item) => ({
+        id: item.id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        name: item.name,
+        price: Number(item.price) / 100, // Convert from cents to MAD
+        salePrice: item.saleprice ? Number(item.saleprice) / 100 : null,
+        imageUrl: item.imageurl,
+      }))
+
+      // Calculate subtotal
+      const subtotal = items.reduce((sum, item) => {
+        const price = item.salePrice || item.price
+        return sum + price * item.quantity
+      }, 0)
+
+      console.log("GET /api/cart - Formatted items:", items)
+      console.log("GET /api/cart - Subtotal:", subtotal)
+
+      return NextResponse.json({
+        items,
+        subtotal,
+        cartId,
+      })
+    } catch (dbError) {
+      console.error("Database error in cart GET:", dbError)
+      return NextResponse.json({
+        items: [],
+        subtotal: 0,
+        cartId,
+      })
+    }
   } catch (error) {
     console.error("Error fetching cart:", error)
     return NextResponse.json(
@@ -78,6 +145,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { productId, quantity = 1 } = body
 
+    console.log("POST /api/cart - Adding product:", productId, "quantity:", quantity)
+
     if (!productId) {
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
@@ -88,42 +157,72 @@ export async function POST(request: Request) {
     // Create a new cart ID if one doesn't exist
     if (!cartId) {
       cartId = uuidv4()
+      console.log("POST /api/cart - No cart ID found, generating new one:", cartId)
     }
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Convert productId to integer
-    const productIdInt = Number.parseInt(productId)
-    if (isNaN(productIdInt)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
+    // Convert productId to string (our products table uses text IDs)
+    const productIdStr = String(productId)
 
     // Check if product exists
-    const product = await sql`SELECT id FROM products WHERE id = ${productIdInt}`
+    const product = await sql`SELECT id FROM products WHERE id = ${productIdStr}`
     if (product.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
-    // Check if item already exists in cart
-    const existingItem = await sql`
-      SELECT id, quantity FROM cart
-      WHERE id = ${cartId} AND product_id = ${productIdInt}
+    // Check what cart table we have
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('cart', 'cart_items')
     `
 
-    if (existingItem.length > 0) {
-      // Update quantity if item exists
-      const newQuantity = existingItem[0].quantity + quantity
-      await sql`
-        UPDATE cart
-        SET quantity = ${newQuantity}
-        WHERE id = ${cartId} AND product_id = ${productIdInt}
+    const hasCartItems = tables.some((t) => t.table_name === "cart_items")
+
+    if (hasCartItems) {
+      // Use cart_items table
+      const existingItem = await sql`
+        SELECT id, quantity FROM cart_items
+        WHERE cart_id = ${cartId} AND product_id = ${productIdStr}
       `
+
+      if (existingItem.length > 0) {
+        // Update quantity if item exists
+        const newQuantity = existingItem[0].quantity + quantity
+        await sql`
+          UPDATE cart_items
+          SET quantity = ${newQuantity}
+          WHERE cart_id = ${cartId} AND product_id = ${productIdStr}
+        `
+      } else {
+        // Add new item to cart
+        await sql`
+          INSERT INTO cart_items (cart_id, product_id, quantity, created_at)
+          VALUES (${cartId}, ${productIdStr}, ${quantity}, CURRENT_TIMESTAMP)
+        `
+      }
     } else {
-      // Add new item to cart
-      await sql`
-        INSERT INTO cart (id, product_id, quantity, created_at)
-        VALUES (${cartId}, ${productIdInt}, ${quantity}, CURRENT_TIMESTAMP)
+      // Use cart table (fallback)
+      const existingItem = await sql`
+        SELECT id, quantity FROM cart
+        WHERE id = ${cartId} AND product_id = ${productIdStr}
       `
+
+      if (existingItem.length > 0) {
+        const newQuantity = existingItem[0].quantity + quantity
+        await sql`
+          UPDATE cart
+          SET quantity = ${newQuantity}
+          WHERE id = ${cartId} AND product_id = ${productIdStr}
+        `
+      } else {
+        await sql`
+          INSERT INTO cart (id, product_id, quantity, created_at)
+          VALUES (${cartId}, ${productIdStr}, ${quantity}, CURRENT_TIMESTAMP)
+        `
+      }
     }
 
     // Set or update the cartId cookie
@@ -153,6 +252,8 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { productId, quantity } = body
 
+    console.log("PUT /api/cart - Updating product:", productId, "quantity:", quantity)
+
     if (!productId || quantity === undefined) {
       return NextResponse.json({ error: "Product ID and quantity are required" }, { status: 400 })
     }
@@ -165,26 +266,46 @@ export async function PUT(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!)
+    const productIdStr = String(productId)
 
-    // Convert productId to integer
-    const productIdInt = Number.parseInt(productId)
-    if (isNaN(productIdInt)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
+    // Check what cart table we have
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('cart', 'cart_items')
+    `
+
+    const hasCartItems = tables.some((t) => t.table_name === "cart_items")
 
     if (quantity <= 0) {
       // Remove item if quantity is 0 or negative
-      await sql`
-        DELETE FROM cart 
-        WHERE id = ${cartId} AND product_id = ${productIdInt}
-      `
+      if (hasCartItems) {
+        await sql`
+          DELETE FROM cart_items 
+          WHERE cart_id = ${cartId} AND product_id = ${productIdStr}
+        `
+      } else {
+        await sql`
+          DELETE FROM cart 
+          WHERE id = ${cartId} AND product_id = ${productIdStr}
+        `
+      }
     } else {
       // Update quantity
-      await sql`
-        UPDATE cart 
-        SET quantity = ${quantity}
-        WHERE id = ${cartId} AND product_id = ${productIdInt}
-      `
+      if (hasCartItems) {
+        await sql`
+          UPDATE cart_items 
+          SET quantity = ${quantity}
+          WHERE cart_id = ${cartId} AND product_id = ${productIdStr}
+        `
+      } else {
+        await sql`
+          UPDATE cart 
+          SET quantity = ${quantity}
+          WHERE id = ${cartId} AND product_id = ${productIdStr}
+        `
+      }
     }
 
     return NextResponse.json({ success: true, message: "Cart updated" })
@@ -202,6 +323,8 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url)
     const productId = url.searchParams.get("id")
 
+    console.log("DELETE /api/cart - Removing product:", productId)
+
     if (!productId) {
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 })
     }
@@ -214,17 +337,29 @@ export async function DELETE(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!)
+    const productIdStr = String(productId)
 
-    // Convert productId to integer
-    const productIdInt = Number.parseInt(productId)
-    if (isNaN(productIdInt)) {
-      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
-    }
-
-    await sql`
-      DELETE FROM cart 
-      WHERE id = ${cartId} AND product_id = ${productIdInt}
+    // Check what cart table we have
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('cart', 'cart_items')
     `
+
+    const hasCartItems = tables.some((t) => t.table_name === "cart_items")
+
+    if (hasCartItems) {
+      await sql`
+        DELETE FROM cart_items 
+        WHERE cart_id = ${cartId} AND product_id = ${productIdStr}
+      `
+    } else {
+      await sql`
+        DELETE FROM cart 
+        WHERE id = ${cartId} AND product_id = ${productIdStr}
+      `
+    }
 
     return NextResponse.json({ success: true, message: "Item removed from cart" })
   } catch (error) {
