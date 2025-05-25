@@ -93,8 +93,9 @@ export function OrdersContent() {
   }, [])
 
   const filteredOrders = orders.filter((order) => {
-    const orderIdMatch = order.id?.toLowerCase().includes(searchQuery.toLowerCase())
-    const mealPlanMatch = order.mealPlan?.toLowerCase().includes(searchQuery.toLowerCase())
+    const searchLower = searchQuery.toLowerCase()
+    const orderIdMatch = order.id ? String(order.id).toLowerCase().includes(searchLower) : false
+    const mealPlanMatch = order.mealPlan ? String(order.mealPlan).toLowerCase().includes(searchLower) : false
     return orderIdMatch || mealPlanMatch
   })
 
