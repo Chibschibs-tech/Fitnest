@@ -66,9 +66,10 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
       // Trigger updates
       onUpdate()
 
-      // Add delay to ensure database update completes before icon refresh
+      // Add delay with backup event to ensure cart icon updates
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("cart:updated"))
+        window.dispatchEvent(new CustomEvent("cartModified")) // backup event
       }, 200)
     } catch (error) {
       console.error("Error updating cart:", error)
@@ -102,9 +103,10 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
       // Trigger updates
       onUpdate()
 
-      // Add delay to ensure database update completes before icon refresh
+      // Add delay with backup event to ensure cart icon updates
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("cart:updated"))
+        window.dispatchEvent(new CustomEvent("cartModified")) // backup event
       }, 200)
     } catch (error) {
       console.error("Error removing item:", error)

@@ -24,15 +24,18 @@ export function CartIcon() {
   useEffect(() => {
     fetchCartCount()
 
-    // Listen for cart updates
+    // Listen for cart updates with backup event
     const handleCartUpdate = () => {
       fetchCartCount()
     }
 
+    // Listen for both event types
     window.addEventListener("cart:updated", handleCartUpdate)
+    window.addEventListener("cartModified", handleCartUpdate) // backup listener
 
     return () => {
       window.removeEventListener("cart:updated", handleCartUpdate)
+      window.removeEventListener("cartModified", handleCartUpdate)
     }
   }, [])
 
