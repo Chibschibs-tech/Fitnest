@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { cookies } from "next/headers"
 
-// Force dynamic rendering to avoid caching issues
 export const dynamic = "force-dynamic"
 
 export async function GET() {
@@ -28,6 +27,6 @@ export async function GET() {
     return NextResponse.json({ count })
   } catch (error) {
     console.error("Error getting cart count:", error)
-    return NextResponse.json({ count: 0 }, { status: 200 }) // Return 0 instead of error
+    return NextResponse.json({ count: 0 })
   }
 }

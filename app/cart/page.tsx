@@ -16,22 +16,29 @@ export default async function Cart() {
   try {
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get cart items with product details
+    // Get cart items with product details using the cart table
     const cartItems = await sql`
-      SELECT c.*, p.name, p.price, p.saleprice, p.imageurl
+      SELECT 
+        c.id as cart_id,
+        c.product_id,
+        c.quantity,
+        p.name,
+        p.price,
+        p.saleprice,
+        p.imageurl
       FROM cart c
-      JOIN products p ON c.product_id::text = p.id::text
+      JOIN products p ON c.product_id = p.id
       WHERE c.id = ${cartId}
     `
 
     // Format cart items
     const formattedCartItems = cartItems.map((item) => ({
-      id: Number.parseInt(item.product_id),
+      id: `${item.cart_id}-${item.product_id}`,
       productId: item.product_id,
       quantity: item.quantity,
       name: item.name,
-      price: Number.parseFloat(item.price),
-      salePrice: item.saleprice ? Number.parseFloat(item.saleprice) : null,
+      price: Number(item.price) / 100, // Convert from cents to MAD
+      salePrice: item.saleprice ? Number(item.saleprice) / 100 : null,
       imageUrl: item.imageurl,
     }))
 

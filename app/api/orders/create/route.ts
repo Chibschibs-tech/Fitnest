@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Get cart items
+    // Get cart items using the cart table
     const cartId = request.headers
       .get("cookie")
       ?.split(";")
@@ -74,9 +74,9 @@ export async function POST(request: Request) {
           p.name,
           p.price,
           p.saleprice
-        FROM cart_items c
-        JOIN products p ON c.product_id::text = p.id::text
-        WHERE c.cart_id = ${cartId}
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.id = ${cartId}
       `
 
       cartItems = items.map((item) => ({
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
     console.log("Order totals:", { cartSubtotal, shippingCost, totalAmount })
 
-    // Create the order (without order_type column)
+    // Create the order
     const orderResult = await sql`
       INSERT INTO orders (
         user_id, 
@@ -141,8 +141,8 @@ export async function POST(request: Request) {
         `
       }
 
-      // Clear the cart
-      await sql`DELETE FROM cart_items WHERE cart_id = ${cartId}`
+      // Clear the cart using the cart table
+      await sql`DELETE FROM cart WHERE id = ${cartId}`
     }
 
     return NextResponse.json({

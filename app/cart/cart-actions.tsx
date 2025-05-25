@@ -63,11 +63,9 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
         description: "Item quantity has been updated",
       })
 
-      // Trigger cart update and refresh page
+      // Trigger updates
       onUpdate()
-
-      // Dispatch cart update event for header icon
-      window.dispatchEvent(new Event("cart:updated"))
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error updating cart:", error)
       toast({
@@ -97,11 +95,9 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
         description: "Item has been removed from your cart",
       })
 
-      // Trigger cart update and refresh page
+      // Trigger updates
       onUpdate()
-
-      // Dispatch cart update event for header icon
-      window.dispatchEvent(new Event("cart:updated"))
+      window.dispatchEvent(new CustomEvent("cart:updated"))
     } catch (error) {
       console.error("Error removing item:", error)
       toast({
