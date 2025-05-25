@@ -15,51 +15,55 @@ export async function GET(request: Request) {
     console.log("=== FULL CART DEBUG ===")
     console.log("Cart ID from cookie:", cartId)
 
-    // Check products table structure first
+    // Check all table structures
+    const cartColumns = await sql`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'cart'
+      ORDER BY ordinal_position
+    `
+    console.log("Cart table columns:", cartColumns)
+
+    const cartItemsColumns = await sql`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'cart_items'
+      ORDER BY ordinal_position
+    `
+    console.log("Cart_items table columns:", cartItemsColumns)
+
     const productColumns = await sql`
       SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'products'
+      ORDER BY ordinal_position
     `
     console.log("Product table columns:", productColumns)
 
     // Check all cart data
-    const allCartData = await sql`SELECT * FROM cart LIMIT 10`
-    console.log("All cart data (first 10 rows):", allCartData)
+    const allCartData = await sql`SELECT * FROM cart LIMIT 5`
+    console.log("All cart data:", allCartData)
 
-    const allCartItemsData = await sql`SELECT * FROM cart_items LIMIT 10`
-    console.log("All cart_items data (first 10 rows):", allCartItemsData)
+    const allCartItemsData = await sql`SELECT * FROM cart_items LIMIT 5`
+    console.log("All cart_items data:", allCartItemsData)
 
-    // Check products table with actual columns
     const allProducts = await sql`SELECT * FROM products LIMIT 3`
     console.log("Sample products:", allProducts)
 
     let cartSpecificData = []
-    let cartItemsSpecificData = []
-
     if (cartId) {
-      // Try to find data with this specific cart ID
       cartSpecificData = await sql`SELECT * FROM cart WHERE id = ${cartId}`
       console.log("Cart data for specific ID:", cartSpecificData)
-
-      cartItemsSpecificData = await sql`SELECT * FROM cart_items WHERE cart_id = ${cartId}`
-      console.log("Cart items data for specific ID:", cartItemsSpecificData)
-
-      // Try different cart_id formats
-      const cartItemsAnyFormat = await sql`
-        SELECT * FROM cart_items 
-        WHERE cart_id = ${cartId} OR cart_id = ${cartId}::text OR cart_id::text = ${cartId}
-      `
-      console.log("Cart items any format:", cartItemsAnyFormat)
     }
 
     return NextResponse.json({
       cartId,
+      cartColumns,
+      cartItemsColumns,
       productColumns,
-      allCartCount: allCartData.length,
-      allCartItemsCount: allCartItemsData.length,
+      allCartData,
+      allCartItemsData,
       cartSpecificData,
-      cartItemsSpecificData,
       sampleProducts: allProducts,
       message: "Check console for full debug info",
     })
