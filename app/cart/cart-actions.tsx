@@ -39,7 +39,9 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
     if (newQuantity === item.quantity) return
     if (newQuantity < 1) return
 
+    console.log("Starting quantity update:", { productId: item.productId, newQuantity })
     setIsUpdating(true)
+
     try {
       const response = await fetch(`/api/cart`, {
         method: "PUT",
@@ -52,10 +54,16 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
         }),
       })
 
+      console.log("API response status:", response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error("API error:", errorData)
         throw new Error(errorData.error || "Failed to update cart")
       }
+
+      const responseData = await response.json()
+      console.log("API success:", responseData)
 
       setQuantity(newQuantity)
       toast({
@@ -68,8 +76,9 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
 
       // Add delay with backup event to ensure cart icon updates
       setTimeout(() => {
+        console.log("Dispatching cart update events")
         window.dispatchEvent(new CustomEvent("cart:updated"))
-        window.dispatchEvent(new CustomEvent("cartModified")) // backup event
+        window.dispatchEvent(new CustomEvent("cartModified"))
       }, 200)
     } catch (error) {
       console.error("Error updating cart:", error)
@@ -84,16 +93,24 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
   }
 
   const removeItem = async () => {
+    console.log("Starting item removal:", { productId: item.productId })
     setIsRemoving(true)
+
     try {
       const response = await fetch(`/api/cart?id=${item.productId}`, {
         method: "DELETE",
       })
 
+      console.log("Remove API response status:", response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error("Remove API error:", errorData)
         throw new Error(errorData.error || "Failed to remove item from cart")
       }
+
+      const responseData = await response.json()
+      console.log("Remove API success:", responseData)
 
       toast({
         title: "Item removed",
@@ -105,8 +122,9 @@ export default function CartActions({ item, onUpdate }: CartActionsProps) {
 
       // Add delay with backup event to ensure cart icon updates
       setTimeout(() => {
+        console.log("Dispatching cart remove events")
         window.dispatchEvent(new CustomEvent("cart:updated"))
-        window.dispatchEvent(new CustomEvent("cartModified")) // backup event
+        window.dispatchEvent(new CustomEvent("cartModified"))
       }, 200)
     } catch (error) {
       console.error("Error removing item:", error)
