@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { getSessionUser } from "@/lib/simple-auth"
 import { sendOrderConfirmationEmail } from "@/lib/email-utils"
-import { hash } from "bcrypt"
+import { hashPassword } from "@/lib/auth-utils"
 
 export async function POST(request: Request) {
   try {
@@ -18,9 +17,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Get user session
-    const session = await getServerSession(authOptions)
-    let userId = session?.user?.id
+    // Get user session from cookies
+    const sessionId = request.headers
+      .get("cookie")
+      ?.split(";")
+      .find((c) => c.trim().startsWith("session-id="))
+      ?.split("=")[1]
+
+    let userId = null
+    let user = null
+
+    if (sessionId) {
+      user = await getSessionUser(sessionId)
+      userId = user?.id
+    }
 
     // If user is not authenticated, create a new user account
     if (!userId) {
@@ -38,7 +48,7 @@ export async function POST(request: Request) {
       } else {
         // Generate a random password (user can reset it later)
         const tempPassword = Math.random().toString(36).slice(-8)
-        const hashedPassword = await hash(tempPassword, 10)
+        const hashedPassword = hashPassword(tempPassword)
 
         // Create new user
         const newUser = await sql`
@@ -118,11 +128,19 @@ export async function POST(request: Request) {
           `
         }
 
-        // Clear the cart
-        await tx`
-          DELETE FROM cart_items
-          WHERE user_id = ${userId}
-        `
+        // Clear the cart using cartId from cookies
+        const cartId = request.headers
+          .get("cookie")
+          ?.split(";")
+          .find((c) => c.trim().startsWith("cartId="))
+          ?.split("=")[1]
+
+        if (cartId) {
+          await tx`
+            DELETE FROM cart
+            WHERE id = ${cartId}
+          `
+        }
       }
 
       // If there's a meal plan, add it to the order
@@ -137,10 +155,10 @@ export async function POST(request: Request) {
       }
 
       // Save customer phone number to user profile if not already set
-      if (body.shipping.phone) {
+      if (body.customer.phone) {
         await tx`
           UPDATE users
-          SET phone = COALESCE(phone, ${body.shipping.phone})
+          SET phone = COALESCE(phone, ${body.customer.phone})
           WHERE id = ${userId}
         `
       }
@@ -153,7 +171,7 @@ export async function POST(request: Request) {
       id: result.orderId,
       customer: {
         ...body.customer,
-        isNewAccount: !session?.user && body.customer.tempPassword ? true : false,
+        isNewAccount: !user && body.customer.tempPassword ? true : false,
       },
       shipping: {
         ...body.shipping,
@@ -192,7 +210,7 @@ export async function POST(request: Request) {
       success: true,
       orderId: result.orderId,
       userId: result.userId,
-      isNewAccount: !session?.user && body.customer.tempPassword ? true : false,
+      isNewAccount: !user && body.customer.tempPassword ? true : false,
       message: "Order created successfully",
     })
   } catch (error) {
