@@ -75,100 +75,108 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create a transaction
-    const result = await sql.transaction(async (tx) => {
-      // Create the order
-      const orderType =
-        body.order.mealPlan && body.order.cartItems.length > 0
-          ? "mixed"
-          : body.order.mealPlan
-            ? "meal_plan"
-            : "express_shop"
+    // Get cart items for the order
+    const cartId = request.headers
+      .get("cookie")
+      ?.split(";")
+      .find((c) => c.trim().startsWith("cartId="))
+      ?.split("=")[1]
 
-      const totalAmount = body.order.cartSubtotal + body.order.mealPlanTotal + body.order.shipping
+    let cartItems = []
+    let cartSubtotal = 0
 
-      const orderResult = await tx`
-        INSERT INTO orders (
-          user_id, 
-          status, 
-          order_type, 
-          total_amount, 
-          delivery_address, 
-          delivery_date
-        ) 
-        VALUES (
-          ${userId}, 
-          'pending', 
-          ${orderType}, 
-          ${totalAmount}, 
-          ${body.shipping.address}, 
-          ${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)}
-        )
-        RETURNING id
+    if (cartId) {
+      // Get cart items with product details
+      const items = await sql`
+        SELECT 
+          c.product_id,
+          c.quantity,
+          p.name,
+          p.price,
+          p.saleprice
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.id = ${cartId}
       `
 
-      const orderId = orderResult[0].id
+      cartItems = items.map((item) => ({
+        productId: item.product_id,
+        quantity: item.quantity,
+        name: item.name,
+        price: (item.saleprice || item.price) / 100, // Convert from cents
+      }))
 
-      // If there are express shop items, add them to order_items
-      if (body.order.cartItems && body.order.cartItems.length > 0) {
-        for (const item of body.order.cartItems) {
-          await tx`
-            INSERT INTO order_items (
-              order_id, 
-              product_id, 
-              quantity, 
-              price_at_purchase
-            ) 
-            VALUES (
-              ${orderId}, 
-              ${item.productId}, 
-              ${item.quantity}, 
-              ${item.price}
-            )
-          `
-        }
+      cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    }
 
-        // Clear the cart using cartId from cookies
-        const cartId = request.headers
-          .get("cookie")
-          ?.split(";")
-          .find((c) => c.trim().startsWith("cartId="))
-          ?.split("=")[1]
+    // Calculate totals
+    const mealPlanTotal = body.order.mealPlanTotal || 0
+    const shippingCost = body.order.shipping || 0
+    const totalAmount = cartSubtotal + mealPlanTotal + shippingCost
 
-        if (cartId) {
-          await tx`
-            DELETE FROM cart
-            WHERE id = ${cartId}
-          `
-        }
-      }
+    // Create the order
+    const orderResult = await sql`
+      INSERT INTO orders (
+        user_id, 
+        status, 
+        order_type, 
+        total_amount, 
+        delivery_address, 
+        delivery_date,
+        created_at
+      ) 
+      VALUES (
+        ${userId}, 
+        'pending', 
+        ${cartItems.length > 0 && mealPlanTotal > 0 ? "mixed" : cartItems.length > 0 ? "express_shop" : "meal_plan"}, 
+        ${Math.round(totalAmount * 100)}, 
+        ${body.shipping.address}, 
+        ${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)},
+        CURRENT_TIMESTAMP
+      )
+      RETURNING id
+    `
 
-      // If there's a meal plan, add it to the order
-      if (body.order.mealPlan) {
-        // In a real implementation, you would create a subscription record
-        // For now, we'll just note it in the order
-        await tx`
-          UPDATE orders
-          SET plan_id = ${body.order.mealPlan.planId || null}
-          WHERE id = ${orderId}
+    const orderId = orderResult[0].id
+
+    // Add cart items to order_items if any
+    if (cartItems.length > 0) {
+      for (const item of cartItems) {
+        await sql`
+          INSERT INTO order_items (
+            order_id, 
+            product_id, 
+            quantity, 
+            price_at_purchase
+          ) 
+          VALUES (
+            ${orderId}, 
+            ${item.productId}, 
+            ${item.quantity}, 
+            ${Math.round(item.price * 100)}
+          )
         `
       }
 
-      // Save customer phone number to user profile if not already set
-      if (body.customer.phone) {
-        await tx`
-          UPDATE users
-          SET phone = COALESCE(phone, ${body.customer.phone})
-          WHERE id = ${userId}
-        `
-      }
+      // Clear the cart
+      await sql`
+        DELETE FROM cart
+        WHERE id = ${cartId}
+      `
+    }
 
-      return { orderId, userId }
-    })
+    // Save customer phone number to user profile if provided
+    if (body.customer.phone) {
+      await sql`
+        UPDATE users
+        SET phone = COALESCE(phone, ${body.customer.phone})
+        WHERE id = ${userId}
+      `
+    }
 
     // Prepare order data for email
     const orderData = {
-      id: result.orderId,
+      id: orderId,
       customer: {
         ...body.customer,
         isNewAccount: !user && body.customer.tempPassword ? true : false,
@@ -178,27 +186,27 @@ export async function POST(request: Request) {
         deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
       },
       items: [
-        ...(body.order.cartItems || []).map((item: any) => ({
-          name: `Product #${item.productId}`,
+        ...cartItems.map((item: any) => ({
+          name: item.name,
           quantity: item.quantity,
           price: item.price,
         })),
-        ...(body.order.mealPlan
+        ...(mealPlanTotal > 0
           ? [
               {
-                name: `${body.order.mealPlan.mealType.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())} Meal Plan`,
+                name: "Meal Plan Subscription",
                 quantity: 1,
-                price: body.order.mealPlan.totalPrice,
+                price: mealPlanTotal,
               },
             ]
           : []),
       ],
-      subtotal: body.order.cartSubtotal + body.order.mealPlanTotal,
-      shipping: body.order.shipping,
-      total: body.order.cartSubtotal + body.order.mealPlanTotal + body.order.shipping,
+      subtotal: cartSubtotal + mealPlanTotal,
+      shipping: shippingCost,
+      total: totalAmount,
     }
 
-    // Send order confirmation email
+    // Send order confirmation email (optional, continue if fails)
     try {
       await sendOrderConfirmationEmail(orderData)
     } catch (emailError) {
@@ -208,8 +216,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      orderId: result.orderId,
-      userId: result.userId,
+      orderId: orderId,
+      userId: userId,
       isNewAccount: !user && body.customer.tempPassword ? true : false,
       message: "Order created successfully",
     })
