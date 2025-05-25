@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { OrderDetailContent } from "./order-detail-content"
+import { cookies } from "next/headers"
 
 export const dynamic = "force-dynamic"
 
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
+  const sessionId = cookies().get("session-id")?.value
 
-  if (!session) {
+  if (!sessionId) {
     redirect("/login?redirect=/dashboard/orders/" + params.id)
   }
 
