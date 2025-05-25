@@ -7,10 +7,15 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section - Full banner image */}
-      <section className="relative min-h-[calc(100vh-73px)] flex items-end">
-        <div className="absolute inset-0">
-          <Image src="/hero-banner-full.png" alt="Fitnest.ma Hero Banner" fill className="object-cover" priority />
-        </div>
+      <section className="relative min-h-[calc(100vh-73px)] flex items-end bg-gray-100">
+        <Image
+          src="/hero-banner-full.png"
+          alt="Fitnest.ma Hero Banner"
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
         <div className="relative z-10 container mx-auto px-4 pb-16">
           <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
