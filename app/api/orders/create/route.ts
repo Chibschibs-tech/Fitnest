@@ -15,47 +15,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Check what tables exist
-    const tables = await sql`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_name IN ('orders', 'order_items', 'users')
-    `
-    console.log("Available tables:", tables)
-
-    const hasOrders = tables.some((t) => t.table_name === "orders")
-    const hasOrderItems = tables.some((t) => t.table_name === "order_items")
-    const hasUsers = tables.some((t) => t.table_name === "users")
-
-    if (!hasOrders) {
-      console.log("Orders table does not exist")
-      return NextResponse.json({ error: "Orders table not found" }, { status: 500 })
-    }
-
-    // Check orders table structure
-    const ordersColumns = await sql`
-      SELECT column_name, data_type, is_nullable
-      FROM information_schema.columns 
-      WHERE table_name = 'orders' 
-      AND table_schema = 'public'
-    `
-    console.log("Orders table columns:", ordersColumns)
-
+    // Get or create user (user_id is required)
     let userId = null
+    try {
+      const existingUser = await sql`
+        SELECT id FROM users WHERE email = ${body.customer.email}
+      `
 
-    // Try to get or create user if users table exists
-    if (hasUsers) {
-      try {
-        const existingUser = await sql`
-          SELECT id FROM users WHERE email = ${body.customer.email}
-        `
+      if (existingUser.length > 0) {
+        userId = existingUser[0].id
+        console.log("Found existing user:", userId)
+      } else {
+        // Create a new user - need to handle password requirement
+        const tempPassword = Math.random().toString(36).slice(-8)
 
-        if (existingUser.length > 0) {
-          userId = existingUser[0].id
-          console.log("Found existing user:", userId)
-        } else {
-          // Create a simple user record
+        try {
+          const newUser = await sql`
+            INSERT INTO users (name, email, password, role) 
+            VALUES (
+              ${`${body.customer.firstName} ${body.customer.lastName}`}, 
+              ${body.customer.email}, 
+              ${tempPassword},
+              'user'
+            )
+            RETURNING id
+          `
+          userId = newUser[0].id
+          console.log("Created new user:", userId)
+        } catch (userCreateError) {
+          // Try without password if it's not required
           const newUser = await sql`
             INSERT INTO users (name, email, role) 
             VALUES (
@@ -66,12 +54,12 @@ export async function POST(request: Request) {
             RETURNING id
           `
           userId = newUser[0].id
-          console.log("Created new user:", userId)
+          console.log("Created new user without password:", userId)
         }
-      } catch (userError) {
-        console.log("User creation failed, continuing without user:", userError)
-        userId = null
       }
+    } catch (userError) {
+      console.log("User handling failed:", userError)
+      return NextResponse.json({ error: "Failed to handle user account" }, { status: 500 })
     }
 
     // Get cart items
@@ -128,91 +116,87 @@ export async function POST(request: Request) {
 
     console.log("Final totals:", { cartSubtotal, shippingCost, totalAmount })
 
-    // Create order with minimal required fields
+    // Prepare required fields for orders table
+    const deliveryAddress = `${body.shipping.address}, ${body.shipping.city}, ${body.shipping.postalCode}`
+    const deliveryDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
+    const now = new Date()
+
+    // For plan_id, we'll use 1 as default (express shop order)
+    // You might want to create different plan types later
+    const planId = 1
+
+    console.log("Order details:", {
+      userId,
+      planId,
+      totalAmount: Math.round(totalAmount * 100),
+      deliveryAddress,
+      deliveryDate,
+    })
+
+    // Create order with all required fields
     let orderResult
     try {
-      // Try with user_id first
-      if (userId) {
-        orderResult = await sql`
-          INSERT INTO orders (
-            user_id, 
-            status, 
-            total_amount,
-            created_at
-          ) 
-          VALUES (
-            ${userId}, 
-            'pending', 
-            ${Math.round(totalAmount * 100)},
-            CURRENT_TIMESTAMP
-          )
-          RETURNING id
-        `
-      } else {
-        // Try without user_id if it's nullable
-        orderResult = await sql`
-          INSERT INTO orders (
-            status, 
-            total_amount,
-            created_at
-          ) 
-          VALUES (
-            'pending', 
-            ${Math.round(totalAmount * 100)},
-            CURRENT_TIMESTAMP
-          )
-          RETURNING id
-        `
-      }
+      orderResult = await sql`
+        INSERT INTO orders (
+          user_id, 
+          plan_id,
+          status, 
+          total_amount,
+          delivery_address,
+          delivery_date,
+          created_at,
+          updated_at
+        ) 
+        VALUES (
+          ${userId}, 
+          ${planId},
+          'pending', 
+          ${Math.round(totalAmount * 100)},
+          ${deliveryAddress},
+          ${deliveryDate.toISOString()},
+          ${now.toISOString()},
+          ${now.toISOString()}
+        )
+        RETURNING id
+      `
     } catch (orderError) {
       console.log("Order creation failed:", orderError)
-
-      // Try with even more minimal fields
-      try {
-        orderResult = await sql`
-          INSERT INTO orders (total_amount) 
-          VALUES (${Math.round(totalAmount * 100)})
-          RETURNING id
-        `
-      } catch (minimalError) {
-        console.log("Minimal order creation also failed:", minimalError)
-        return NextResponse.json(
-          {
-            error: "Failed to create order",
-            details: minimalError instanceof Error ? minimalError.message : String(minimalError),
-          },
-          { status: 500 },
-        )
-      }
+      return NextResponse.json(
+        {
+          error: "Failed to create order",
+          details: orderError instanceof Error ? orderError.message : String(orderError),
+        },
+        { status: 500 },
+      )
     }
 
     const orderId = orderResult[0].id
     console.log("Created order with ID:", orderId)
 
-    // Add order items if table exists
-    if (hasOrderItems && cartItems.length > 0) {
-      try {
-        for (const item of cartItems) {
-          await sql`
-            INSERT INTO order_items (
-              order_id, 
-              product_id, 
-              quantity, 
-              price
-            ) 
-            VALUES (
-              ${orderId}, 
-              ${item.productId}, 
-              ${item.quantity}, 
-              ${Math.round(item.price * 100)}
-            )
-          `
-        }
-        console.log("Added order items successfully")
-      } catch (itemsError) {
-        console.log("Failed to add order items:", itemsError)
-        // Continue anyway, order is created
+    // Add order items
+    try {
+      for (const item of cartItems) {
+        await sql`
+          INSERT INTO order_items (
+            order_id, 
+            product_id, 
+            quantity, 
+            price_at_purchase,
+            created_at
+          ) 
+          VALUES (
+            ${orderId}, 
+            ${item.productId}, 
+            ${item.quantity}, 
+            ${Math.round(item.price * 100)},
+            ${now.toISOString()}
+          )
+        `
       }
+      console.log("Added order items successfully")
+    } catch (itemsError) {
+      console.log("Failed to add order items:", itemsError)
+      // Continue anyway, order is created
     }
 
     // Clear the cart
