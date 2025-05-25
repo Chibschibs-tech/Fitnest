@@ -27,8 +27,27 @@ interface CartData {
   cartId: string
 }
 
+interface MealPlanData {
+  planId: string
+  planName: string
+  planPrice: number
+  duration: string
+  mealsPerWeek: number
+  customizations?: {
+    dietaryRestrictions?: string[]
+    allergies?: string[]
+    preferences?: string[]
+  }
+  deliverySchedule?: {
+    frequency: string
+    preferredDay: string
+    startDate: string
+  }
+}
+
 export function CheckoutContent() {
   const [cart, setCart] = useState<CartData | null>(null)
+  const [mealPlan, setMealPlan] = useState<MealPlanData | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +67,39 @@ export function CheckoutContent() {
 
   useEffect(() => {
     fetchCart()
+    loadMealPlanData()
   }, [])
+
+  const loadMealPlanData = () => {
+    try {
+      // Load meal plan data from localStorage
+      const savedMealPlan = localStorage.getItem("selectedMealPlan")
+      const savedCustomizations = localStorage.getItem("mealPlanCustomizations")
+      const savedDeliverySchedule = localStorage.getItem("mealPlanDelivery")
+
+      if (savedMealPlan) {
+        const planData = JSON.parse(savedMealPlan)
+        const customizations = savedCustomizations ? JSON.parse(savedCustomizations) : undefined
+        const deliverySchedule = savedDeliverySchedule ? JSON.parse(savedDeliverySchedule) : undefined
+
+        const mealPlanData: MealPlanData = {
+          planId: planData.id || planData.planId,
+          planName: planData.name || planData.planName,
+          planPrice: planData.price || planData.planPrice || 0,
+          duration: planData.duration || "4 weeks",
+          mealsPerWeek: planData.mealsPerWeek || 7,
+          customizations,
+          deliverySchedule,
+        }
+
+        setMealPlan(mealPlanData)
+        console.log("Loaded meal plan data:", mealPlanData)
+      }
+    } catch (error) {
+      console.error("Error loading meal plan data:", error)
+      // Don't set error state, just continue without meal plan
+    }
+  }
 
   const fetchCart = async () => {
     try {
@@ -81,8 +132,8 @@ export function CheckoutContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!cart || cart.items.length === 0) {
-      setError("Your cart is empty")
+    if (!cart || (cart.items.length === 0 && !mealPlan)) {
+      setError("Your cart is empty and no meal plan selected")
       return
     }
 
@@ -105,13 +156,15 @@ export function CheckoutContent() {
           deliveryOption: formData.deliveryOption,
         },
         order: {
-          cartItems: cart.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.salePrice || item.price,
-          })),
-          cartSubtotal: cart.subtotal,
+          cartItems:
+            cart?.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.salePrice || item.price,
+            })) || [],
+          cartSubtotal: cart?.subtotal || 0,
           shipping: formData.deliveryOption === "express" ? 30 : 0,
+          mealPlan: mealPlan, // Include meal plan data
         },
       }
 
@@ -138,6 +191,14 @@ export function CheckoutContent() {
       try {
         await fetch("/api/cart/clear", { method: "POST" })
         console.log("Cart cleared successfully")
+
+        // Clear meal plan data from localStorage
+        if (mealPlan) {
+          localStorage.removeItem("selectedMealPlan")
+          localStorage.removeItem("mealPlanCustomizations")
+          localStorage.removeItem("mealPlanDelivery")
+          console.log("Meal plan data cleared from localStorage")
+        }
 
         // Dispatch cart update event to update the header icon
         window.dispatchEvent(new CustomEvent("cartUpdated"))
@@ -167,7 +228,7 @@ export function CheckoutContent() {
     )
   }
 
-  if (error && !cart) {
+  if (error && !cart && !mealPlan) {
     return (
       <div className="container mx-auto px-4 py-12">
         <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
@@ -183,24 +244,29 @@ export function CheckoutContent() {
     )
   }
 
-  if (!cart || cart.items.length === 0) {
+  if (!cart && !mealPlan) {
     return (
       <div className="container mx-auto px-4 py-12">
         <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
         <Card>
           <CardContent className="p-6">
-            <p>Your cart is empty.</p>
-            <Button onClick={() => router.push("/express-shop")} className="mt-4">
-              Continue Shopping
-            </Button>
+            <p>Your cart is empty and no meal plan selected.</p>
+            <div className="mt-4 space-x-4">
+              <Button onClick={() => router.push("/express-shop")}>Shop Products</Button>
+              <Button onClick={() => router.push("/meal-plans")} variant="outline">
+                Browse Meal Plans
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     )
   }
 
+  const cartSubtotal = cart?.subtotal || 0
+  const mealPlanPrice = mealPlan?.planPrice || 0
   const shippingCost = formData.deliveryOption === "express" ? 30 : 0
-  const total = cart.subtotal + shippingCost
+  const total = cartSubtotal + mealPlanPrice + shippingCost
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -366,20 +432,67 @@ export function CheckoutContent() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {cart.items.map((item) => (
-                <div key={`${item.productId}-${item.id}`} className="flex justify-between">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+              {/* Meal Plan Section */}
+              {mealPlan && (
+                <>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-green-800 mb-2">Meal Plan Subscription</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="font-medium">{mealPlan.planName}</p>
+                          <p className="text-sm text-gray-600">
+                            {mealPlan.duration} • {mealPlan.mealsPerWeek} meals/week
+                          </p>
+                          {mealPlan.customizations && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {mealPlan.customizations.dietaryRestrictions &&
+                                `Diet: ${mealPlan.customizations.dietaryRestrictions.join(", ")}`}
+                            </div>
+                          )}
+                        </div>
+                        <p className="font-medium text-green-700">{mealPlan.planPrice.toFixed(2)} MAD</p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="font-medium">{((item.salePrice || item.price) * item.quantity).toFixed(2)} MAD</p>
+                  <Separator />
+                </>
+              )}
+
+              {/* Cart Items Section */}
+              {cart && cart.items.length > 0 && (
+                <>
+                  <div>
+                    <h3 className="font-semibold mb-2">Express Shop Items</h3>
+                    {cart.items.map((item) => (
+                      <div key={`${item.productId}-${item.id}`} className="flex justify-between mb-2">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                        </div>
+                        <p className="font-medium">{((item.salePrice || item.price) * item.quantity).toFixed(2)} MAD</p>
+                      </div>
+                    ))}
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* Totals Section */}
+              {cart && cart.items.length > 0 && (
+                <div className="flex justify-between">
+                  <p>Express Shop Subtotal</p>
+                  <p>{cartSubtotal.toFixed(2)} MAD</p>
                 </div>
-              ))}
-              <Separator />
-              <div className="flex justify-between">
-                <p>Subtotal</p>
-                <p>{cart.subtotal.toFixed(2)} MAD</p>
-              </div>
+              )}
+
+              {mealPlan && (
+                <div className="flex justify-between">
+                  <p>Meal Plan Subscription</p>
+                  <p>{mealPlanPrice.toFixed(2)} MAD</p>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <p>Shipping</p>
                 <p>{shippingCost === 0 ? "Free" : `${shippingCost.toFixed(2)} MAD`}</p>
