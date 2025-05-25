@@ -6,61 +6,61 @@ import { v4 as uuidv4 } from "uuid"
 // Force dynamic rendering to avoid caching issues
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const cookieStore = cookies()
-    let cartId = cookieStore.get("cartId")?.value
-
-    // Create a new cart ID if one doesn't exist
-    if (!cartId) {
-      cartId = uuidv4()
-    }
-
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Use the cart table with user_id as cart identifier
-    const cartItems = await sql`
+    // Get cart ID from cookies
+    const cartId = request.headers
+      .get("cookie")
+      ?.split(";")
+      .find((c) => c.trim().startsWith("cartId="))
+      ?.split("=")[1]
+
+    if (!cartId) {
+      return NextResponse.json({
+        items: [],
+        subtotal: 0,
+        cartId: null,
+      })
+    }
+
+    // Get cart items with product details
+    const items = await sql`
       SELECT 
         c.id,
-        c.product_id,
+        c.product_id as "productId",
         c.quantity,
         p.name,
         p.price,
         p.saleprice,
-        p.imageurl
-      FROM cart c
-      JOIN products p ON c.product_id = p.id
-      WHERE c.id = ${cartId}
-      ORDER BY c.created_at DESC
+        p.imageurl as "imageUrl"
+      FROM cart_items c
+      JOIN products p ON c.product_id::text = p.id::text
+      WHERE c.cart_id = ${cartId}
     `
 
-    // Calculate subtotal (prices are stored as integers, divide by 100 for actual price)
-    const subtotal = cartItems.reduce((sum, item) => {
-      const price = item.saleprice || item.price
-      return sum + (price / 100) * item.quantity
-    }, 0)
-
-    // Format the response
-    const items = cartItems.map((item) => ({
-      id: item.id,
-      productId: item.product_id,
+    // Format items and calculate subtotal
+    const formattedItems = items.map((item) => ({
+      id: item.id.toString(),
+      productId: item.productId,
       quantity: item.quantity,
       name: item.name,
-      price: item.price / 100, // Convert from cents to dollars
+      price: item.price / 100, // Convert from cents to MAD
       salePrice: item.saleprice ? item.saleprice / 100 : null,
-      imageUrl: item.imageurl,
+      imageUrl: item.imageUrl,
     }))
 
-    return NextResponse.json(
-      { items, subtotal, cartId },
-      {
-        status: 200,
-        headers:
-          cartId && !cookieStore.get("cartId")
-            ? { "Set-Cookie": `cartId=${cartId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000` }
-            : undefined,
-      },
-    )
+    const subtotal = formattedItems.reduce((sum, item) => {
+      const price = item.salePrice || item.price
+      return sum + price * item.quantity
+    }, 0)
+
+    return NextResponse.json({
+      items: formattedItems,
+      subtotal,
+      cartId,
+    })
   } catch (error) {
     console.error("Error fetching cart:", error)
     return NextResponse.json(

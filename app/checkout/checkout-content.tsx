@@ -34,7 +34,6 @@ export function CheckoutContent() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  // Form state - matching the API expectations
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -61,6 +60,7 @@ export function CheckoutContent() {
       }
 
       const data = await response.json()
+      console.log("Cart data:", data)
       setCart(data)
     } catch (error) {
       console.error("Error fetching cart:", error)
@@ -90,7 +90,6 @@ export function CheckoutContent() {
     setError(null)
 
     try {
-      // Format the order data to match the API expectations
       const orderData = {
         customer: {
           firstName: formData.firstName,
@@ -109,11 +108,9 @@ export function CheckoutContent() {
           cartItems: cart.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: item.salePrice || item.price,
+            price: item.salePrice || item.price, // Don't divide by 100 here
           })),
-          mealPlan: null, // No meal plan for express shop orders
           cartSubtotal: cart.subtotal,
-          mealPlanTotal: 0,
           shipping: formData.deliveryOption === "express" ? 30 : 0,
         },
       }
@@ -136,9 +133,6 @@ export function CheckoutContent() {
 
       const result = await response.json()
       console.log("Order created successfully:", result)
-
-      // Clear cart after successful order
-      await fetch("/api/cart/clear", { method: "POST" })
 
       // Dispatch cart update event
       window.dispatchEvent(new CustomEvent("cartUpdated"))
@@ -210,7 +204,6 @@ export function CheckoutContent() {
       )}
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Checkout Form */}
         <Card>
           <CardHeader>
             <CardTitle>Shipping Information</CardTitle>
@@ -358,7 +351,6 @@ export function CheckoutContent() {
           </CardContent>
         </Card>
 
-        {/* Order Summary */}
         <Card>
           <CardHeader>
             <CardTitle>Order Summary</CardTitle>
