@@ -109,42 +109,14 @@ export async function POST(request: Request) {
     // Handle meal plan data
     const mealPlan = body.order.mealPlan
     let mealPlanPrice = 0
-    let planId = null
+    let planId = 1 // Default plan ID
 
     if (mealPlan) {
       mealPlanPrice = mealPlan.planPrice || mealPlan.price || 0
-      planId = mealPlan.planId || mealPlan.id
+      planId = mealPlan.planId || mealPlan.id || 1
       console.log("Meal plan data:", mealPlan)
       console.log("Meal plan price:", mealPlanPrice)
       console.log("Plan ID:", planId)
-    }
-
-    // If no meal plan, check if we have a default plan for express shop orders
-    if (!planId) {
-      try {
-        // Get the first available plan as default for express shop orders
-        const defaultPlan = await sql`
-          SELECT id FROM meal_plans ORDER BY id LIMIT 1
-        `
-
-        if (defaultPlan.length > 0) {
-          planId = defaultPlan[0].id
-          console.log("Using default plan ID for express shop order:", planId)
-        } else {
-          // Create a default "Express Shop" plan if none exists
-          const newPlan = await sql`
-            INSERT INTO meal_plans (name, description, price, duration_weeks, meals_per_week)
-            VALUES ('Express Shop Order', 'Individual product purchase', 0, 1, 0)
-            RETURNING id
-          `
-          planId = newPlan[0].id
-          console.log("Created default express shop plan:", planId)
-        }
-      } catch (planError) {
-        console.log("Error handling plan ID:", planError)
-        // Use a default value if all else fails
-        planId = 1
-      }
     }
 
     // Check if we have either cart items or meal plan
@@ -165,8 +137,9 @@ export async function POST(request: Request) {
 
     console.log("Final totals:", { cartSubtotal, mealPlanPrice, shippingCost, totalAmount })
 
-    // Prepare delivery address
+    // Prepare required fields - ALL REQUIRED FIELDS FROM MIGRATION
     const deliveryAddress = `${body.shipping.address}, ${body.shipping.city}, ${body.shipping.postalCode}`
+    const deliveryDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
     const now = new Date()
 
     console.log("Order details:", {
@@ -174,9 +147,10 @@ export async function POST(request: Request) {
       planId,
       totalAmount: Math.round(totalAmount * 100),
       deliveryAddress,
+      deliveryDate: deliveryDate.toISOString(),
     })
 
-    // Create order using existing database structure with required plan_id
+    // Create order using the EXACT schema from migration
     let orderResult
     try {
       orderResult = await sql`
@@ -185,6 +159,8 @@ export async function POST(request: Request) {
           plan_id,
           total_amount,
           status,
+          delivery_address,
+          delivery_date,
           created_at,
           updated_at
         ) 
@@ -193,6 +169,8 @@ export async function POST(request: Request) {
           ${planId},
           ${Math.round(totalAmount * 100)},
           'pending',
+          ${deliveryAddress},
+          ${deliveryDate.toISOString()},
           ${now.toISOString()},
           ${now.toISOString()}
         )
