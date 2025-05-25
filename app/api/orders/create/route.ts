@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to handle user account" }, { status: 500 })
     }
 
-    // Get cart items
+    // Get cart items using the correct structure
     const cartId = request.headers
       .get("cookie")
       ?.split(";")
@@ -76,6 +76,7 @@ export async function POST(request: Request) {
 
     if (cartId) {
       try {
+        // First, get cart items from cart table (cart.id = cartId)
         const items = await sql`
           SELECT 
             c.product_id,
@@ -83,9 +84,9 @@ export async function POST(request: Request) {
             p.name,
             p.price,
             p.sale_price
-          FROM cart_items c
-          JOIN products p ON c.product_id = p.id
-          WHERE c.cart_id = ${cartId}
+          FROM cart c
+          JOIN products p ON c.product_id = p.id::text
+          WHERE c.id = ${cartId}
         `
 
         console.log("Raw cart items from DB:", items)
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
           productId: item.product_id,
           quantity: item.quantity,
           name: item.name,
-          price: (item.sale_price || item.price) / 100, // Convert from cents
+          price: Number(item.sale_price || item.price), // Keep as decimal, don't divide by 100
         }))
 
         cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -102,6 +103,34 @@ export async function POST(request: Request) {
         console.log("Cart subtotal:", cartSubtotal)
       } catch (cartError) {
         console.log("Error fetching cart items:", cartError)
+
+        // Try alternative query if the first one fails
+        try {
+          const items = await sql`
+            SELECT 
+              c.product_id,
+              c.quantity,
+              p.name,
+              p.price,
+              p.sale_price
+            FROM cart c
+            JOIN products p ON c.product_id::text = p.id
+            WHERE c.id = ${cartId}
+          `
+
+          cartItems = items.map((item) => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+            name: item.name,
+            price: Number(item.sale_price || item.price),
+          }))
+
+          cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+          console.log("Alternative query - Processed cart items:", cartItems)
+          console.log("Alternative query - Cart subtotal:", cartSubtotal)
+        } catch (altError) {
+          console.log("Alternative cart query also failed:", altError)
+        }
       }
     }
 
@@ -128,21 +157,12 @@ export async function POST(request: Request) {
 
     // Prepare required fields for orders table
     const deliveryAddress = `${body.shipping.address}, ${body.shipping.city}, ${body.shipping.postalCode}`
-    const deliveryDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
     const now = new Date()
 
     console.log("Order details:", {
       userId,
       totalAmount: Math.round(totalAmount * 100),
       deliveryAddress,
-      deliveryDate,
-      mealPlan: mealPlan
-        ? {
-            id: mealPlan.planId || mealPlan.id,
-            name: mealPlan.planName || mealPlan.name,
-            price: mealPlanPrice,
-          }
-        : null,
     })
 
     // Create order with existing database structure
@@ -212,7 +232,7 @@ export async function POST(request: Request) {
     // Clear the cart
     try {
       if (cartId) {
-        await sql`DELETE FROM cart_items WHERE cart_id = ${cartId}`
+        await sql`DELETE FROM cart WHERE id = ${cartId}`
         console.log("Cleared cart successfully")
       }
     } catch (clearError) {
