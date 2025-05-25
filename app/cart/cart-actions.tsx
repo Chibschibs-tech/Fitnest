@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,21 +9,20 @@ import { useToast } from "@/components/ui/use-toast"
 
 interface CartItem {
   id: string
-  product_id: number
+  productId: number
   quantity: number
-  product: {
-    id: number
-    name: string
-    price: number
-    image?: string
-  }
+  name: string
+  price: number
+  salePrice?: number
+  imageUrl?: string
 }
 
 interface CartActionsProps {
   item: CartItem
+  onUpdate: () => void
 }
 
-export default function CartActions({ item }: CartActionsProps) {
+export default function CartActions({ item, onUpdate }: CartActionsProps) {
   const [quantity, setQuantity] = useState(item.quantity)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
@@ -49,14 +47,13 @@ export default function CartActions({ item }: CartActionsProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          productId: item.product_id,
+          productId: item.productId,
           quantity: newQuantity,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("Update failed:", errorData)
         throw new Error(errorData.error || "Failed to update cart")
       }
 
@@ -66,8 +63,11 @@ export default function CartActions({ item }: CartActionsProps) {
         description: "Item quantity has been updated",
       })
 
-      // Force page refresh to show changes
-      window.location.reload()
+      // Trigger cart update and refresh page
+      onUpdate()
+
+      // Dispatch cart update event for header icon
+      window.dispatchEvent(new Event("cart:updated"))
     } catch (error) {
       console.error("Error updating cart:", error)
       toast({
@@ -83,13 +83,12 @@ export default function CartActions({ item }: CartActionsProps) {
   const removeItem = async () => {
     setIsRemoving(true)
     try {
-      const response = await fetch(`/api/cart?id=${item.product_id}`, {
+      const response = await fetch(`/api/cart?id=${item.productId}`, {
         method: "DELETE",
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("Remove failed:", errorData)
         throw new Error(errorData.error || "Failed to remove item from cart")
       }
 
@@ -98,8 +97,11 @@ export default function CartActions({ item }: CartActionsProps) {
         description: "Item has been removed from your cart",
       })
 
-      // Refresh the page to show updated cart
-      window.location.reload()
+      // Trigger cart update and refresh page
+      onUpdate()
+
+      // Dispatch cart update event for header icon
+      window.dispatchEvent(new Event("cart:updated"))
     } catch (error) {
       console.error("Error removing item:", error)
       toast({
