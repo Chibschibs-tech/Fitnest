@@ -6,25 +6,25 @@ import { ChevronRight } from "lucide-react"
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section - Full banner image */}
-      <section className="relative min-h-[calc(100vh-73px)] flex items-end bg-gray-100">
+      {/* Hero Section - Full banner image with mobile optimization */}
+      <section className="relative min-h-[50vh] sm:min-h-[60vh] md:min-h-[calc(100vh-73px)] flex items-end bg-gray-100">
         <Image
           src="/hero-banner-full.png"
           alt="Fitnest.ma Hero Banner"
           fill
           className="object-cover object-center"
           priority
-          sizes="100vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
         />
-        <div className="relative z-10 container mx-auto px-4 pb-16">
-          <div className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+        <div className="relative z-10 container mx-auto px-4 pb-8 sm:pb-12 md:pb-16">
+          <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link href="/meal-plans">
-              <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 w-full sm:w-auto">
+              <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 w-full sm:w-auto text-sm sm:text-base px-6 py-2 sm:px-8 sm:py-3">
                 View Meal Plans
               </Button>
             </Link>
             <Link href="/how-it-works">
-              <Button className="bg-white/20 text-white border-white hover:bg-white/30 w-full sm:w-auto">
+              <Button className="bg-white/20 text-white border-white hover:bg-white/30 w-full sm:w-auto text-sm sm:text-base px-6 py-2 sm:px-8 sm:py-3">
                 How It Works
               </Button>
             </Link>
