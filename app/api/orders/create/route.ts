@@ -82,10 +82,10 @@ export async function POST(request: Request) {
             c.quantity,
             p.name,
             p.price,
-            p.saleprice
-          FROM cart c
+            p.sale_price
+          FROM cart_items c
           JOIN products p ON c.product_id = p.id
-          WHERE c.id = ${cartId}
+          WHERE c.cart_id = ${cartId}
         `
 
         console.log("Raw cart items from DB:", items)
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
           productId: item.product_id,
           quantity: item.quantity,
           name: item.name,
-          price: (item.saleprice || item.price) / 100, // Convert from cents
+          price: (item.sale_price || item.price) / 100, // Convert from cents
         }))
 
         cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -131,12 +131,8 @@ export async function POST(request: Request) {
     const deliveryDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
     const now = new Date()
 
-    // For plan_id, we'll use 1 as default (express shop order) or 2 for meal plan
-    const planId = mealPlan ? 2 : 1
-
     console.log("Order details:", {
       userId,
-      planId,
       totalAmount: Math.round(totalAmount * 100),
       deliveryAddress,
       deliveryDate,
@@ -149,29 +145,25 @@ export async function POST(request: Request) {
         : null,
     })
 
-    // Create order with all required fields
+    // Create order with existing database structure
     let orderResult
     try {
       orderResult = await sql`
         INSERT INTO orders (
           user_id, 
-          plan_id,
-          status, 
           total_amount,
-          delivery_address,
-          delivery_date,
-          meal_plan_data,
+          status,
+          shipping_address,
+          billing_address,
           created_at,
           updated_at
         ) 
         VALUES (
           ${userId}, 
-          ${planId},
-          'pending', 
           ${Math.round(totalAmount * 100)},
+          'pending',
           ${deliveryAddress},
-          ${deliveryDate.toISOString()},
-          ${mealPlan ? JSON.stringify(mealPlan) : null},
+          ${deliveryAddress},
           ${now.toISOString()},
           ${now.toISOString()}
         )
@@ -199,7 +191,7 @@ export async function POST(request: Request) {
             order_id, 
             product_id, 
             quantity, 
-            price_at_purchase,
+            price,
             created_at
           ) 
           VALUES (
@@ -220,7 +212,7 @@ export async function POST(request: Request) {
     // Clear the cart
     try {
       if (cartId) {
-        await sql`DELETE FROM cart WHERE id = ${cartId}`
+        await sql`DELETE FROM cart_items WHERE cart_id = ${cartId}`
         console.log("Cleared cart successfully")
       }
     } catch (clearError) {
