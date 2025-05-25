@@ -18,18 +18,23 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get cart items with product details - fix the data type mismatch
+    // Get cart items with product details - fix the column name issue
     const cartItems = await sql`
-      SELECT c.*, p.name, p.price, p.image_url as image
+      SELECT c.*, p.name, p.price, p.imageurl as image
       FROM cart c
       JOIN products p ON c.product_id = p.id::integer
       WHERE c.id = ${cartId}
     `
 
+    // Calculate subtotal
+    const subtotal = cartItems.reduce((sum, item) => {
+      return sum + Number.parseFloat(item.price) * item.quantity
+    }, 0)
+
     // Format the response
     const items = cartItems.map((item) => ({
       id: item.id,
-      product_id: item.product_id,
+      productId: item.product_id,
       quantity: item.quantity,
       product: {
         id: item.product_id,
@@ -40,7 +45,7 @@ export async function GET() {
     }))
 
     return NextResponse.json(
-      { items, cartId },
+      { items, subtotal, cartId },
       {
         status: 200,
         headers:
