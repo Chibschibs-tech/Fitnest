@@ -14,7 +14,14 @@ export async function GET(request: Request) {
 
     console.log("=== FULL CART DEBUG ===")
     console.log("Cart ID from cookie:", cartId)
-    console.log("Full cookie header:", request.headers.get("cookie"))
+
+    // Check products table structure first
+    const productColumns = await sql`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
+    `
+    console.log("Product table columns:", productColumns)
 
     // Check all cart data
     const allCartData = await sql`SELECT * FROM cart LIMIT 10`
@@ -23,8 +30,8 @@ export async function GET(request: Request) {
     const allCartItemsData = await sql`SELECT * FROM cart_items LIMIT 10`
     console.log("All cart_items data (first 10 rows):", allCartItemsData)
 
-    // Check products table
-    const allProducts = await sql`SELECT id, name, price, sale_price FROM products LIMIT 5`
+    // Check products table with actual columns
+    const allProducts = await sql`SELECT * FROM products LIMIT 3`
     console.log("Sample products:", allProducts)
 
     let cartSpecificData = []
@@ -38,17 +45,17 @@ export async function GET(request: Request) {
       cartItemsSpecificData = await sql`SELECT * FROM cart_items WHERE cart_id = ${cartId}`
       console.log("Cart items data for specific ID:", cartItemsSpecificData)
 
-      // Try different variations
-      const cartAsInt = await sql`SELECT * FROM cart WHERE id::text = ${cartId}`
-      console.log("Cart data (id as text):", cartAsInt)
-
-      const cartItemsAsText = await sql`SELECT * FROM cart_items WHERE cart_id::text = ${cartId}`
-      console.log("Cart items data (cart_id as text):", cartItemsAsText)
+      // Try different cart_id formats
+      const cartItemsAnyFormat = await sql`
+        SELECT * FROM cart_items 
+        WHERE cart_id = ${cartId} OR cart_id = ${cartId}::text OR cart_id::text = ${cartId}
+      `
+      console.log("Cart items any format:", cartItemsAnyFormat)
     }
 
     return NextResponse.json({
       cartId,
-      fullCookie: request.headers.get("cookie"),
+      productColumns,
       allCartCount: allCartData.length,
       allCartItemsCount: allCartItemsData.length,
       cartSpecificData,
