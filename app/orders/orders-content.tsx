@@ -6,35 +6,13 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-// Mock data for orders
-const mockOrders = [
-  {
-    id: "ORD-001",
-    date: "2023-11-15",
-    status: "Active",
-    mealPlan: "Weight Loss",
-    totalAmount: "140 MAD/week",
-  },
-  {
-    id: "ORD-002",
-    date: "2023-10-20",
-    status: "Completed",
-    mealPlan: "Muscle Gain",
-    totalAmount: "180 MAD/week",
-  },
-  {
-    id: "ORD-003",
-    date: "2023-09-05",
-    status: "Cancelled",
-    mealPlan: "Balanced Diet",
-    totalAmount: "160 MAD/week",
-  },
-]
-
 export function OrdersContent() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [orders, setOrders] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     async function fetchUserData() {
@@ -55,10 +33,38 @@ export function OrdersContent() {
       }
     }
 
+    async function fetchOrders() {
+      try {
+        const response = await fetch("/api/orders")
+
+        if (!response.ok) {
+          throw new Error("Failed to load orders")
+        }
+
+        const data = await response.json()
+        // The API returns the orders array directly, not wrapped in an object
+        setOrders(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error("Error loading orders:", error)
+        setError("Failed to load your orders. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     fetchUserData()
+    fetchOrders()
   }, [])
 
-  if (loading) {
+  const filteredOrders = orders.filter((order) => {
+    const orderIdMatch = order.id?.toLowerCase().includes(searchQuery.toLowerCase())
+    const mealPlanMatch = order.mealPlan?.toLowerCase().includes(searchQuery.toLowerCase())
+    return orderIdMatch || mealPlanMatch
+  })
+
+  const displayOrders = filteredOrders
+
+  if (loading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
@@ -91,9 +97,9 @@ export function OrdersContent() {
         <p className="text-gray-600">View and manage your meal plan orders</p>
       </div>
 
-      {mockOrders.length > 0 ? (
+      {displayOrders.length > 0 ? (
         <div className="space-y-6">
-          {mockOrders.map((order) => (
+          {displayOrders.map((order) => (
             <Card key={order.id}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
