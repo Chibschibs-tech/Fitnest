@@ -1,156 +1,250 @@
 import { NextResponse } from "next/server"
-import { v4 as uuidv4 } from "uuid"
-import { db } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    // Get user from session/cookie instead of profile
-    const cookies = req.headers.get("cookie")
-    const userId = null
+    const sql = neon(process.env.DATABASE_URL!)
+    const body = await request.json()
 
-    // Try to get user from session cookie if logged in
-    if (cookies?.includes("session=")) {
-      // For now, we'll handle both logged-in and guest orders
-      // This matches the existing order creation logic
+    console.log("=== ORDER CREATION START ===")
+    console.log("Received order data:", JSON.stringify(body, null, 2))
+
+    // Validate required fields
+    if (!body.customer || !body.shipping || !body.order) {
+      console.log("Missing required fields")
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const {
-      cartItems,
-      cartSubtotal,
-      shipping,
-      tax,
-      total,
-      shippingAddress,
-      billingAddress,
-      paymentMethod,
-      orderNotes,
-    } = await req.json()
+    // Get or create user (user_id is required)
+    let userId = null
+    try {
+      const existingUser = await sql`
+        SELECT id FROM users WHERE email = ${body.customer.email}
+      `
 
-    interface OrderRequest {
-      cartItems: any[]
-      cartSubtotal: number
-      shipping: number
-      tax: number
-      total: number
-      shippingAddress: any
-      billingAddress: any
-      paymentMethod: string
-      orderNotes: string
-      mealPlan?: {
-        planId: string
-        planName: string
-        planPrice: number
-        duration: string
-        mealsPerWeek: number
-        customizations?: any
-        deliverySchedule?: any
+      if (existingUser.length > 0) {
+        userId = existingUser[0].id
+        console.log("Found existing user:", userId)
+      } else {
+        // Create a new user - need to handle password requirement
+        const tempPassword = Math.random().toString(36).slice(-8)
+
+        try {
+          const newUser = await sql`
+            INSERT INTO users (name, email, password, role) 
+            VALUES (
+              ${`${body.customer.firstName} ${body.customer.lastName}`}, 
+              ${body.customer.email}, 
+              ${tempPassword},
+              'user'
+            )
+            RETURNING id
+          `
+          userId = newUser[0].id
+          console.log("Created new user:", userId)
+        } catch (userCreateError) {
+          // Try without password if it's not required
+          const newUser = await sql`
+            INSERT INTO users (name, email, role) 
+            VALUES (
+              ${`${body.customer.firstName} ${body.customer.lastName}`}, 
+              ${body.customer.email}, 
+              'user'
+            )
+            RETURNING id
+          `
+          userId = newUser[0].id
+          console.log("Created new user without password:", userId)
+        }
+      }
+    } catch (userError) {
+      console.log("User handling failed:", userError)
+      return NextResponse.json({ error: "Failed to handle user account" }, { status: 500 })
+    }
+
+    // Get cart items
+    const cartId = request.headers
+      .get("cookie")
+      ?.split(";")
+      .find((c) => c.trim().startsWith("cartId="))
+      ?.split("=")[1]
+
+    console.log("Cart ID from cookie:", cartId)
+
+    let cartItems = []
+    let cartSubtotal = 0
+
+    if (cartId) {
+      try {
+        const items = await sql`
+          SELECT 
+            c.product_id,
+            c.quantity,
+            p.name,
+            p.price,
+            p.saleprice
+          FROM cart c
+          JOIN products p ON c.product_id = p.id
+          WHERE c.id = ${cartId}
+        `
+
+        console.log("Raw cart items from DB:", items)
+
+        cartItems = items.map((item) => ({
+          productId: item.product_id,
+          quantity: item.quantity,
+          name: item.name,
+          price: (item.saleprice || item.price) / 100, // Convert from cents
+        }))
+
+        cartSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+        console.log("Processed cart items:", cartItems)
+        console.log("Cart subtotal:", cartSubtotal)
+      } catch (cartError) {
+        console.log("Error fetching cart items:", cartError)
       }
     }
 
-    const order: OrderRequest = await req.json()
-
-    if (
-      !order.cartItems ||
-      !order.cartSubtotal ||
-      !order.shipping ||
-      !order.tax ||
-      !order.total ||
-      !order.shippingAddress ||
-      !order.billingAddress ||
-      !order.paymentMethod
-    ) {
-      return new NextResponse("Missing required fields", { status: 400 })
+    // Handle meal plan data
+    const mealPlan = body.order.mealPlan
+    let mealPlanPrice = 0
+    if (mealPlan) {
+      mealPlanPrice = mealPlan.planPrice || mealPlan.price || 0
+      console.log("Meal plan data:", mealPlan)
+      console.log("Meal plan price:", mealPlanPrice)
     }
 
-    const orderId = uuidv4()
-    let paramCount = 1
-
-    const totalAmount = order.cartSubtotal + (order.mealPlan?.planPrice || 0) + order.shipping
-
-    const insertOrderQuery = `
-      INSERT INTO orders (
-        id,
-        profile_id,
-        cart_subtotal,
-        shipping,
-        tax,
-        total,
-        shipping_address,
-        billing_address,
-        payment_method,
-        order_notes,
-        meal_plan_id,
-        meal_plan_name,
-        meal_plan_price,
-        meal_plan_duration,
-        meal_plan_meals_per_week,
-        meal_plan_customizations
-      ) VALUES (
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++},
-        $${paramCount++}
-      )
-    `
-
-    const orderParams = [
-      orderId,
-      "profile.id", // Replace with actual profile ID if available
-      order.cartSubtotal,
-      order.shipping,
-      order.tax,
-      totalAmount,
-      JSON.stringify(order.shippingAddress),
-      JSON.stringify(order.billingAddress),
-      order.paymentMethod,
-      order.orderNotes,
-      order.mealPlan?.planId || null,
-      order.mealPlan?.planName || null,
-      order.mealPlan?.planPrice || null,
-      order.mealPlan?.duration || null,
-      order.mealPlan?.mealsPerWeek || null,
-      JSON.stringify(order.mealPlan?.customizations || null),
-    ]
-
-    await db.query(insertOrderQuery, orderParams)
-
-    // Insert cart items into order_items table
-    const insertOrderItemQuery = `
-      INSERT INTO order_items (
-        id,
-        order_id,
-        product_id,
-        quantity,
-        price
-      ) VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5
-      )
-    `
-
-    for (const item of order.cartItems) {
-      const orderItemId = uuidv4()
-      await db.query(insertOrderItemQuery, [orderItemId, orderId, item.id, item.quantity, item.price])
+    // Check if we have either cart items or meal plan
+    if (cartItems.length === 0 && !mealPlan) {
+      console.log("No cart items or meal plan found")
+      return NextResponse.json({ error: "No items in cart or meal plan selected" }, { status: 400 })
     }
 
-    return NextResponse.json({ orderId })
+    // Calculate totals
+    const shippingCost = body.order.shipping || 0
+    const totalAmount = cartSubtotal + mealPlanPrice + shippingCost
+
+    console.log("Final totals:", { cartSubtotal, mealPlanPrice, shippingCost, totalAmount })
+
+    // Prepare required fields for orders table
+    const deliveryAddress = `${body.shipping.address}, ${body.shipping.city}, ${body.shipping.postalCode}`
+    const deliveryDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
+    const now = new Date()
+
+    // For plan_id, we'll use 1 as default (express shop order) or 2 for meal plan
+    const planId = mealPlan ? 2 : 1
+
+    console.log("Order details:", {
+      userId,
+      planId,
+      totalAmount: Math.round(totalAmount * 100),
+      deliveryAddress,
+      deliveryDate,
+      mealPlan: mealPlan
+        ? {
+            id: mealPlan.planId || mealPlan.id,
+            name: mealPlan.planName || mealPlan.name,
+            price: mealPlanPrice,
+          }
+        : null,
+    })
+
+    // Create order with all required fields
+    let orderResult
+    try {
+      orderResult = await sql`
+        INSERT INTO orders (
+          user_id, 
+          plan_id,
+          status, 
+          total_amount,
+          delivery_address,
+          delivery_date,
+          meal_plan_data,
+          created_at,
+          updated_at
+        ) 
+        VALUES (
+          ${userId}, 
+          ${planId},
+          'pending', 
+          ${Math.round(totalAmount * 100)},
+          ${deliveryAddress},
+          ${deliveryDate.toISOString()},
+          ${mealPlan ? JSON.stringify(mealPlan) : null},
+          ${now.toISOString()},
+          ${now.toISOString()}
+        )
+        RETURNING id
+      `
+    } catch (orderError) {
+      console.log("Order creation failed:", orderError)
+      return NextResponse.json(
+        {
+          error: "Failed to create order",
+          details: orderError instanceof Error ? orderError.message : String(orderError),
+        },
+        { status: 500 },
+      )
+    }
+
+    const orderId = orderResult[0].id
+    console.log("Created order with ID:", orderId)
+
+    // Add order items (cart items)
+    try {
+      for (const item of cartItems) {
+        await sql`
+          INSERT INTO order_items (
+            order_id, 
+            product_id, 
+            quantity, 
+            price_at_purchase,
+            created_at
+          ) 
+          VALUES (
+            ${orderId}, 
+            ${item.productId}, 
+            ${item.quantity}, 
+            ${Math.round(item.price * 100)},
+            ${now.toISOString()}
+          )
+        `
+      }
+      console.log("Added order items successfully")
+    } catch (itemsError) {
+      console.log("Failed to add order items:", itemsError)
+      // Continue anyway, order is created
+    }
+
+    // Clear the cart
+    try {
+      if (cartId) {
+        await sql`DELETE FROM cart WHERE id = ${cartId}`
+        console.log("Cleared cart successfully")
+      }
+    } catch (clearError) {
+      console.log("Failed to clear cart:", clearError)
+      // Continue anyway
+    }
+
+    console.log("=== ORDER CREATION SUCCESS ===")
+
+    return NextResponse.json({
+      success: true,
+      orderId: orderId,
+      userId: userId,
+      message: "Order created successfully",
+    })
   } catch (error) {
-    console.log("[ORDERS_POST]", error)
-    return new NextResponse("Internal error", { status: 500 })
+    console.error("=== ORDER CREATION ERROR ===")
+    console.error("Error creating order:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to create order",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
