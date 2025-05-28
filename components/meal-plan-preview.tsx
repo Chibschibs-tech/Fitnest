@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import type { MealPreferences } from "@/app/meal-customization/actions"
+import type { MealPreferences } from "@/app/meal-customization/types"
 import { ArrowLeft, ArrowRight, Calendar, Clock, Utensils } from "lucide-react"
 import Link from "next/link"
 
 interface MealPlanPreviewProps {
-  preferences: MealPreferences | null
+  preferences: MealPreferences
 }
 
 export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
@@ -193,7 +193,7 @@ export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
   ]
 
   const getPlanName = () => {
-    switch (preferences?.planType) {
+    switch (preferences.planType) {
       case "weight_loss":
         return "Weight Loss"
       case "balanced":
@@ -252,7 +252,7 @@ export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
                 <div>
                   <div className="text-sm text-gray-500">Delivery Schedule</div>
                   <div className="font-medium">
-                    {preferences?.daysPerWeek === 5 ? "5 Days (Mon-Fri)" : "7 Days (Full Week)"}
+                    {preferences.daysPerWeek === 5 ? "5 Days (Mon-Fri)" : "7 Days (Full Week)"}
                   </div>
                 </div>
               </div>
@@ -262,7 +262,7 @@ export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Meals Per Day</div>
-                  <div className="font-medium">{preferences?.mealsPerDay} meals</div>
+                  <div className="font-medium">{preferences.mealsPerDay} meals</div>
                 </div>
               </div>
             </div>
@@ -282,7 +282,7 @@ export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
         {mealsByDay.map((dayMeals, index) => (
           <TabsContent key={index} value={dayMeals.day.toLowerCase()}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {dayMeals.meals.slice(0, preferences?.mealsPerDay).map((meal, mealIndex) => (
+              {dayMeals.meals.slice(0, preferences.mealsPerDay).map((meal, mealIndex) => (
                 <Card key={mealIndex} className="overflow-hidden">
                   <div className="h-48 overflow-hidden">
                     <img

@@ -5,16 +5,7 @@ import { cookies } from "next/headers"
 import { getServerSession } from "next-auth/next"
 import { db, mealPreferences } from "@/lib/db"
 import { eq } from "drizzle-orm"
-
-export type MealPreferences = {
-  planType: string
-  calorieTarget: number
-  mealsPerDay: number
-  daysPerWeek: number
-  dietaryPreferences: string[]
-  allergies: string[]
-  excludedIngredients: string[]
-}
+import type { MealPreferences } from "./types"
 
 export async function saveMealPreferences(preferences: MealPreferences) {
   try {
@@ -93,6 +84,8 @@ export async function saveMealPreferences(preferences: MealPreferences) {
   }
 }
 
+// This function is only used by server components and should not be exported
+// from this file to avoid client components trying to import it
 export async function getMealPreferencesFromCookie(): Promise<MealPreferences | null> {
   const preferencesJson = cookies().get("meal_preferences")?.value
   if (!preferencesJson) {
