@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { sendOrderConfirmationEmail } from "@/lib/email-utils"
 
 // Map meal plan IDs to database plan IDs
 const getPlanDatabaseId = (planId: string): number => {
@@ -236,6 +237,24 @@ export async function POST(request: Request) {
     } catch (clearError) {
       console.log("Failed to clear cart:", clearError)
       // Continue anyway
+    }
+
+    // Send order confirmation email (don't block order if email fails)
+    try {
+      const orderData = {
+        orderId,
+        customerName: `${body.customer.firstName} ${body.customer.lastName}`,
+        customerEmail: body.customer.email,
+        totalAmount: totalAmount,
+        deliveryAddress,
+        deliveryDate,
+        items: cartItems,
+        mealPlan: mealPlan,
+      }
+      await sendOrderConfirmationEmail(orderData)
+      console.log("Order confirmation email sent successfully")
+    } catch (emailError) {
+      console.log("Order confirmation email failed (non-blocking):", emailError)
     }
 
     console.log("=== ORDER CREATION SUCCESS ===")

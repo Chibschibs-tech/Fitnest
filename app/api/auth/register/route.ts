@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createUser, createSession, initTables } from "@/lib/simple-auth"
+import { sendWelcomeEmail } from "@/lib/email-utils"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +22,14 @@ export async function POST(request: NextRequest) {
 
     if (!sessionId) {
       return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
+    }
+
+    // Send welcome email (don't block registration if email fails)
+    try {
+      await sendWelcomeEmail(user.email, user.name)
+      console.log("Welcome email sent successfully")
+    } catch (emailError) {
+      console.log("Welcome email failed (non-blocking):", emailError)
     }
 
     const response = NextResponse.json({

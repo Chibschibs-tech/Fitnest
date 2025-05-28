@@ -5,6 +5,11 @@ function getEnv(key: string, defaultValue = ""): string {
   return process.env[key] || defaultValue
 }
 
+// Fitnest brand colors
+const FITNEST_GREEN = "#00A651" // Fitnest brand green
+const FITNEST_DARK_GREEN = "#008c44" // Darker shade for buttons hover
+const FITNEST_LIGHT_GREEN = "#e6f7ee" // Light green for backgrounds
+
 // Create reusable transporter object using environment variables
 const createTransporter = () => {
   const host = getEnv("EMAIL_SERVER_HOST")
@@ -81,7 +86,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
       subject: "Welcome to Fitnest.ma!",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #4CAF50; padding: 20px; text-align: center;">
+          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
             <h1 style="color: white; margin: 0;">Welcome to Fitnest.ma</h1>
           </div>
           <div style="padding: 20px; border: 1px solid #eee;">
@@ -96,11 +101,11 @@ export async function sendWelcomeEmail(email: string, name: string) {
             </ul>
             <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
             <div style="text-align: center; margin-top: 30px;">
-              <a href="https://fitnest.ma/meal-plans" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Explore Meal Plans</a>
+              <a href="https://fitnest.ma/meal-plans" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Explore Meal Plans</a>
             </div>
             <p style="margin-top: 30px;">Best regards,<br>The Fitnest.ma Team</p>
           </div>
-          <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
             <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
             <p>If you have any questions, please contact us at support@fitnest.ma</p>
           </div>
@@ -167,21 +172,176 @@ The Fitnest.ma Team
   }
 }
 
-// Rest of email functions remain similar but with the same improvements...
-// To keep the response concise, I'm only showing the welcome email function with all improvements
-// Other functions would follow the same pattern with appropriate templates
-
 export async function sendOrderConfirmationEmail(orderData: any) {
-  // Would be implemented with the same improvements as sendWelcomeEmail
-  // Including proper error handling, retries, and both HTML and text versions
   try {
+    const { email, name, order_id, total_amount, items = [], delivery_address } = orderData
+
+    if (!email) {
+      console.error("Cannot send order confirmation: missing email address")
+      return { success: false, error: "Missing email address" }
+    }
+
+    // Create and verify transporter
     const transporter = createTransporter()
     await verifyTransporter(transporter)
 
-    // Rest of function implementation (similar to original but with improvements)
-    // ...
+    const firstName = name?.split(" ")[0] || "Customer"
+    const formattedTotal = (total_amount / 100).toFixed(2)
 
-    return { success: true } // Simplified return for brevity
+    // Format items for display
+    let itemsHtml = ""
+    let itemsText = ""
+
+    if (Array.isArray(items) && items.length > 0) {
+      itemsHtml = items
+        .map((item) => {
+          const price = item.price ? (item.price / 100).toFixed(2) : "0.00"
+          return `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name || "Product"}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 1}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${price} MAD</td>
+          </tr>
+        `
+        })
+        .join("")
+
+      itemsText = items
+        .map((item) => {
+          const price = item.price ? (item.price / 100).toFixed(2) : "0.00"
+          return `${item.name || "Product"} x ${item.quantity || 1} - ${price} MAD`
+        })
+        .join("\n")
+    } else if (orderData.plan_id) {
+      // Handle meal plan orders
+      itemsHtml = `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">Meal Plan Subscription</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">1</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${formattedTotal} MAD</td>
+        </tr>
+      `
+      itemsText = `Meal Plan Subscription - ${formattedTotal} MAD`
+    }
+
+    const mailOptions = {
+      from: getEnv("EMAIL_FROM"),
+      to: email,
+      subject: `Fitnest.ma Order Confirmation #${order_id}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Order Confirmation</h1>
+          </div>
+          <div style="padding: 20px; border: 1px solid #eee;">
+            <p>Hello ${firstName},</p>
+            <p>Thank you for your order! We've received your payment and are processing your order now.</p>
+            
+            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h2 style="margin-top: 0;">Order Summary</h2>
+              <p><strong>Order ID:</strong> ${order_id}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+              <p><strong>Total:</strong> ${formattedTotal} MAD</p>
+            </div>
+            
+            <h3>Items</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #f5f5f5;">
+                  <th style="padding: 10px; text-align: left;">Item</th>
+                  <th style="padding: 10px; text-align: center;">Qty</th>
+                  <th style="padding: 10px; text-align: right;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total:</td>
+                  <td style="padding: 10px; text-align: right; font-weight: bold;">${formattedTotal} MAD</td>
+                </tr>
+              </tfoot>
+            </table>
+            
+            ${
+              delivery_address
+                ? `
+            <h3>Delivery Address</h3>
+            <p>${delivery_address}</p>
+            `
+                : ""
+            }
+            
+            <p>We'll notify you when your order ships. You can also check your order status anytime by visiting your account dashboard.</p>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://fitnest.ma/orders" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Your Orders</a>
+            </div>
+            
+            <p style="margin-top: 30px;">Thank you for choosing Fitnest.ma!</p>
+            <p>Best regards,<br>The Fitnest.ma Team</p>
+          </div>
+          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
+            <p>If you have any questions, please contact us at support@fitnest.ma</p>
+          </div>
+        </div>
+      `,
+      text: `Order Confirmation #${order_id}
+      
+Hello ${firstName},
+
+Thank you for your order! We've received your payment and are processing your order now.
+
+ORDER SUMMARY
+Order ID: ${order_id}
+Date: ${new Date().toLocaleDateString()}
+Total: ${formattedTotal} MAD
+
+ITEMS
+${itemsText}
+
+${
+  delivery_address
+    ? `DELIVERY ADDRESS
+${delivery_address}
+
+`
+    : ""
+}
+We'll notify you when your order ships. You can also check your order status anytime by visiting your account dashboard.
+
+Thank you for choosing Fitnest.ma!
+
+Best regards,
+The Fitnest.ma Team
+
+© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
+`,
+    }
+
+    // Implement retry mechanism for transient errors
+    let retries = 0
+    const maxRetries = 3
+
+    while (retries < maxRetries) {
+      try {
+        const info = await transporter.sendMail(mailOptions)
+        console.log(`Order confirmation email sent to ${email}: ${info.messageId}`)
+        return { success: true, messageId: info.messageId }
+      } catch (error) {
+        retries++
+        if (retries >= maxRetries) {
+          throw error
+        }
+        console.log(`Retrying email send (${retries}/${maxRetries}) after error:`, error)
+        // Wait before retry with exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+      }
+    }
+
+    return { success: false, error: "Failed after maximum retries" }
   } catch (error) {
     console.error("Error sending order confirmation email:", error)
     return {
@@ -193,16 +353,118 @@ export async function sendOrderConfirmationEmail(orderData: any) {
 }
 
 export async function sendDeliveryUpdateEmail(orderData: any) {
-  // Would be implemented with the same improvements as sendWelcomeEmail
-  // Including proper error handling, retries, and both HTML and text versions
   try {
+    const { email, name, order_id, status } = orderData
+
+    if (!email || !order_id || !status) {
+      console.error("Cannot send delivery update: missing required fields")
+      return { success: false, error: "Missing required fields" }
+    }
+
+    // Create and verify transporter
     const transporter = createTransporter()
     await verifyTransporter(transporter)
 
-    // Rest of function implementation (similar to original but with improvements)
-    // ...
+    const firstName = name?.split(" ")[0] || "Customer"
 
-    return { success: true } // Simplified return for brevity
+    // Customize message based on status
+    let statusMessage = ""
+    let statusTitle = ""
+
+    switch (status.toLowerCase()) {
+      case "shipped":
+        statusTitle = "Your Order Has Shipped!"
+        statusMessage = "Great news! Your order is on its way to you."
+        break
+      case "delivered":
+        statusTitle = "Your Order Has Been Delivered!"
+        statusMessage = "Your order has been delivered. We hope you enjoy it!"
+        break
+      case "processing":
+        statusTitle = "Your Order is Being Prepared"
+        statusMessage = "We're currently preparing your order and will ship it soon."
+        break
+      default:
+        statusTitle = "Order Status Update"
+        statusMessage = `Your order status has been updated to: ${status}`
+    }
+
+    const mailOptions = {
+      from: getEnv("EMAIL_FROM"),
+      to: email,
+      subject: `${statusTitle} - Fitnest.ma Order #${order_id}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">${statusTitle}</h1>
+          </div>
+          <div style="padding: 20px; border: 1px solid #eee;">
+            <p>Hello ${firstName},</p>
+            <p>${statusMessage}</p>
+            
+            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h2 style="margin-top: 0;">Order Details</h2>
+              <p><strong>Order ID:</strong> ${order_id}</p>
+              <p><strong>Status:</strong> ${status}</p>
+              <p><strong>Updated:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://fitnest.ma/orders" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Track Your Order</a>
+            </div>
+            
+            <p style="margin-top: 30px;">Thank you for choosing Fitnest.ma!</p>
+            <p>Best regards,<br>The Fitnest.ma Team</p>
+          </div>
+          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
+            <p>If you have any questions, please contact us at support@fitnest.ma</p>
+          </div>
+        </div>
+      `,
+      text: `${statusTitle} - Order #${order_id}
+      
+Hello ${firstName},
+
+${statusMessage}
+
+ORDER DETAILS
+Order ID: ${order_id}
+Status: ${status}
+Updated: ${new Date().toLocaleDateString()}
+
+You can track your order at: https://fitnest.ma/orders
+
+Thank you for choosing Fitnest.ma!
+
+Best regards,
+The Fitnest.ma Team
+
+© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
+`,
+    }
+
+    // Implement retry mechanism for transient errors
+    let retries = 0
+    const maxRetries = 3
+
+    while (retries < maxRetries) {
+      try {
+        const info = await transporter.sendMail(mailOptions)
+        console.log(`Delivery update email sent to ${email}: ${info.messageId}`)
+        return { success: true, messageId: info.messageId }
+      } catch (error) {
+        retries++
+        if (retries >= maxRetries) {
+          throw error
+        }
+        console.log(`Retrying email send (${retries}/${maxRetries}) after error:`, error)
+        // Wait before retry with exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+      }
+    }
+
+    return { success: false, error: "Failed after maximum retries" }
   } catch (error) {
     console.error("Error sending delivery update email:", error)
     return {
