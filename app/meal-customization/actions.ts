@@ -1,11 +1,13 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
 import { getServerSession } from "next-auth/next"
 import { db, mealPreferences } from "@/lib/db"
 import { eq } from "drizzle-orm"
 import type { MealPreferences } from "./types"
+
+// Remove the direct import of cookies from next/headers
+// import { cookies } from "next/headers"
 
 export async function saveMealPreferences(preferences: MealPreferences) {
   try {
@@ -13,18 +15,16 @@ export async function saveMealPreferences(preferences: MealPreferences) {
 
     // For non-authenticated users, save to cookies
     if (!session || !session.user) {
-      const preferencesJson = JSON.stringify(preferences)
+      // Instead of using cookies() directly, use a cookie-safe approach
+      // that doesn't require next/headers in the client component
 
-      // Save to cookies
-      cookies().set("meal_preferences", preferencesJson, {
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: "/",
-      })
+      // Store in localStorage on the client side instead
+      // The client will handle this part
 
       // Revalidate the meal plan preview page
       revalidatePath("/meal-plans/preview")
 
-      return { success: true }
+      return { success: true, isGuest: true, preferences }
     }
 
     // For authenticated users, save to database
