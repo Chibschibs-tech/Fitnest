@@ -8,30 +8,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import type { MealPreferences } from "@/app/meal-customization/actions"
+import { getMealPreferencesFromCookie } from "@/app/meal-customization/actions"
 
 export default function MealPlanPreviewPage() {
   const [preferences, setPreferences] = useState<MealPreferences | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // In a real application, you would fetch this from the server
-    // For now, we'll retrieve it from the cookie
-    const getCookieValue = (name: string) => {
-      const value = `; ${document.cookie}`
-      const parts = value.split(`; ${name}=`)
-      if (parts.length === 2) return parts.pop()?.split(";").shift()
-      return null
+    const loadPreferences = async () => {
+      setLoading(true)
+      const prefs = await getMealPreferencesFromCookie()
+      setPreferences(prefs)
+      setLoading(false)
     }
 
-    const preferencesJson = getCookieValue("meal_preferences")
-    if (preferencesJson) {
-      try {
-        setPreferences(JSON.parse(preferencesJson))
-      } catch (e) {
-        console.error("Error parsing preferences:", e)
-      }
-    }
-    setLoading(false)
+    loadPreferences()
   }, [])
 
   // Sample meal data - in a real app, this would be generated based on preferences
