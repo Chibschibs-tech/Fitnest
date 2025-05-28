@@ -1,4 +1,4 @@
-import { getMealPreferencesFromCookie } from "@/app/meal-customization/server-actions"
+import { getMealPreferencesFromCookie } from "@/app/meal-customization/server-utils"
 import { MealPlanPreview } from "@/components/meal-plan-preview"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"

@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { saveMealPreferences } from "./actions"
+import type { MealPreferences } from "./types"
 
 export default function MealCustomizationPage() {
   const router = useRouter()
@@ -72,7 +73,7 @@ export default function MealCustomizationPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      const preferences = {
+      const preferences: MealPreferences = {
         planType: selectedPlan,
         calorieTarget: calorieRange[0],
         mealsPerDay: Number.parseInt(mealFrequency),
