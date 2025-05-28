@@ -1,6 +1,3 @@
-"use client"
-
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, ArrowRight, Calendar, Clock, Utensils } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,21 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import type { MealPreferences } from "@/app/meal-customization/actions"
 import { getMealPreferencesFromCookie } from "@/app/meal-customization/actions"
 
-export default function MealPlanPreviewPage() {
-  const [preferences, setPreferences] = useState<MealPreferences | null>(null)
-  const [loading, setLoading] = useState(true)
+interface MealPlanPreviewPageProps {
+  preferences: MealPreferences | null
+}
 
-  useEffect(() => {
-    const loadPreferences = async () => {
-      setLoading(true)
-      const prefs = await getMealPreferencesFromCookie()
-      setPreferences(prefs)
-      setLoading(false)
-    }
-
-    loadPreferences()
-  }, [])
-
+export default async function MealPlanPreviewPage({ preferences }: MealPlanPreviewPageProps) {
   // Sample meal data - in a real app, this would be generated based on preferences
   const mealsByDay = [
     {
@@ -204,22 +191,6 @@ export default function MealPlanPreviewPage() {
     },
   ]
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-12 md:px-6 text-center">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mx-auto mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-12"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-gray-100 rounded-lg p-6 h-64"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (!preferences) {
     return (
       <div className="container mx-auto px-4 py-12 md:px-6 text-center">
@@ -385,4 +356,16 @@ export default function MealPlanPreviewPage() {
       </div>
     </div>
   )
+}
+
+export async function generateMetadata() {
+  const preferences = await getMealPreferencesFromCookie()
+  return {
+    title: preferences ? "Meal Plan Preview" : "No Meal Plan",
+  }
+}
+
+export default async function Page() {
+  const preferences = await getMealPreferencesFromCookie()
+  return <MealPlanPreviewPage preferences={preferences} />;
 }
