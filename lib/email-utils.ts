@@ -195,7 +195,7 @@ export async function sendOrderConfirmationEmail(orderData: any) {
     if (Array.isArray(items) && items.length > 0) {
       itemsHtml = items
         .map((item) => {
-          const price = item.price ? (item.price / 100).toFixed(2) : "0.00"
+          const price = item.price ? item.price.toFixed(2) : "0.00"
           return `
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name || "Product"}</td>
@@ -208,7 +208,7 @@ export async function sendOrderConfirmationEmail(orderData: any) {
 
       itemsText = items
         .map((item) => {
-          const price = item.price ? (item.price / 100).toFixed(2) : "0.00"
+          const price = item.price ? item.price.toFixed(2) : "0.00"
           return `${item.name || "Product"} x ${item.quantity || 1} - ${price} MAD`
         })
         .join("\n")
