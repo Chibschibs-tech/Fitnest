@@ -52,6 +52,7 @@
     "@types/better-sqlite3": "latest",
     "@types/pg": "latest",
     "@types/sql.js": "latest",
+    "@upstash/redis": "latest",
     "@vercel/blob": "latest",
     "@vercel/postgres": "latest",
     "@xata.io/client": "latest",

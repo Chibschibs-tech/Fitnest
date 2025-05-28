@@ -6,9 +6,9 @@ function getEnv(key: string, defaultValue = ""): string {
 }
 
 // Fitnest brand colors
-const FITNEST_GREEN = "#00A651" // Fitnest brand green
-const FITNEST_DARK_GREEN = "#008c44" // Darker shade for buttons hover
-const FITNEST_LIGHT_GREEN = "#e6f7ee" // Light green for backgrounds
+const FITNEST_GREEN = "#015033" // Fitnest brand green
+const FITNEST_DARK_GREEN = "#013d28" // Darker shade for buttons hover
+const FITNEST_LIGHT_GREEN = "#e6f2ed" // Light green for backgrounds
 
 // Create reusable transporter object using environment variables
 const createTransporter = () => {
@@ -124,7 +124,7 @@ With your new account, you can:
 - Track your orders and deliveries
 - Customize your meal preferences
 
-If you have any questions or need assistance, please don't hesitate to contact our support team.
+If you have any questions or need assistance, please contact our support team.
 
 Best regards,
 The Fitnest.ma Team
@@ -174,19 +174,19 @@ The Fitnest.ma Team
 
 export async function sendOrderConfirmationEmail(orderData: any) {
   try {
-    const { email, name, order_id, total_amount, items = [], delivery_address } = orderData
+    const { customerName, customerEmail, orderId, totalAmount, items = [], deliveryAddress } = orderData
 
-    if (!email) {
-      console.error("Cannot send order confirmation: missing email address")
-      return { success: false, error: "Missing email address" }
+    if (!customerEmail || !orderId) {
+      console.error("Cannot send order confirmation: missing required fields")
+      return { success: false, error: "Missing required fields" }
     }
 
     // Create and verify transporter
     const transporter = createTransporter()
     await verifyTransporter(transporter)
 
-    const firstName = name?.split(" ")[0] || "Customer"
-    const formattedTotal = (total_amount / 100).toFixed(2)
+    const firstName = customerName?.split(" ")[0] || "Customer"
+    const formattedTotal = (totalAmount / 100).toFixed(2)
 
     // Format items for display
     let itemsHtml = ""
@@ -212,7 +212,7 @@ export async function sendOrderConfirmationEmail(orderData: any) {
           return `${item.name || "Product"} x ${item.quantity || 1} - ${price} MAD`
         })
         .join("\n")
-    } else if (orderData.plan_id) {
+    } else {
       // Handle meal plan orders
       itemsHtml = `
         <tr>
@@ -226,8 +226,8 @@ export async function sendOrderConfirmationEmail(orderData: any) {
 
     const mailOptions = {
       from: getEnv("EMAIL_FROM"),
-      to: email,
-      subject: `Fitnest.ma Order Confirmation #${order_id}`,
+      to: customerEmail,
+      subject: `Fitnest.ma Order Confirmation #${orderId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
@@ -239,7 +239,7 @@ export async function sendOrderConfirmationEmail(orderData: any) {
             
             <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <h2 style="margin-top: 0;">Order Summary</h2>
-              <p><strong>Order ID:</strong> ${order_id}</p>
+              <p><strong>Order ID:</strong> ${orderId}</p>
               <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
               <p><strong>Total:</strong> ${formattedTotal} MAD</p>
             </div>
@@ -265,10 +265,10 @@ export async function sendOrderConfirmationEmail(orderData: any) {
             </table>
             
             ${
-              delivery_address
+              deliveryAddress
                 ? `
             <h3>Delivery Address</h3>
-            <p>${delivery_address}</p>
+            <p>${deliveryAddress}</p>
             `
                 : ""
             }
@@ -288,14 +288,14 @@ export async function sendOrderConfirmationEmail(orderData: any) {
           </div>
         </div>
       `,
-      text: `Order Confirmation #${order_id}
+      text: `Order Confirmation #${orderId}
       
 Hello ${firstName},
 
 Thank you for your order! We've received your payment and are processing your order now.
 
 ORDER SUMMARY
-Order ID: ${order_id}
+Order ID: ${orderId}
 Date: ${new Date().toLocaleDateString()}
 Total: ${formattedTotal} MAD
 
@@ -303,9 +303,9 @@ ITEMS
 ${itemsText}
 
 ${
-  delivery_address
+  deliveryAddress
     ? `DELIVERY ADDRESS
-${delivery_address}
+${deliveryAddress}
 
 `
     : ""
@@ -328,7 +328,7 @@ The Fitnest.ma Team
     while (retries < maxRetries) {
       try {
         const info = await transporter.sendMail(mailOptions)
-        console.log(`Order confirmation email sent to ${email}: ${info.messageId}`)
+        console.log(`Order confirmation email sent to ${customerEmail}: ${info.messageId}`)
         return { success: true, messageId: info.messageId }
       } catch (error) {
         retries++
@@ -354,9 +354,9 @@ The Fitnest.ma Team
 
 export async function sendDeliveryUpdateEmail(orderData: any) {
   try {
-    const { email, name, order_id, status } = orderData
+    const { email, name, orderId, status } = orderData
 
-    if (!email || !order_id || !status) {
+    if (!email || !orderId || !status) {
       console.error("Cannot send delivery update: missing required fields")
       return { success: false, error: "Missing required fields" }
     }
@@ -392,7 +392,7 @@ export async function sendDeliveryUpdateEmail(orderData: any) {
     const mailOptions = {
       from: getEnv("EMAIL_FROM"),
       to: email,
-      subject: `${statusTitle} - Fitnest.ma Order #${order_id}`,
+      subject: `${statusTitle} - Fitnest.ma Order #${orderId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
@@ -404,7 +404,7 @@ export async function sendDeliveryUpdateEmail(orderData: any) {
             
             <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <h2 style="margin-top: 0;">Order Details</h2>
-              <p><strong>Order ID:</strong> ${order_id}</p>
+              <p><strong>Order ID:</strong> ${orderId}</p>
               <p><strong>Status:</strong> ${status}</p>
               <p><strong>Updated:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
@@ -422,14 +422,14 @@ export async function sendDeliveryUpdateEmail(orderData: any) {
           </div>
         </div>
       `,
-      text: `${statusTitle} - Order #${order_id}
+      text: `${statusTitle} - Order #${orderId}
       
 Hello ${firstName},
 
 ${statusMessage}
 
 ORDER DETAILS
-Order ID: ${order_id}
+Order ID: ${orderId}
 Status: ${status}
 Updated: ${new Date().toLocaleDateString()}
 
@@ -493,7 +493,7 @@ export async function checkEmailConfig() {
           port: !port,
           user: !user,
           password: !pass,
-          from: !from,
+          from: from,
         },
       }
     }

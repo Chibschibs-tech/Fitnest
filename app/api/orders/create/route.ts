@@ -50,7 +50,7 @@ export async function POST(request: Request) {
               ${tempPassword},
               'user'
             )
-            RETURNING id
+            RETURNING id, name, email
           `
           userId = newUser[0].id
           console.log("Created new user:", userId)
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
               ${body.customer.email}, 
               'user'
             )
-            RETURNING id
+            RETURNING id, name, email
           `
           userId = newUser[0].id
           console.log("Created new user without password:", userId)
@@ -124,8 +124,8 @@ export async function POST(request: Request) {
     let planId = 1 // Default plan ID
 
     if (mealPlan) {
-      mealPlanPrice = mealPlan.planPrice || mealPlan.price || 0
       planId = getPlanDatabaseId(mealPlan.planId) // Use the mapping function
+      mealPlanPrice = mealPlan.planPrice || mealPlan.price || 0
       console.log("Meal plan data:", mealPlan)
       console.log("Meal plan price:", mealPlanPrice)
       console.log("Plan ID (mapped):", planId)
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
           ${now.toISOString()},
           ${now.toISOString()}
         )
-        RETURNING id
+        RETURNING id, user_id, total_amount, delivery_address, delivery_date, status
       `
     } catch (orderError) {
       console.log("Order creation failed:", orderError)
@@ -241,17 +241,16 @@ export async function POST(request: Request) {
 
     // Send order confirmation email (don't block order if email fails)
     try {
-      const orderData = {
-        orderId,
+      const orderDataForEmail = {
+        orderId: orderId,
         customerName: `${body.customer.firstName} ${body.customer.lastName}`,
         customerEmail: body.customer.email,
         totalAmount: totalAmount,
-        deliveryAddress,
-        deliveryDate,
+        deliveryAddress: deliveryAddress,
+        deliveryDate: deliveryDate.toISOString(),
         items: cartItems,
-        mealPlan: mealPlan,
       }
-      await sendOrderConfirmationEmail(orderData)
+      await sendOrderConfirmationEmail(orderDataForEmail)
       console.log("Order confirmation email sent successfully")
     } catch (emailError) {
       console.log("Order confirmation email failed (non-blocking):", emailError)

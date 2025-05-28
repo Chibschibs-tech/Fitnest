@@ -24,14 +24,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
     }
 
-    // Send welcome email (don't block registration if email fails)
-    try {
-      await sendWelcomeEmail(user.email, user.name)
-      console.log("Welcome email sent successfully")
-    } catch (emailError) {
-      console.log("Welcome email failed (non-blocking):", emailError)
-    }
-
     const response = NextResponse.json({
       success: true,
       user: {
@@ -48,6 +40,14 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
     })
+
+    // Send welcome email (don't block registration if email fails)
+    try {
+      await sendWelcomeEmail(email, name)
+      console.log("Welcome email sent successfully")
+    } catch (emailError) {
+      console.log("Welcome email failed (non-blocking):", emailError)
+    }
 
     return response
   } catch (error) {
