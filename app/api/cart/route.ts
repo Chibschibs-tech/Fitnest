@@ -28,7 +28,6 @@ export async function GET() {
         c.id as cart_id,
         c.product_id,
         c.quantity,
-        p.id as product_id_actual,
         p.name,
         p.price,
         p.saleprice,
