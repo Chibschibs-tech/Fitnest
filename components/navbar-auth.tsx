@@ -30,6 +30,17 @@ function NavbarAuth({ isMobile = false, onMenuClose }: NavbarAuthProps) {
     }
 
     checkSession()
+
+    // Listen for login events to refresh the session
+    const handleLoginSuccess = () => {
+      checkSession()
+    }
+
+    window.addEventListener("loginSuccess", handleLoginSuccess)
+
+    return () => {
+      window.removeEventListener("loginSuccess", handleLoginSuccess)
+    }
   }, [])
 
   const handleLogout = async () => {
