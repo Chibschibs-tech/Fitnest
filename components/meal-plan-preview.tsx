@@ -1,18 +1,18 @@
-import Link from "next/link"
-import { ArrowLeft, ArrowRight, Calendar, Clock, Utensils } from "lucide-react"
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import type { MealPreferences } from "@/app/meal-customization/actions"
-import { getMealPreferencesFromCookie } from "@/app/meal-customization/actions"
+import { ArrowLeft, ArrowRight, Calendar, Clock, Utensils } from "lucide-react"
+import Link from "next/link"
 
-interface MealPlanPreviewPageProps {
+interface MealPlanPreviewProps {
   preferences: MealPreferences | null
 }
 
-// Create a client component to render the meal plan preview
-const MealPlanPreview = ({ preferences }: MealPlanPreviewPageProps) => {
+export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
   // Sample meal data - in a real app, this would be generated based on preferences
   const mealsByDay = [
     {
@@ -345,17 +345,4 @@ const MealPlanPreview = ({ preferences }: MealPlanPreviewPageProps) => {
       </div>
     </div>
   )
-}
-
-export async function generateMetadata() {
-  const preferences = await getMealPreferencesFromCookie()
-  return {
-    title: preferences ? "Meal Plan Preview" : "No Meal Plan",
-  }
-}
-
-export default async function Page() {
-  const preferences = await getMealPreferencesFromCookie()
-
-  return <MealPlanPreview preferences={preferences} />
 }
