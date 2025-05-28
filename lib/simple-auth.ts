@@ -1,6 +1,8 @@
 import { neon } from "@neondatabase/serverless"
 import crypto from "crypto"
 import { v4 as uuidv4 } from "uuid"
+import { cookies } from "next/headers"
+import { decrypt } from "@/lib/jwt"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -198,4 +200,57 @@ export async function ensureAdminUser() {
     console.error("Error ensuring admin user:", error)
     return false
   }
+}
+
+// Helper function to get user ID from either NextAuth or custom JWT
+async function getUserId() {
+  const cookieStore = cookies()
+  let userId = null
+
+  // 1. Try NextAuth session token
+  const nextAuthToken = cookieStore.get("next-auth.session-token")?.value
+  if (nextAuthToken) {
+    try {
+      const sessions = await sql`
+        SELECT * FROM sessions WHERE id = ${nextAuthToken} AND expires_at > NOW() LIMIT 1
+      `
+      if (sessions.length > 0) {
+        userId = sessions[0].user_id
+        console.log("Authenticated via NextAuth session token:", userId)
+        return userId
+      } else {
+        console.warn("NextAuth session token invalid or expired")
+      }
+    } catch (nextAuthError) {
+      console.error("NextAuth session token check failed:", nextAuthError)
+    }
+  }
+
+  // 2. Try custom JWT
+  const jwtToken = cookieStore.get("session")?.value
+  if (jwtToken) {
+    try {
+      const payload = await decrypt(jwtToken)
+      if (payload && payload.userId) {
+        const users = await sql`
+          SELECT * FROM users WHERE id = ${payload.userId} LIMIT 1
+        `
+        if (users.length > 0) {
+          userId = users[0].id
+          console.log("Authenticated via custom JWT:", userId)
+          return userId
+        } else {
+          console.warn("Custom JWT user ID not found in database")
+        }
+      } else {
+        console.warn("Custom JWT payload invalid")
+      }
+    } catch (jwtError) {
+      console.error("Custom JWT decryption error:", jwtError)
+    }
+  }
+
+  // 3. If all else fails, log and throw an error
+  console.error("Authentication failed: No valid session found")
+  throw new Error("User not authenticated")
 }
