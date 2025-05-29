@@ -13,19 +13,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "First name, last name, and email are required" }, { status: 400 })
     }
 
-    // Check if email already exists in waitlist
-    const existingUser = await sql`
-      SELECT id FROM waitlist WHERE email = ${email}
-    `
+    // Check if email already exists in waitlist - with better error handling
+    try {
+      const existingUser = await sql`
+        SELECT id FROM waitlist WHERE email = ${email}
+      `
 
-    if (existingUser.length > 0) {
-      return NextResponse.json(
-        {
-          error: "This email is already on our waitlist. Check your email for updates!",
-          alreadyExists: true,
-        },
-        { status: 409 },
-      )
+      if (existingUser && existingUser.length > 0) {
+        return NextResponse.json(
+          {
+            error: "This email is already on our waitlist. Check your email for updates!",
+            alreadyExists: true,
+          },
+          { status: 409 },
+        )
+      }
+    } catch (checkError) {
+      console.error("Error checking for existing email:", checkError)
+      // Continue with the signup process even if the check fails
+      // This prevents false "already exists" errors
     }
 
     // Insert into waitlist
@@ -65,7 +71,20 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Waitlist signup error:", error)
-    return NextResponse.json({ error: "Failed to add to waitlist" }, { status: 500 })
+
+    // Check if it's a unique constraint violation (duplicate email)
+    const errorMessage = String(error)
+    if (errorMessage.includes("duplicate key") || errorMessage.includes("unique constraint")) {
+      return NextResponse.json(
+        {
+          error: "This email is already on our waitlist. Check your email for updates!",
+          alreadyExists: true,
+        },
+        { status: 409 },
+      )
+    }
+
+    return NextResponse.json({ error: "Failed to add to waitlist. Please try again." }, { status: 500 })
   }
 }
 

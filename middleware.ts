@@ -21,6 +21,8 @@ export function middleware(request: NextRequest) {
     "/privacy",
     "/careers",
     "/checkout",
+    "/waitlist", // Add this line to make waitlist public
+    "/api/waitlist", // Add this line to make the waitlist API public
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/session",
