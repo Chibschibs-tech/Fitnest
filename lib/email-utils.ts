@@ -9,6 +9,7 @@ function getEnv(key: string, defaultValue = ""): string {
 const FITNEST_GREEN = "#015033" // Fitnest brand green
 const FITNEST_DARK_GREEN = "#013d28" // Darker shade for buttons hover
 const FITNEST_LIGHT_GREEN = "#e6f2ed" // Light green for backgrounds
+const FITNEST_ORANGE = "#e67e22" // Orange accent color
 
 // Create reusable transporter object using environment variables
 const createTransporter = () => {
@@ -164,6 +165,124 @@ The Fitnest.ma Team
     return { success: false, error: "Failed after maximum retries" }
   } catch (error) {
     console.error("Error sending welcome email:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      details: error,
+    }
+  }
+}
+
+export async function sendWaitlistConfirmationEmail(data: {
+  email: string
+  name: string
+  position: number
+  estimatedWait: number
+}) {
+  try {
+    const { email, name, position, estimatedWait } = data
+    console.log(`Attempting to send waitlist confirmation email to ${email}`)
+
+    // Create and verify transporter
+    const transporter = createTransporter()
+    await verifyTransporter(transporter)
+
+    const firstName = name.split(" ")[0]
+
+    const mailOptions = {
+      from: getEnv("EMAIL_FROM"),
+      to: email,
+      subject: "You're on the Fitnest Waitlist!",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">You're on the Waitlist!</h1>
+          </div>
+          <div style="padding: 20px; border: 1px solid #eee;">
+            <p>Hello ${firstName},</p>
+            <p>Thank you for joining the Fitnest waitlist! We're experiencing high demand and are carefully managing our capacity to ensure every customer receives the exceptional quality and service we're known for.</p>
+            
+            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h2 style="margin-top: 0; color: ${FITNEST_GREEN};">Your Waitlist Details</h2>
+              <p><strong>Position:</strong> #${position}</p>
+              <p><strong>Estimated Wait:</strong> ${estimatedWait} days</p>
+              <p><strong>Date Added:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <p>While you wait, here's what you can expect:</p>
+            <ul>
+              <li><strong>15% discount</strong> on your first month when you join</li>
+              <li><strong>Priority access</strong> to new meal options</li>
+              <li><strong>Free nutrition consultation</strong> with our experts</li>
+              <li><strong>Complimentary delivery</strong> for your first order</li>
+            </ul>
+            
+            <p>We'll notify you as soon as a spot opens up. In the meantime, feel free to explore our website to learn more about our meal plans and nutrition philosophy.</p>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://fitnest.ma/meal-plans" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Explore Meal Plans</a>
+            </div>
+            
+            <p style="margin-top: 30px;">Thank you for your patience and interest in Fitnest!</p>
+            <p>Best regards,<br>The Fitnest Team</p>
+          </div>
+          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            <p>© ${new Date().getFullYear()} Fitnest. All rights reserved.</p>
+            <p>If you have any questions, please contact us at support@fitnest.ma</p>
+          </div>
+        </div>
+      `,
+      text: `You're on the Fitnest Waitlist!
+      
+Hello ${firstName},
+
+Thank you for joining the Fitnest waitlist! We're experiencing high demand and are carefully managing our capacity to ensure every customer receives the exceptional quality and service we're known for.
+
+YOUR WAITLIST DETAILS
+Position: #${position}
+Estimated Wait: ${estimatedWait} days
+Date Added: ${new Date().toLocaleDateString()}
+
+While you wait, here's what you can expect:
+- 15% discount on your first month when you join
+- Priority access to new meal options
+- Free nutrition consultation with our experts
+- Complimentary delivery for your first order
+
+We'll notify you as soon as a spot opens up. In the meantime, feel free to explore our website to learn more about our meal plans and nutrition philosophy.
+
+Thank you for your patience and interest in Fitnest!
+
+Best regards,
+The Fitnest Team
+
+© ${new Date().getFullYear()} Fitnest. All rights reserved.
+`,
+    }
+
+    // Implement retry mechanism for transient errors
+    let retries = 0
+    const maxRetries = 3
+
+    while (retries < maxRetries) {
+      try {
+        const info = await transporter.sendMail(mailOptions)
+        console.log(`Waitlist confirmation email sent to ${email}: ${info.messageId}`)
+        return { success: true, messageId: info.messageId }
+      } catch (error) {
+        retries++
+        if (retries >= maxRetries) {
+          throw error
+        }
+        console.log(`Retrying email send (${retries}/${maxRetries}) after error:`, error)
+        // Wait before retry with exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+      }
+    }
+
+    return { success: false, error: "Failed after maximum retries" }
+  } catch (error) {
+    console.error("Error sending waitlist confirmation email:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

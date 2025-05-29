@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { sendWaitlistConfirmationEmail } from "@/lib/email-utils"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -31,7 +32,6 @@ export async function POST(request: NextRequest) {
     } catch (checkError) {
       console.error("Error checking for existing email:", checkError)
       // Continue with the signup process even if the check fails
-      // This prevents false "already exists" errors
     }
 
     // Insert into waitlist
@@ -62,12 +62,26 @@ export async function POST(request: NextRequest) {
 
     // Get the current waitlist position
     const waitlistPosition = result[0]?.position || 1
+    const estimatedWait = Math.ceil(waitlistPosition * 0.5) // Assuming 2 people per day
+
+    // Send confirmation email
+    try {
+      await sendWaitlistConfirmationEmail({
+        email,
+        name: `${firstName} ${lastName}`,
+        position: waitlistPosition,
+        estimatedWait,
+      })
+    } catch (emailError) {
+      console.error("Failed to send waitlist confirmation email:", emailError)
+      // Continue even if email fails - we don't want to lose the signup
+    }
 
     return NextResponse.json({
       success: true,
       message: "Successfully added to waitlist",
       position: waitlistPosition,
-      estimatedWait: Math.ceil(waitlistPosition * 0.5), // Assuming 2 people per day, so 0.5 days per person
+      estimatedWait: estimatedWait,
     })
   } catch (error) {
     console.error("Waitlist signup error:", error)

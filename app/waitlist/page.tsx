@@ -11,16 +11,17 @@ import { CheckCircle, Clock, Users, Star, ArrowRight } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
-// Add this at the top of the component function, after the existing imports
 export default function WaitlistPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState("")
+  const [submitStatus, setSubmitStatus] = useState<"success" | "error" | "">("")
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitMessage("")
+    setSubmitStatus("")
 
     const formData = new FormData(e.currentTarget)
     const data = {
@@ -45,22 +46,28 @@ export default function WaitlistPage() {
       const result = await response.json()
 
       if (response.ok) {
+        setSubmitStatus("success")
         setSubmitMessage(
-          `🎉 Success! You're #${result.position} on the waitlist. Estimated wait: ${result.estimatedWait} weeks.`,
+          `🎉 Success! You're #${result.position} on the waitlist. Estimated wait: ${result.estimatedWait} days. Check your email for confirmation.`,
         )
         // Reset form
         e.currentTarget.reset()
       } else if (response.status === 409) {
+        setSubmitStatus("error")
         setSubmitMessage("📧 This email is already on our waitlist. Check your email for updates!")
       } else {
+        setSubmitStatus("error")
         setSubmitMessage(`❌ ${result.error || "Something went wrong. Please try again."}`)
       }
     } catch (error) {
+      console.error("Waitlist submission error:", error)
+      setSubmitStatus("error")
       setSubmitMessage("❌ Something went wrong. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
   }
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -285,7 +292,9 @@ export default function WaitlistPage() {
 
                   {submitMessage && (
                     <div
-                      className={`p-4 rounded-lg ${submitMessage.includes("Success") ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}
+                      className={`p-4 rounded-lg ${
+                        submitStatus === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                      }`}
                     >
                       {submitMessage}
                     </div>
@@ -405,8 +414,8 @@ export default function WaitlistPage() {
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-2">How long is the current wait time?</h3>
                   <p className="text-gray-600">
-                    Current average wait time is 2-3 weeks. We'll notify you as soon as a spot opens up, and you'll have
-                    48 hours to confirm your subscription.
+                    Current average wait time is 10-15 days. We'll notify you as soon as a spot opens up, and you'll
+                    have 48 hours to confirm your subscription.
                   </p>
                 </CardContent>
               </Card>
