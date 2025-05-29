@@ -50,8 +50,10 @@ export default function WaitlistPage() {
         )
         // Reset form
         e.currentTarget.reset()
+      } else if (response.status === 409) {
+        setSubmitMessage("📧 This email is already on our waitlist. Check your email for updates!")
       } else {
-        setSubmitMessage(`❌ ${result.error}`)
+        setSubmitMessage(`❌ ${result.error || "Something went wrong. Please try again."}`)
       }
     } catch (error) {
       setSubmitMessage("❌ Something went wrong. Please try again.")
@@ -74,17 +76,17 @@ export default function WaitlistPage() {
               <span className="block text-fitnest-orange">Pausing New Orders</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto leading-relaxed">
-              The response to Fitnest.ma has been incredible! To maintain the exceptional quality and personalized
-              service our customers love, we're carefully managing our capacity.
+              The response to Fitnest has been incredible! To maintain the exceptional quality and personalized service
+              our customers love, we're carefully managing our capacity.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <div className="flex items-center gap-2 text-white/90">
                 <Users className="h-5 w-5" />
-                <span className="font-medium">2,847 people already joined</span>
+                <span className="font-medium">22 people already joined</span>
               </div>
               <div className="flex items-center gap-2 text-white/90">
                 <Clock className="h-5 w-5" />
-                <span className="font-medium">Average wait: 2-3 weeks</span>
+                <span className="font-medium">Average wait: 10-15 days</span>
               </div>
             </div>
           </div>
@@ -154,17 +156,6 @@ export default function WaitlistPage() {
                   height={600}
                   className="rounded-lg shadow-2xl"
                 />
-                <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-lg shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-fitnest-orange text-fitnest-orange" />
-                      ))}
-                    </div>
-                    <span className="text-sm font-semibold">4.9/5 Rating</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">From 1,200+ reviews</p>
-                </div>
               </div>
             </div>
           </div>

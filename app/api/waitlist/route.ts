@@ -19,7 +19,13 @@ export async function POST(request: NextRequest) {
     `
 
     if (existingUser.length > 0) {
-      return NextResponse.json({ error: "This email is already on the waitlist" }, { status: 409 })
+      return NextResponse.json(
+        {
+          error: "This email is already on our waitlist. Check your email for updates!",
+          alreadyExists: true,
+        },
+        { status: 409 },
+      )
     }
 
     // Insert into waitlist
@@ -55,7 +61,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Successfully added to waitlist",
       position: waitlistPosition,
-      estimatedWait: Math.ceil(waitlistPosition / 50), // Assuming 50 people per week
+      estimatedWait: Math.ceil(waitlistPosition * 0.5), // Assuming 2 people per day, so 0.5 days per person
     })
   } catch (error) {
     console.error("Waitlist signup error:", error)
