@@ -42,8 +42,8 @@ export default function WaitlistPage() {
     }
 
     try {
-      // Send the data to our API endpoint
-      await fetch("/api/waitlist-email", {
+      // Send the data to our simple logging endpoint
+      await fetch("/api/waitlist-simple", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +51,7 @@ export default function WaitlistPage() {
         body: JSON.stringify(data),
       })
 
-      // Always show success message regardless of the result
+      // Always show success message
       setSubmitStatus("success")
       setSubmitMessage(
         "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
@@ -75,7 +75,7 @@ export default function WaitlistPage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section with Logo */}
-      <section className="relative bg-gradient-to-br from-fitnest-green via-fitnest-green to-emerald-700 py-24 text-white overflow-hidden min-h-screen flex items-center">
+      <section className="relative bg-gradient-to-br from-fitnest-green via-fitnest-green to-emerald-700 py-16 text-white overflow-hidden min-h-screen flex items-center">
         <div className="absolute inset-0 bg-black/20"></div>
 
         {/* Animated background elements */}
@@ -85,33 +85,34 @@ export default function WaitlistPage() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Logo at the top of hero section */}
-            <div className="flex justify-center mb-12">
+            {/* Logo at the top of hero section - increased size */}
+            <div className="flex justify-center mb-8">
               <Image
                 src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
                 alt="Fitnest Logo"
-                width={220}
-                height={80}
-                className="h-auto"
+                width={280}
+                height={100}
+                className="h-auto max-w-[280px] w-auto"
+                priority
               />
             </div>
 
-            <Badge className="mb-8 bg-fitnest-orange/90 backdrop-blur-sm text-white px-6 py-3 text-base font-semibold shadow-lg animate-fade-in">
+            <Badge className="mb-6 bg-fitnest-orange/90 backdrop-blur-sm text-white px-6 py-3 text-base font-semibold shadow-lg animate-fade-in">
               🔥 High Demand Alert
             </Badge>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in-up">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight animate-fade-in-up">
               We're Temporarily
               <span className="block text-fitnest-orange drop-shadow-lg">Pausing New Orders</span>
             </h1>
 
-            <p className="text-xl md:text-2xl mb-10 text-white/95 max-w-4xl mx-auto leading-relaxed animate-fade-in-up delay-200">
+            <p className="text-lg md:text-xl mb-8 text-white/95 max-w-4xl mx-auto leading-relaxed animate-fade-in-up delay-200">
               The response to Fitnest has been incredible! To maintain the exceptional quality and personalized service
               our customers love, we're carefully managing our capacity.
             </p>
 
             {/* Call to Action Button */}
-            <div className="mb-12 animate-fade-in-up delay-300">
+            <div className="mb-8 animate-fade-in-up delay-300">
               <Button
                 onClick={scrollToForm}
                 className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
