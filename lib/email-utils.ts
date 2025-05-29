@@ -70,285 +70,72 @@ const verifyTransporter = async (transporter: nodemailer.Transporter) => {
   }
 }
 
+// Email configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_SERVER_HOST,
+  port: Number.parseInt(process.env.EMAIL_SERVER_PORT || "587"),
+  secure: process.env.EMAIL_SERVER_SECURE === "true",
+  auth: {
+    user: process.env.EMAIL_SERVER_USER,
+    pass: process.env.EMAIL_SERVER_PASSWORD,
+  },
+})
+
 export async function sendWelcomeEmail(email: string, name: string) {
   try {
-    console.log(`Attempting to send welcome email to ${email} for user ${name}`)
-
-    // Create and verify transporter
-    const transporter = createTransporter()
-    await verifyTransporter(transporter)
-
-    const firstName = name.split(" ")[0]
-
     const mailOptions = {
-      from: getEnv("EMAIL_FROM"),
+      from: process.env.EMAIL_FROM,
       to: email,
       subject: "Welcome to Fitnest.ma!",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Welcome to Fitnest.ma</h1>
-          </div>
-          <div style="padding: 20px; border: 1px solid #eee;">
-            <p>Hello ${firstName},</p>
-            <p>Thank you for joining Fitnest.ma! We're excited to have you as part of our community.</p>
-            <p>With your new account, you can:</p>
-            <ul>
-              <li>Browse and order from our meal plans</li>
-              <li>Shop for healthy products in our Express Shop</li>
-              <li>Track your orders and deliveries</li>
-              <li>Customize your meal preferences</li>
-            </ul>
-            <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="https://fitnest.ma/meal-plans" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Explore Meal Plans</a>
-            </div>
-            <p style="margin-top: 30px;">Best regards,<br>The Fitnest.ma Team</p>
-          </div>
-          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
-            <p>If you have any questions, please contact us at support@fitnest.ma</p>
-          </div>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #015033; color: white; padding: 20px;">
+          <h1 style="color: white; text-align: center;">Welcome to Fitnest.ma!</h1>
+          <p>Hi ${name},</p>
+          <p>Thank you for joining Fitnest.ma! We're excited to help you on your fitness journey with our healthy meal delivery service.</p>
+          <p>Your account has been successfully created and you can now:</p>
+          <ul>
+            <li>Browse our meal plans</li>
+            <li>Customize your preferences</li>
+            <li>Schedule deliveries</li>
+            <li>Track your orders</li>
+          </ul>
+          <p>Get started by exploring our meal plans and finding the perfect fit for your lifestyle.</p>
+          <p>Best regards,<br>The Fitnest.ma Team</p>
         </div>
       `,
-      // Add text alternative for better deliverability and accessibility
-      text: `Welcome to Fitnest.ma!
-      
-Hello ${firstName},
-
-Thank you for joining Fitnest.ma! We're excited to have you as part of our community.
-
-With your new account, you can:
-- Browse and order from our meal plans
-- Shop for healthy products in our Express Shop
-- Track your orders and deliveries
-- Customize your meal preferences
-
-If you have any questions or need assistance, please contact our support team.
-
-Best regards,
-The Fitnest.ma Team
-
-© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
-`,
     }
 
-    console.log("Sending welcome email with options:", {
-      from: mailOptions.from,
-      to: mailOptions.to,
-      subject: mailOptions.subject,
-    })
-
-    // Implement retry mechanism for transient errors
-    let retries = 0
-    const maxRetries = 3
-
-    while (retries < maxRetries) {
-      try {
-        const info = await transporter.sendMail(mailOptions)
-        console.log(`Welcome email sent to ${email}: ${info.messageId}`)
-        console.log("Full email sending response:", info)
-        return { success: true, messageId: info.messageId, response: info.response }
-      } catch (error) {
-        retries++
-        if (retries >= maxRetries) {
-          throw error
-        }
-        console.log(`Retrying email send (${retries}/${maxRetries}) after error:`, error)
-        // Wait before retry with exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
-      }
-    }
-
-    // This should not be reached due to the throw in the catch block above
-    return { success: false, error: "Failed after maximum retries" }
+    await transporter.sendMail(mailOptions)
+    return { success: true }
   } catch (error) {
     console.error("Error sending welcome email:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      details: error,
-    }
+    return { success: false, error: error.message }
   }
 }
 
-export async function sendOrderConfirmationEmail(orderData: any) {
+export async function sendOrderConfirmationEmail(email: string, orderDetails: any) {
   try {
-    const { customerName, customerEmail, orderId, totalAmount, items = [], deliveryAddress } = orderData
-
-    if (!customerEmail || !orderId) {
-      console.error("Cannot send order confirmation: missing required fields")
-      return { success: false, error: "Missing required fields" }
-    }
-
-    // Create and verify transporter
-    const transporter = createTransporter()
-    await verifyTransporter(transporter)
-
-    const firstName = customerName?.split(" ")[0] || "Customer"
-    const formattedTotal = (totalAmount / 100).toFixed(2)
-
-    // Format items for display
-    let itemsHtml = ""
-    let itemsText = ""
-
-    if (Array.isArray(items) && items.length > 0) {
-      itemsHtml = items
-        .map((item) => {
-          const price = item.price ? item.price.toFixed(2) : "0.00"
-          return `
-          <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name || "Product"}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 1}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${price} MAD</td>
-          </tr>
-        `
-        })
-        .join("")
-
-      itemsText = items
-        .map((item) => {
-          const price = item.price ? item.price.toFixed(2) : "0.00"
-          return `${item.name || "Product"} x ${item.quantity || 1} - ${price} MAD`
-        })
-        .join("\n")
-    } else {
-      // Handle meal plan orders
-      itemsHtml = `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">Meal Plan Subscription</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">1</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${formattedTotal} MAD</td>
-        </tr>
-      `
-      itemsText = `Meal Plan Subscription - ${formattedTotal} MAD`
-    }
-
     const mailOptions = {
-      from: getEnv("EMAIL_FROM"),
-      to: customerEmail,
-      subject: `Fitnest.ma Order Confirmation #${orderId}`,
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Order Confirmation - Fitnest.ma",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Order Confirmation</h1>
-          </div>
-          <div style="padding: 20px; border: 1px solid #eee;">
-            <p>Hello ${firstName},</p>
-            <p>Thank you for your order! We've received your payment and are processing your order now.</p>
-            
-            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <h2 style="margin-top: 0;">Order Summary</h2>
-              <p><strong>Order ID:</strong> ${orderId}</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-              <p><strong>Total:</strong> ${formattedTotal} MAD</p>
-            </div>
-            
-            <h3>Items</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background-color: #f5f5f5;">
-                  <th style="padding: 10px; text-align: left;">Item</th>
-                  <th style="padding: 10px; text-align: center;">Qty</th>
-                  <th style="padding: 10px; text-align: right;">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsHtml}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total:</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold;">${formattedTotal} MAD</td>
-                </tr>
-              </tfoot>
-            </table>
-            
-            ${
-              deliveryAddress
-                ? `
-            <h3>Delivery Address</h3>
-            <p>${deliveryAddress}</p>
-            `
-                : ""
-            }
-            
-            <p>We'll notify you when your order ships. You can also check your order status anytime by visiting your account dashboard.</p>
-            
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="https://fitnest.ma/orders" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Your Orders</a>
-            </div>
-            
-            <p style="margin-top: 30px;">Thank you for choosing Fitnest.ma!</p>
-            <p>Best regards,<br>The Fitnest.ma Team</p>
-          </div>
-          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
-            <p>If you have any questions, please contact us at support@fitnest.ma</p>
-          </div>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #015033; color: white; padding: 20px;">
+          <h1 style="color: white; text-align: center;">Order Confirmation</h1>
+          <p>Thank you for your order!</p>
+          <p>Order ID: ${orderDetails.id}</p>
+          <p>Total: $${orderDetails.total}</p>
+          <p>We'll prepare your meals with care and deliver them fresh to your door.</p>
+          <p>Best regards,<br>The Fitnest.ma Team</p>
         </div>
       `,
-      text: `Order Confirmation #${orderId}
-      
-Hello ${firstName},
-
-Thank you for your order! We've received your payment and are processing your order now.
-
-ORDER SUMMARY
-Order ID: ${orderId}
-Date: ${new Date().toLocaleDateString()}
-Total: ${formattedTotal} MAD
-
-ITEMS
-${itemsText}
-
-${
-  deliveryAddress
-    ? `DELIVERY ADDRESS
-${deliveryAddress}
-
-`
-    : ""
-}
-We'll notify you when your order ships. You can also check your order status anytime by visiting your account dashboard.
-
-Thank you for choosing Fitnest.ma!
-
-Best regards,
-The Fitnest.ma Team
-
-© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
-`,
     }
 
-    // Implement retry mechanism for transient errors
-    let retries = 0
-    const maxRetries = 3
-
-    while (retries < maxRetries) {
-      try {
-        const info = await transporter.sendMail(mailOptions)
-        console.log(`Order confirmation email sent to ${customerEmail}: ${info.messageId}`)
-        return { success: true, messageId: info.messageId }
-      } catch (error) {
-        retries++
-        if (retries >= maxRetries) {
-          throw error
-        }
-        console.log(`Retrying email send (${retries}/${maxRetries}) after error:`, error)
-        // Wait before retry with exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
-      }
-    }
-
-    return { success: false, error: "Failed after maximum retries" }
+    await transporter.sendMail(mailOptions)
+    return { success: true }
   } catch (error) {
     console.error("Error sending order confirmation email:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      details: error,
-    }
+    return { success: false, error: error.message }
   }
 }
 
