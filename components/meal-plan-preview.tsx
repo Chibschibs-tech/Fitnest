@@ -1,347 +1,222 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { useRouter } from "next/navigation"
 import type { MealPreferences } from "@/app/meal-customization/types"
-import { ArrowLeft, ArrowRight, Calendar, Clock, Utensils } from "lucide-react"
-import Link from "next/link"
 
 interface MealPlanPreviewProps {
   preferences: MealPreferences
 }
 
-export const MealPlanPreview = ({ preferences }: MealPlanPreviewProps) => {
-  // Sample meal data - in a real app, this would be generated based on preferences
-  const mealsByDay = [
-    {
-      day: "Monday",
-      meals: [
-        {
-          type: "Breakfast",
-          name: "Greek Yogurt Parfait",
-          description: "Greek yogurt with mixed berries, honey, and granola",
-          calories: 280,
-          protein: 15,
-          carbs: 40,
-          fat: 8,
-          image: "/meals/yogurt-parfait.jpg",
-        },
-        {
-          type: "Lunch",
-          name: "Grilled Chicken Salad",
-          description: "Fresh mixed greens with grilled chicken breast, cherry tomatoes, and balsamic vinaigrette",
-          calories: 350,
-          protein: 35,
-          carbs: 15,
-          fat: 18,
-          image: "/meals/grilled-chicken-salad.jpg",
-        },
-        {
-          type: "Dinner",
-          name: "Salmon with Quinoa",
-          description: "Baked salmon fillet with lemon herb quinoa and steamed broccoli",
-          calories: 420,
-          protein: 32,
-          carbs: 30,
-          fat: 20,
-          image: "/meals/salmon-quinoa.jpg",
-        },
-      ],
-    },
-    {
-      day: "Tuesday",
-      meals: [
-        {
-          type: "Breakfast",
-          name: "Protein Pancakes",
-          description: "Fluffy protein-packed pancakes with fresh berries and sugar-free syrup",
-          calories: 340,
-          protein: 25,
-          carbs: 30,
-          fat: 12,
-          image: "/meals/protein-pancakes.jpg",
-        },
-        {
-          type: "Lunch",
-          name: "Turkey Meatballs",
-          description: "Lean turkey meatballs with zucchini noodles and homemade marinara sauce",
-          calories: 380,
-          protein: 28,
-          carbs: 22,
-          fat: 19,
-          image: "/meals/turkey-meatballs.jpg",
-        },
-        {
-          type: "Dinner",
-          name: "Vegetable Stir Fry",
-          description: "Mixed vegetables stir-fried with tofu in a light ginger sauce",
-          calories: 320,
-          protein: 18,
-          carbs: 35,
-          fat: 14,
-          image: "/meals/vegetable-stir-fry.jpg",
-        },
-      ],
-    },
-    {
-      day: "Wednesday",
-      meals: [
-        {
-          type: "Breakfast",
-          name: "Egg White Omelette",
-          description: "Fluffy egg white omelette with spinach, mushrooms, and feta cheese",
-          calories: 250,
-          protein: 22,
-          carbs: 8,
-          fat: 14,
-          image: "/meals/egg-white-omelette.jpg",
-        },
-        {
-          type: "Lunch",
-          name: "Chicken Quinoa Bowl",
-          description: "Grilled chicken with quinoa, roasted vegetables, and tahini dressing",
-          calories: 420,
-          protein: 35,
-          carbs: 45,
-          fat: 12,
-          image: "/meals/chicken-quinoa-bowl.jpg",
-        },
-        {
-          type: "Dinner",
-          name: "Beef and Broccoli",
-          description: "Lean beef strips with broccoli in a savory sauce with brown rice",
-          calories: 450,
-          protein: 30,
-          carbs: 40,
-          fat: 15,
-          image: "/meals/beef-broccoli.jpg",
-        },
-      ],
-    },
-    {
-      day: "Thursday",
-      meals: [
-        {
-          type: "Breakfast",
-          name: "Greek Yogurt Parfait",
-          description: "Greek yogurt with mixed berries, honey, and granola",
-          calories: 280,
-          protein: 15,
-          carbs: 40,
-          fat: 8,
-          image: "/meals/yogurt-parfait.jpg",
-        },
-        {
-          type: "Lunch",
-          name: "Tuna Avocado Wrap",
-          description: "Tuna salad with avocado and mixed greens in a whole grain wrap",
-          calories: 380,
-          protein: 28,
-          carbs: 30,
-          fat: 18,
-          image: "/meals/tuna-avocado-wrap.jpg",
-        },
-        {
-          type: "Dinner",
-          name: "Turkey Meatballs",
-          description: "Lean turkey meatballs with zucchini noodles and homemade marinara sauce",
-          calories: 380,
-          protein: 28,
-          carbs: 22,
-          fat: 19,
-          image: "/meals/turkey-meatballs.jpg",
-        },
-      ],
-    },
-    {
-      day: "Friday",
-      meals: [
-        {
-          type: "Breakfast",
-          name: "Protein Pancakes",
-          description: "Fluffy protein-packed pancakes with fresh berries and sugar-free syrup",
-          calories: 340,
-          protein: 25,
-          carbs: 30,
-          fat: 12,
-          image: "/meals/protein-pancakes.jpg",
-        },
-        {
-          type: "Lunch",
-          name: "Grilled Chicken Salad",
-          description: "Fresh mixed greens with grilled chicken breast, cherry tomatoes, and balsamic vinaigrette",
-          calories: 350,
-          protein: 35,
-          carbs: 15,
-          fat: 18,
-          image: "/meals/grilled-chicken-salad.jpg",
-        },
-        {
-          type: "Dinner",
-          name: "Salmon with Quinoa",
-          description: "Baked salmon fillet with lemon herb quinoa and steamed broccoli",
-          calories: 420,
-          protein: 32,
-          carbs: 30,
-          fat: 20,
-          image: "/meals/salmon-quinoa.jpg",
-        },
-      ],
-    },
-  ]
+export function MealPlanPreview({ preferences }: MealPlanPreviewProps) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
-  const getPlanName = () => {
-    switch (preferences.planType) {
-      case "weight_loss":
-        return "Weight Loss"
-      case "balanced":
-        return "Balanced Nutrition"
-      case "muscle_gain":
-        return "Muscle Gain"
-      case "keto":
-        return "Keto"
-      default:
-        return "Custom"
-    }
+  const handleCheckout = () => {
+    setIsLoading(true)
+    // Store in localStorage for checkout
+    localStorage.setItem(
+      "selectedMealPlan",
+      JSON.stringify({
+        id: preferences.planType,
+        name: getPlanName(preferences.planType),
+        price: calculatePrice(preferences),
+        mealsPerWeek: preferences.mealsPerDay * preferences.daysPerWeek,
+        duration: "4 weeks",
+      }),
+    )
+
+    // Store customizations separately
+    localStorage.setItem(
+      "mealPlanCustomizations",
+      JSON.stringify({
+        dietaryRestrictions: preferences.dietaryPreferences,
+        allergies: preferences.allergies,
+        excludedIngredients: preferences.excludedIngredients,
+      }),
+    )
+
+    router.push("/checkout")
   }
+
+  const getPlanName = (planType: string): string => {
+    const planNames: Record<string, string> = {
+      weight_loss: "Weight Loss Plan",
+      balanced: "Balanced Nutrition Plan",
+      muscle_gain: "Muscle Gain Plan",
+      keto: "Keto Plan",
+    }
+    return planNames[planType] || "Custom Plan"
+  }
+
+  const calculatePrice = (prefs: MealPreferences): number => {
+    // Base price per meal
+    const basePricePerMeal = 45 // MAD
+
+    // Calculate weekly meals
+    const weeklyMeals = prefs.mealsPerDay * prefs.daysPerWeek
+
+    // Calculate monthly price (4 weeks)
+    const monthlyPrice = weeklyMeals * basePricePerMeal * 4
+
+    // Apply discounts based on volume
+    let discount = 0
+    if (weeklyMeals >= 15) {
+      discount = 0.15 // 15% discount for 15+ meals per week
+    } else if (weeklyMeals >= 10) {
+      discount = 0.1 // 10% discount for 10+ meals per week
+    } else if (weeklyMeals >= 5) {
+      discount = 0.05 // 5% discount for 5+ meals per week
+    }
+
+    return Math.round(monthlyPrice * (1 - discount))
+  }
+
+  const planName = getPlanName(preferences.planType)
+  const price = calculatePrice(preferences)
+  const weeklyMeals = preferences.mealsPerDay * preferences.daysPerWeek
 
   return (
     <div className="container mx-auto px-4 py-12 md:px-6">
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Your Customized Meal Plan</h1>
-            <p className="text-gray-600">
-              Here's a preview of your {getPlanName()} meal plan based on your preferences
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0 flex gap-2">
-            <Link href="/meal-customization">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Edit Preferences
-              </Button>
-            </Link>
-            <Link href="/checkout">
-              <Button className="bg-green-600 hover:bg-green-700 flex items-center gap-2">
-                Proceed to Checkout
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
+      <h1 className="text-3xl font-bold mb-8 text-center">Your Meal Plan Preview</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>{planName}</CardTitle>
+              <CardDescription>{weeklyMeals} meals per week • 4-week subscription</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-2">Plan Details</h3>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex justify-between">
+                    <span>Plan Type:</span>
+                    <span className="font-medium">{planName}</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Daily Calorie Target:</span>
+                    <span className="font-medium">{preferences.calorieTarget} calories</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Meals Per Day:</span>
+                    <span className="font-medium">{preferences.mealsPerDay}</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Days Per Week:</span>
+                    <span className="font-medium">{preferences.daysPerWeek}</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Weekly Meals:</span>
+                    <span className="font-medium">{weeklyMeals}</span>
+                  </li>
+                </ul>
+              </div>
+
+              {preferences.dietaryPreferences && preferences.dietaryPreferences.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Dietary Preferences</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {preferences.dietaryPreferences.map((pref) => (
+                      <Badge key={pref} variant="outline">
+                        {pref.replace("_", " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {preferences.allergies && preferences.allergies.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Allergies</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {preferences.allergies.map((allergy) => (
+                      <Badge key={allergy} variant="destructive">
+                        {allergy.replace("_", " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {preferences.excludedIngredients && preferences.excludedIngredients.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Excluded Ingredients</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {preferences.excludedIngredients.map((ingredient) => (
+                      <Badge key={ingredient} variant="secondary">
+                        {ingredient}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2 text-green-800">What's Included</h3>
+                <ul className="space-y-2 text-sm text-green-700">
+                  <li>✓ Freshly prepared meals delivered to your door</li>
+                  <li>✓ Nutritionally balanced meals designed by expert chefs</li>
+                  <li>✓ Customized to your dietary preferences and restrictions</li>
+                  <li>✓ Convenient packaging that's easy to store and reheat</li>
+                  <li>✓ Weekly menu rotation for variety</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Utensils className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Meal Plan</div>
-                  <div className="font-medium">{getPlanName()}</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Calendar className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Delivery Schedule</div>
-                  <div className="font-medium">
-                    {preferences.daysPerWeek === 5 ? "5 Days (Mon-Fri)" : "7 Days (Full Week)"}
+        <div className="lg:col-span-1">
+          <div className="sticky top-20">
+            <Card>
+              <CardHeader>
+                <CardTitle>Subscription Summary</CardTitle>
+                <CardDescription>4-week meal plan</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Plan:</span>
+                    <span className="font-medium">{planName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Weekly Meals:</span>
+                    <span className="font-medium">{weeklyMeals}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Duration:</span>
+                    <span className="font-medium">4 weeks</span>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Clock className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Meals Per Day</div>
-                  <div className="font-medium">{preferences.mealsPerDay} meals</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Tabs defaultValue="monday" className="w-full">
-        <TabsList className="grid grid-cols-5 mb-8">
-          <TabsTrigger value="monday">Monday</TabsTrigger>
-          <TabsTrigger value="tuesday">Tuesday</TabsTrigger>
-          <TabsTrigger value="wednesday">Wednesday</TabsTrigger>
-          <TabsTrigger value="thursday">Thursday</TabsTrigger>
-          <TabsTrigger value="friday">Friday</TabsTrigger>
-        </TabsList>
-
-        {mealsByDay.map((dayMeals, index) => (
-          <TabsContent key={index} value={dayMeals.day.toLowerCase()}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {dayMeals.meals.slice(0, preferences.mealsPerDay).map((meal, mealIndex) => (
-                <Card key={mealIndex} className="overflow-hidden">
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={meal.image || "/placeholder.svg?height=200&width=400&query=healthy food"}
-                      alt={meal.name}
-                      className="w-full h-full object-cover"
-                    />
+                <div className="pt-4 border-t">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total:</span>
+                    <span>{price.toLocaleString()} MAD</span>
                   </div>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <Badge variant="outline" className="mb-2">
-                          {meal.type}
-                        </Badge>
-                        <CardTitle className="text-xl">{meal.name}</CardTitle>
-                      </div>
-                      <Badge className="bg-green-600">{meal.calories} cal</Badge>
-                    </div>
-                    <CardDescription>{meal.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="bg-gray-50 p-2 rounded">
-                        <div className="text-sm text-gray-500">Protein</div>
-                        <div className="font-medium">{meal.protein}g</div>
-                      </div>
-                      <div className="bg-gray-50 p-2 rounded">
-                        <div className="text-sm text-gray-500">Carbs</div>
-                        <div className="font-medium">{meal.carbs}g</div>
-                      </div>
-                      <div className="bg-gray-50 p-2 rounded">
-                        <div className="text-sm text-gray-500">Fat</div>
-                        <div className="font-medium">{meal.fat}g</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full">
-                      Swap Meal
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
-
-      <div className="mt-12 text-center">
-        <h2 className="text-2xl font-bold mb-4">Ready to Start Your Healthy Journey?</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto mb-6">
-          Your customized meal plan is ready. Proceed to checkout to start receiving delicious, nutritious meals
-          tailored to your preferences.
-        </p>
-        <Link href="/checkout">
-          <Button size="lg" className="bg-green-600 hover:bg-green-700">
-            Proceed to Checkout
-          </Button>
-        </Link>
+                  <p className="text-xs text-gray-500 mt-1">Billed monthly</p>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button
+                  onClick={handleCheckout}
+                  disabled={isLoading}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  size="lg"
+                >
+                  {isLoading ? "Processing..." : "Proceed to Checkout"}
+                </Button>
+                <Button variant="outline" onClick={() => router.push("/meal-customization")} className="w-full">
+                  Modify Plan
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

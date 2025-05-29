@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { saveMealPreferences } from "./actions"
 import type { MealPreferences } from "./types"
 
 export default function MealCustomizationClient() {
@@ -82,7 +81,16 @@ export default function MealCustomizationClient() {
         excludedIngredients,
       }
 
-      const result = await saveMealPreferences(preferences)
+      // Use fetch API instead of directly importing server action
+      const response = await fetch("/api/meal-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(preferences),
+      })
+
+      const result = await response.json()
 
       // If this is a guest user, store preferences in localStorage
       if (result.isGuest && result.preferences) {

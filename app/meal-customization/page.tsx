@@ -1,11 +1,10 @@
 import MealCustomizationClient from "./client-page"
-import { MealPreferencesBridge } from "@/components/meal-preferences-bridge"
+
+export const metadata = {
+  title: "Customize Your Meal Plan - Fitnest.ma",
+  description: "Tailor your meal plan to your specific needs and preferences.",
+}
 
 export default function MealCustomizationPage() {
-  return (
-    <>
-      <MealPreferencesBridge />
-      <MealCustomizationClient />
-    </>
-  )
+  return <MealCustomizationClient />
 }

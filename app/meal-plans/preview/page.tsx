@@ -1,4 +1,4 @@
-import { getMealPreferencesFromCookie, saveMealPreferencesToCookie } from "@/app/meal-customization/server-utils"
+import { getMealPreferencesFromCookie } from "@/app/meal-customization/server-utils"
 import { MealPlanPreview } from "@/components/meal-plan-preview"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,20 +12,11 @@ export async function generateMetadata() {
 
 export default async function Page({
   searchParams,
-}: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  // Check if we have preferences in the URL (from localStorage)
-  let preferences = await getMealPreferencesFromCookie()
-
-  // If we have preferences in the URL, save them to cookies
-  if (searchParams.preferences) {
-    try {
-      const urlPreferences = JSON.parse(decodeURIComponent(searchParams.preferences as string))
-      await saveMealPreferencesToCookie(urlPreferences)
-      preferences = urlPreferences
-    } catch (e) {
-      console.error("Error parsing preferences from URL:", e)
-    }
-  }
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  // Check if we have preferences in the cookie
+  const preferences = await getMealPreferencesFromCookie()
 
   if (!preferences) {
     return (
