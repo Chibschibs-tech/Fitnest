@@ -1,9 +1,3 @@
-"use client"
-
-import { CardContent } from "@/components/ui/card"
-
-import { Card } from "@/components/ui/card"
-
 import { CartContent } from "./cart-content"
 import { neon } from "@neondatabase/serverless"
 import { cookies } from "next/headers"
@@ -35,7 +29,6 @@ export default async function Cart() {
       FROM cart c
       JOIN products p ON c.product_id = p.id
       WHERE c.id = ${cartId}
-      ORDER BY c.created_at DESC
     `
 
     // Format cart items
@@ -70,11 +63,13 @@ export default async function Cart() {
     return (
       <div className="container mx-auto px-4 py-12">
         <h1 className="mb-8 text-3xl font-bold">Your Cart</h1>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-red-600">{error}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg bg-red-50 p-6 text-red-800">
+          <h2 className="text-xl font-medium">Something went wrong</h2>
+          <p className="mt-2">
+            {error instanceof Error ? error.message : "An error occurred while fetching your cart."}
+          </p>
+          <p className="mt-4">Please try again later or contact support if the problem persists.</p>
+        </div>
       </div>
     )
   }

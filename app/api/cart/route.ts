@@ -28,6 +28,7 @@ export async function GET() {
         c.id as cart_id,
         c.product_id,
         c.quantity,
+        p.id as product_id_actual,
         p.name,
         p.price,
         p.saleprice,
@@ -46,8 +47,8 @@ export async function GET() {
       productId: item.product_id,
       quantity: item.quantity,
       name: item.name,
-      price: Number(item.price), // Remove division by 100
-      salePrice: item.saleprice ? Number(item.saleprice) : null, // Remove division by 100
+      price: Number(item.price) / 100, // Convert from cents to MAD
+      salePrice: item.saleprice ? Number(item.saleprice) / 100 : null,
       imageUrl: item.imageurl,
     }))
 

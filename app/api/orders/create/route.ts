@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { sendOrderConfirmationEmail } from "@/lib/email-utils"
 
 // Map meal plan IDs to database plan IDs
 const getPlanDatabaseId = (planId: string): number => {
@@ -240,8 +241,7 @@ export async function POST(request: Request) {
 
     // Send order confirmation email (don't block order if email fails)
     try {
-      // Email sending logic moved to a separate API route
-      const emailData = {
+      const orderDataForEmail = {
         orderId: orderId,
         customerName: `${body.customer.firstName} ${body.customer.lastName}`,
         customerEmail: body.customer.email,
@@ -250,21 +250,10 @@ export async function POST(request: Request) {
         deliveryDate: deliveryDate.toISOString(),
         items: cartItems,
       }
-
-      // Use fetch to call the email API instead of direct import
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/send-order-email`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(emailData),
-      }).catch((err) => {
-        console.log("Failed to send email notification (non-blocking):", err)
-      })
-
-      console.log("Order confirmation email request sent")
+      await sendOrderConfirmationEmail(orderDataForEmail)
+      console.log("Order confirmation email sent successfully")
     } catch (emailError) {
-      console.log("Order confirmation email setup failed (non-blocking):", emailError)
+      console.log("Order confirmation email failed (non-blocking):", emailError)
     }
 
     console.log("=== ORDER CREATION SUCCESS ===")

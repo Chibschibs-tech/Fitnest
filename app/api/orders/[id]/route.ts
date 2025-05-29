@@ -35,14 +35,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const order = orders[0]
 
-    // Get order items
-    const orderItems = await sql`
-      SELECT oi.*, p.name, p.price, p.saleprice, p.imageurl
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      WHERE oi.order_id = ${orderId}
-    `
-
     // Transform the order data to match what the frontend expects
     const transformedOrder = {
       id: order.id,
@@ -64,14 +56,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
         method: order.payment_method || "Cash on Delivery",
         status: order.payment_status || "Pending",
       },
-      items: orderItems.map((item) => ({
-        id: item.id,
-        type: "product",
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        imageUrl: item.imageurl,
-      })),
+      items: order.plan_id
+        ? [
+            {
+              id: order.plan_id,
+              type: "meal_plan",
+              name: order.plan_name || "Meal Plan",
+              details: order.plan_description || "Custom meal plan",
+              price: order.total_amount,
+              imageUrl: "/vibrant-meal-prep.png",
+            },
+          ]
+        : [],
       subtotal: order.total_amount,
       shipping: 0,
       total: order.total_amount,

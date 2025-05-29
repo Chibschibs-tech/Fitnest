@@ -1,32 +1,60 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import type { MealPreferences } from "@/app/meal-customization/types"
+import { getSessionUser } from "@/lib/simple-auth"
+
+export async function GET() {
+  try {
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
+
+    if (!sessionId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    // Mock meal preferences for now
+    const preferences = {
+      dietaryRestrictions: [],
+      allergies: [],
+      preferredCuisines: [],
+      mealsPerWeek: 12,
+      portionSize: "regular",
+    }
+
+    return NextResponse.json(preferences)
+  } catch (error) {
+    console.error("Error fetching meal preferences:", error)
+    return NextResponse.json({ message: "Something went wrong" }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request) {
   try {
-    const preferences = (await request.json()) as MealPreferences
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
 
-    // Save to cookies for guest users
-    const preferencesJson = JSON.stringify(preferences)
+    if (!sessionId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
 
-    cookies().set("meal_preferences", preferencesJson, {
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
+    const user = await getSessionUser(sessionId)
 
-    return NextResponse.json({
-      success: true,
-      isGuest: true,
-      preferences,
-    })
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const preferences = await request.json()
+
+    // Here you would save to database
+    // For now, just return success
+    return NextResponse.json({ message: "Preferences updated successfully" })
   } catch (error) {
-    console.error("Error saving meal preferences:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to save preferences",
-      },
-      { status: 500 },
-    )
+    console.error("Error updating meal preferences:", error)
+    return NextResponse.json({ message: "Something went wrong" }, { status: 500 })
   }
 }
