@@ -1,13 +1,15 @@
 "use client"
 
+import { CardFooter } from "@/components/ui/card"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { saveMealPreferences } from "./actions"
 import type { MealPreferences } from "./types"
 
 export default function MealCustomizationClient() {
@@ -82,12 +84,8 @@ export default function MealCustomizationClient() {
         excludedIngredients,
       }
 
-      const result = await saveMealPreferences(preferences)
-
-      // If this is a guest user, store preferences in localStorage
-      if (result.isGuest && result.preferences) {
-        localStorage.setItem("meal_preferences", JSON.stringify(result.preferences))
-      }
+      // Save to localStorage
+      localStorage.setItem("meal_preferences", JSON.stringify(preferences))
 
       router.push("/meal-plans/preview")
     } catch (error) {
@@ -96,9 +94,6 @@ export default function MealCustomizationClient() {
       setIsSubmitting(false)
     }
   }
-
-  // Rest of the component remains the same...
-  // (I'm omitting the JSX for brevity since it's the same as before)
 
   return (
     <div className="container mx-auto px-4 py-12 md:px-6">
@@ -189,71 +184,335 @@ export default function MealCustomizationClient() {
             </CardContent>
           </Card>
 
-          {/* Rest of the cards and UI remain the same */}
-          {/* ... */}
-
           <Card>
             <CardHeader>
-              <CardTitle>Excluded Ingredients</CardTitle>
-              <CardDescription>Add any ingredients you want to exclude from your meals</CardDescription>
+              <CardTitle>Calorie Target</CardTitle>
+              <CardDescription>Adjust your daily calorie intake</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter ingredient to exclude"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={newExcludedIngredient}
-                    onChange={(e) => setNewExcludedIngredient(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        addExcludedIngredient()
-                      }
-                    }}
-                  />
-                  <Button onClick={addExcludedIngredient}>Add</Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {excludedIngredients.map((ingredient) => (
-                    <Badge key={ingredient} variant="secondary" className="flex items-center gap-1">
-                      {ingredient}
-                      <X className="h-3 w-3 cursor-pointer" onClick={() => removeExcludedIngredient(ingredient)} />
-                    </Badge>
-                  ))}
+              <div className="space-y-6">
+                <Slider
+                  defaultValue={[1500]}
+                  max={3000}
+                  min={1000}
+                  step={50}
+                  onValueChange={setCalorieRange}
+                  className="py-4"
+                />
+                <div className="text-center font-medium text-lg">{calorieRange[0]} calories per day</div>
+                <div className="text-sm text-gray-600 text-center">
+                  Move the slider to adjust your daily calorie target. Our nutritionists recommend between 1200-2800
+                  calories depending on your goals and activity level.
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="lg:col-span-1">
-          <div className="sticky top-20">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Plan Summary</CardTitle>
-                <CardDescription>Review your customized meal plan</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Summary content remains the same */}
-                {/* ... */}
-              </CardContent>
-              <CardFooter>
-                <Button
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  size="lg"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
+          <Card>
+            <CardHeader>
+              <CardTitle>Meal Frequency</CardTitle>
+              <CardDescription>Choose how many meals you want per day</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div
+                  className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    mealFrequency === "2" ? "bg-green-50 border-green-500" : ""
+                  }`}
+                  onClick={() => setMealFrequency("2")}
                 >
-                  {isSubmitting ? "Processing..." : "Continue to Checkout"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+                  <div className="font-medium mb-2">2 Meals</div>
+                  <div className="text-sm text-gray-600">Lunch & Dinner</div>
+                </div>
+                <div
+                  className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    mealFrequency === "3" ? "bg-green-50 border-green-500" : ""
+                  }`}
+                  onClick={() => setMealFrequency("3")}
+                >
+                  <div className="font-medium mb-2">3 Meals</div>
+                  <div className="text-sm text-gray-600">Breakfast, Lunch & Dinner</div>
+                </div>
+                <div
+                  className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    mealFrequency === "5" ? "bg-green-50 border-green-500" : ""
+                  }`}
+                  onClick={() => setMealFrequency("5")}
+                >
+                  <div className="font-medium mb-2">5 Meals</div>
+                  <div className="text-sm text-gray-600">3 Meals + 2 Snacks</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Delivery Schedule</CardTitle>
+              <CardDescription>Choose how many days per week</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    daysPerWeek === "5" ? "bg-green-50 border-green-500" : ""
+                  }`}
+                  onClick={() => setDaysPerWeek("5")}
+                >
+                  <div className="font-medium mb-2">5 Days</div>
+                  <div className="text-sm text-gray-600">Monday to Friday</div>
+                </div>
+                <div
+                  className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    daysPerWeek === "7" ? "bg-green-50 border-green-500" : ""
+                  }`}
+                  onClick={() => setDaysPerWeek("7")}
+                >
+                  <div className="font-medium mb-2">7 Days</div>
+                  <div className="text-sm text-gray-600">Full Week Coverage</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Dietary Preferences</CardTitle>
+              <CardDescription>Select any dietary preferences you have</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {dietaryOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    className={`flex items-center justify-between border rounded-lg p-3 cursor-pointer transition-colors ${
+                      dietaryPreferences.includes(option.value) ? "bg-green-50 border-green-500" : ""
+                    }`}
+                    onClick={() => toggleDietaryPreference(option.value)}
+                  >
+                    <span>{option.label}</span>
+                    {dietaryPreferences.includes(option.value) && <Check className="h-4 w-4 text-green-600" />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Allergies</CardTitle>
+              <CardDescription>Select any allergies you have</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {allergyOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    className={`flex items-center justify-between border rounded-lg p-3 cursor-pointer transition-colors ${
+                      allergies.includes(option.value) ? "bg-green-50 border-green-500" : ""
+                    }`}
+                   onClick={() => toggleAllergy(option.value)}
+                 >
+                   <span>{option.label}</span>
+                   {allergies.includes(option.value) && <Check className="h-4 w-4 text-green-600" />}
+                 </div>
+               ))}
+             </div>
+           </CardContent>
+         </Card>
+
+         <Card>
+           <CardHeader>
+             <CardTitle>Excluded Ingredients</CardTitle>
+             <CardDescription>Add any ingredients you want to exclude from your meals</CardDescription>
+           </CardHeader>
+           <CardContent>
+             <div className="space-y-4">
+               <div className="flex gap-2">
+                 <input
+                   type="text"
+                   placeholder="Enter ingredient to exclude"
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                   value={newExcludedIngredient}
+                   onChange={(e) => setNewExcludedIngredient(e.target.value)}
+                   onKeyDown={(e) => {
+                     if (e.key === "Enter") {
+                       e.preventDefault()
+                       addExcludedIngredient()
+                     }
+                   }}
+                 />
+                 <Button onClick={addExcludedIngredient}>Add</Button>
+               </div>
+
+               <div className="flex flex-wrap gap-2">
+                 {excludedIngredients.map((ingredient) => (
+                   <Badge key={ingredient} variant="secondary" className="flex items-center gap-1">
+                     {ingredient}
+                     <X className="h-3 w-3 cursor-pointer" onClick={() => removeExcludedIngredient(ingredient)} />
+                   </Badge>
+                 ))}
+               </div>
+             </div>
+           </CardContent>
+         </Card>
+       </div>
+
+       <div className="lg:col-span-1">
+         <div className="sticky top-20">
+           <Card>
+             <CardHeader>
+               <CardTitle>Your Plan Summary</CardTitle>
+               <CardDescription>Review your customized meal plan</CardDescription>
+             </CardHeader>
+             <CardContent className="space-y-4">
+               <div className="space-y-2">
+                 <div className="text-sm text-gray-500">Selected Plan</div>
+                 <div className="font-medium">
+                   {selectedPlan === "weight_loss"
+                     ? "Weight Loss"
+                     : selectedPlan === "balanced"
+                       ? "Balanced Nutrition"
+                       : selectedPlan === "muscle_gain"
+                         ? "Muscle Gain"
+                         : "Keto"}
+                 </div>
+               </div>
+
+               <div className="space-y-2">
+                 <div className="text-sm text-gray-500">Calorie Target</div>
+                 <div className="font-medium">{calorieRange[0]} calories per day</div>
+               </div>
+
+               <div className="space-y-2">
+                 <div className="text-sm text-gray-500">Meal Frequency</div>
+                 <div className="font-medium">
+                   {mealFrequency === "2"
+                     ? "2 Meals per day"
+                     : mealFrequency === "3"
+                       ? "3 Meals per day"
+                       : "5 Meals per day"}
+                 </div>
+               </div>
+
+               <div className="space-y-2">
+                 <div className="text-sm text-gray-500">Delivery Schedule</div>
+                 <div className="font-medium">{daysPerWeek === "5" ? "5 Days (Mon-Fri)" : "7 Days (Full Week)"}</div>
+               </div>
+
+               {dietaryPreferences.length > 0 && (
+                 <div className="space-y-2">
+                   <div className="text-sm text-gray-500">Dietary Preferences</div>
+                   <div className="flex flex-wrap gap-1">
+                     {dietaryPreferences.map((pref) => (
+                       <Badge key={pref} variant="outline">
+                         {dietaryOptions.find((o) => o.value === pref)?.label}
+                       </Badge>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               {allergies.length > 0 && (
+                 <div className="space-y-2">
+                   <div className="text-sm text-gray-500">Allergies</div>
+                   <div className="flex flex-wrap gap-1">
+                     {allergies.map((allergy) => (
+                       <Badge key={allergy} variant="outline">
+                         {allergyOptions.find((o) => o.value === allergy)?.label}
+                       </Badge>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               {excludedIngredients.length > 0 && (
+                 <div className="space-y-2">
+                   <div className="text-sm text-gray-500">Excluded Ingredients</div>
+                   <div className="flex flex-wrap gap-1">
+                     {excludedIngredients.map((ingredient) => (
+                       <Badge key={ingredient} variant="outline">
+                         {ingredient}
+                       </Badge>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               <div className="pt-4 border-t">
+                 <div className="flex justify-between mb-2">
+                   <span>Base Plan Price:</span>
+                   <span className="font-medium">
+                     {daysPerWeek === "5"
+                       ? selectedPlan === "weight_loss"
+                         ? "349"
+                         : selectedPlan === "balanced"
+                           ? "399"
+                           : selectedPlan === "muscle_gain"
+                             ? "449"
+                             : "429"
+                       : selectedPlan === "weight_loss"
+                         ? "489"
+                         : selectedPlan === "balanced"
+                           ? "559"
+                           : selectedPlan === "muscle_gain"
+                             ? "629"
+                             : "599"}{" "}
+                     MAD/week
+                   </span>
+                 </div>
+                 <div className="flex justify-between mb-2">
+                   <span>Customization:</span>
+                   <span className="font-medium">
+                     {(dietaryPreferences.length > 0 || allergies.length > 0 || excludedIngredients.length > 0) &&
+                     mealFrequency === "5"
+                       ? "+50"
+                       : "+0"}{" "}
+                     MAD/week
+                   </span>
+                 </div>
+                 <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                   <span>Total:</span>
+                   <span>
+                     {Number.parseInt(
+                       daysPerWeek === "5"
+                         ? selectedPlan === "weight_loss"
+                           ? "349"
+                           : selectedPlan === "balanced"
+                             ? "399"
+                             : selectedPlan === "muscle_gain"
+                               ? "449"
+                               : "429"
+                         : selectedPlan === "weight_loss"
+                           ? "489"
+                           : selectedPlan === "balanced"
+                             ? "559"
+                             : selectedPlan === "muscle_gain"
+                               ? "629"
+                               : "599",
+                     ) +
+                       ((dietaryPreferences.length > 0 || allergies.length > 0 || excludedIngredients.length > 0) &&
+                       mealFrequency === "5"
+                         ? 50
+                         : 0)}{" "}
+                     MAD/week
+                   </span>
+                 </div>
+               </div>
+             </CardContent>
+             <CardFooter>
+               <Button
+                 className="w-full bg-green-600 hover:bg-green-700"
+                 size="lg"
+                 onClick={handleSubmit}
+                 disabled={isSubmitting}
+               >
+                 {isSubmitting ? "Processing..." : "Continue to Checkout"}
+               </Button>
+             </CardFooter>
+           </Card>
+         </div>
+       </div>
+     </div>
+   );
 }

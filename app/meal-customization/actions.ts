@@ -6,9 +6,6 @@ import { db, mealPreferences } from "@/lib/db"
 import { eq } from "drizzle-orm"
 import type { MealPreferences } from "./types"
 
-// Remove the direct import of cookies from next/headers
-// import { cookies } from "next/headers"
-
 export async function saveMealPreferences(preferences: MealPreferences) {
   try {
     const session = await getServerSession()
@@ -17,9 +14,6 @@ export async function saveMealPreferences(preferences: MealPreferences) {
     if (!session || !session.user) {
       // Instead of using cookies() directly, use a cookie-safe approach
       // that doesn't require next/headers in the client component
-
-      // Store in localStorage on the client side instead
-      // The client will handle this part
 
       // Revalidate the meal plan preview page
       revalidatePath("/meal-plans/preview")
