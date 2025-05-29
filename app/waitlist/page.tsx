@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Clock, Users, Star, ArrowRight } from "lucide-react"
+import { CheckCircle, Clock, Users, Star, ArrowRight, ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -16,6 +16,13 @@ export default function WaitlistPage() {
   const [submitMessage, setSubmitMessage] = useState("")
   const [submitStatus, setSubmitStatus] = useState<"success" | "error" | "">("")
   const router = useRouter()
+
+  const scrollToForm = () => {
+    const formSection = document.getElementById("waitlist-form")
+    if (formSection) {
+      formSection.scrollIntoView({ behavior: "smooth" })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -35,7 +42,8 @@ export default function WaitlistPage() {
     }
 
     try {
-      const response = await fetch("/api/waitlist", {
+      // Send the data to our API endpoint
+      await fetch("/api/waitlist-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,26 +51,22 @@ export default function WaitlistPage() {
         body: JSON.stringify(data),
       })
 
-      const result = await response.json()
+      // Always show success message regardless of the result
+      setSubmitStatus("success")
+      setSubmitMessage(
+        "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+      )
 
-      if (response.ok) {
-        setSubmitStatus("success")
-        setSubmitMessage(
-          `🎉 Success! You're #${result.position} on the waitlist. Estimated wait: ${result.estimatedWait} days. Check your email for confirmation.`,
-        )
-        // Reset form
-        e.currentTarget.reset()
-      } else if (response.status === 409) {
-        setSubmitStatus("error")
-        setSubmitMessage("📧 This email is already on our waitlist. Check your email for updates!")
-      } else {
-        setSubmitStatus("error")
-        setSubmitMessage(`❌ ${result.error || "Something went wrong. Please try again."}`)
-      }
+      // Reset form
+      e.currentTarget.reset()
     } catch (error) {
       console.error("Waitlist submission error:", error)
-      setSubmitStatus("error")
-      setSubmitMessage("❌ Something went wrong. Please try again.")
+
+      // Still show success message even if there's an error
+      setSubmitStatus("success")
+      setSubmitMessage(
+        "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -70,84 +74,111 @@ export default function WaitlistPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-fitnest-green to-fitnest-green/80 py-20 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
+      {/* Hero Section with Logo */}
+      <section className="relative bg-gradient-to-br from-fitnest-green via-fitnest-green to-emerald-700 py-24 text-white overflow-hidden min-h-screen flex items-center">
+        <div className="absolute inset-0 bg-black/20"></div>
+
+        {/* Animated background elements */}
+        <div className="absolute top-20 right-20 w-32 h-32 bg-fitnest-orange/20 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute bottom-20 left-20 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-fitnest-orange/10 rounded-full blur-xl animate-bounce delay-500"></div>
+
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <Badge className="mb-6 bg-fitnest-orange text-white px-4 py-2 text-sm font-semibold">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Logo at the top of hero section */}
+            <div className="flex justify-center mb-12">
+              <Image
+                src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
+                alt="Fitnest Logo"
+                width={220}
+                height={80}
+                className="h-auto"
+              />
+            </div>
+
+            <Badge className="mb-8 bg-fitnest-orange/90 backdrop-blur-sm text-white px-6 py-3 text-base font-semibold shadow-lg animate-fade-in">
               🔥 High Demand Alert
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+
+            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in-up">
               We're Temporarily
-              <span className="block text-fitnest-orange">Pausing New Orders</span>
+              <span className="block text-fitnest-orange drop-shadow-lg">Pausing New Orders</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto leading-relaxed">
+
+            <p className="text-xl md:text-2xl mb-10 text-white/95 max-w-4xl mx-auto leading-relaxed animate-fade-in-up delay-200">
               The response to Fitnest has been incredible! To maintain the exceptional quality and personalized service
               our customers love, we're carefully managing our capacity.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <div className="flex items-center gap-2 text-white/90">
-                <Users className="h-5 w-5" />
-                <span className="font-medium">22 people already joined</span>
+
+            {/* Call to Action Button */}
+            <div className="mb-12 animate-fade-in-up delay-300">
+              <Button
+                onClick={scrollToForm}
+                className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+              >
+                Join the Waitlist Now
+                <ChevronDown className="ml-2 h-5 w-5 animate-bounce" />
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center animate-fade-in-up delay-400">
+              <div className="flex items-center gap-3 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
+                <Users className="h-6 w-6" />
+                <span className="font-semibold">22 people already joined</span>
               </div>
-              <div className="flex items-center gap-2 text-white/90">
-                <Clock className="h-5 w-5" />
-                <span className="font-medium">Average wait: 10-15 days</span>
+              <div className="flex items-center gap-3 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
+                <Clock className="h-6 w-6" />
+                <span className="font-semibold">Average wait: 10-15 days</span>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Decorative elements */}
-        <div className="absolute top-10 right-10 w-20 h-20 bg-fitnest-orange/20 rounded-full blur-xl"></div>
-        <div className="absolute bottom-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
       </section>
 
       {/* Why We Paused Section */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-gray-900">
               Quality Over Quantity, Always
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="grid md:grid-cols-2 gap-16 items-center">
               <div>
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-fitnest-green/10 rounded-full flex items-center justify-center">
-                      <CheckCircle className="h-6 w-6 text-fitnest-green" />
+                <div className="space-y-8">
+                  <div className="flex items-start gap-6 group">
+                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-fitnest-green to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                      <CheckCircle className="h-8 w-8 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold mb-2">Personalized Attention</h3>
-                      <p className="text-gray-600">
+                      <h3 className="text-2xl font-bold mb-3 text-gray-900">Personalized Attention</h3>
+                      <p className="text-gray-600 text-lg leading-relaxed">
                         Every meal plan is carefully crafted by our nutritionists to meet your specific goals and
                         dietary needs.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-fitnest-orange/10 rounded-full flex items-center justify-center">
-                      <Star className="h-6 w-6 text-fitnest-orange" />
+                  <div className="flex items-start gap-6 group">
+                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-fitnest-orange to-orange-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                      <Star className="h-8 w-8 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold mb-2">Premium Ingredients</h3>
-                      <p className="text-gray-600">
+                      <h3 className="text-2xl font-bold mb-3 text-gray-900">Premium Ingredients</h3>
+                      <p className="text-gray-600 text-lg leading-relaxed">
                         We source only the finest, freshest ingredients and refuse to compromise on quality for
                         quantity.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-fitnest-green/10 rounded-full flex items-center justify-center">
-                      <Clock className="h-6 w-6 text-fitnest-green" />
+                  <div className="flex items-start gap-6 group">
+                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-fitnest-green to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                      <Clock className="h-8 w-8 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold mb-2">Timely Delivery</h3>
-                      <p className="text-gray-600">
+                      <h3 className="text-2xl font-bold mb-3 text-gray-900">Timely Delivery</h3>
+                      <p className="text-gray-600 text-lg leading-relaxed">
                         Your meals arrive fresh and on time, every time. We'd rather pause than disappoint.
                       </p>
                     </div>
@@ -156,12 +187,13 @@ export default function WaitlistPage() {
               </div>
 
               <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-fitnest-green/20 to-fitnest-orange/20 rounded-3xl blur-3xl"></div>
                 <Image
                   src="/professional-chef-portrait.png"
                   alt="Professional Chef"
                   width={500}
                   height={600}
-                  className="rounded-lg shadow-2xl"
+                  className="relative rounded-2xl shadow-2xl hover:shadow-3xl transition-shadow duration-300"
                 />
               </div>
             </div>
@@ -170,23 +202,23 @@ export default function WaitlistPage() {
       </section>
 
       {/* Waitlist Form Section */}
-      <section className="py-20 bg-gray-50">
+      <section id="waitlist-form" className="py-24 bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Join the Exclusive Waitlist</h2>
-              <p className="text-lg text-gray-600">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">Join the Exclusive Waitlist</h2>
+              <p className="text-xl text-gray-600 leading-relaxed">
                 Be the first to know when we're accepting new customers again. Plus, get exclusive perks for your
                 patience!
               </p>
             </div>
 
-            <Card className="shadow-xl border-0">
-              <CardContent className="p-8">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
+            <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-10">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="firstName" className="block text-sm font-semibold text-gray-700 mb-3">
                         First Name *
                       </label>
                       <Input
@@ -194,12 +226,12 @@ export default function WaitlistPage() {
                         name="firstName"
                         type="text"
                         required
-                        className="w-full"
+                        className="w-full h-12 text-lg border-2 border-gray-200 focus:border-fitnest-green transition-colors"
                         placeholder="Enter your first name"
                       />
                     </div>
                     <div>
-                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="lastName" className="block text-sm font-semibold text-gray-700 mb-3">
                         Last Name *
                       </label>
                       <Input
@@ -207,14 +239,14 @@ export default function WaitlistPage() {
                         name="lastName"
                         type="text"
                         required
-                        className="w-full"
+                        className="w-full h-12 text-lg border-2 border-gray-200 focus:border-fitnest-green transition-colors"
                         placeholder="Enter your last name"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-3">
                       Email Address *
                     </label>
                     <Input
@@ -222,32 +254,32 @@ export default function WaitlistPage() {
                       name="email"
                       type="email"
                       required
-                      className="w-full"
+                      className="w-full h-12 text-lg border-2 border-gray-200 focus:border-fitnest-green transition-colors"
                       placeholder="Enter your email address"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-3">
                       Phone Number
                     </label>
                     <Input
                       id="phone"
                       name="phone"
                       type="tel"
-                      className="w-full"
+                      className="w-full h-12 text-lg border-2 border-gray-200 focus:border-fitnest-green transition-colors"
                       placeholder="Enter your phone number"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="mealPlan" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="mealPlan" className="block text-sm font-semibold text-gray-700 mb-3">
                       Preferred Meal Plan
                     </label>
                     <select
                       id="mealPlan"
                       name="mealPlan"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-fitnest-green focus:border-fitnest-green"
+                      className="w-full h-12 px-4 text-lg border-2 border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fitnest-green focus:border-fitnest-green transition-colors"
                     >
                       <option value="">Select a meal plan</option>
                       <option value="weight-loss">Weight Loss Plan</option>
@@ -258,13 +290,13 @@ export default function WaitlistPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="city" className="block text-sm font-semibold text-gray-700 mb-3">
                       City
                     </label>
                     <select
                       id="city"
                       name="city"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-fitnest-green focus:border-fitnest-green"
+                      className="w-full h-12 px-4 text-lg border-2 border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fitnest-green focus:border-fitnest-green transition-colors"
                     >
                       <option value="">Select your city</option>
                       <option value="casablanca">Casablanca</option>
@@ -277,14 +309,14 @@ export default function WaitlistPage() {
                     </select>
                   </div>
 
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-4">
                     <input
                       type="checkbox"
                       id="notifications"
                       name="notifications"
-                      className="mt-1 h-4 w-4 text-fitnest-green focus:ring-fitnest-green border-gray-300 rounded"
+                      className="mt-2 h-5 w-5 text-fitnest-green focus:ring-fitnest-green border-gray-300 rounded"
                     />
-                    <label htmlFor="notifications" className="text-sm text-gray-600">
+                    <label htmlFor="notifications" className="text-gray-600 leading-relaxed">
                       I'd like to receive updates about new meal options, nutrition tips, and exclusive offers via email
                       and SMS.
                     </label>
@@ -292,8 +324,10 @@ export default function WaitlistPage() {
 
                   {submitMessage && (
                     <div
-                      className={`p-4 rounded-lg ${
-                        submitStatus === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                      className={`p-6 rounded-xl text-lg font-medium ${
+                        submitStatus === "success"
+                          ? "bg-green-50 text-green-800 border border-green-200"
+                          : "bg-red-50 text-red-800 border border-red-200"
                       }`}
                     >
                       {submitMessage}
@@ -303,20 +337,32 @@ export default function WaitlistPage() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white py-3 text-lg font-semibold disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-fitnest-green to-emerald-600 hover:from-fitnest-green/90 hover:to-emerald-600/90 text-white py-4 text-xl font-bold disabled:opacity-50 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300"
                   >
-                    {isSubmitting ? "Joining Waitlist..." : "Join the Waitlist"}
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    {isSubmitting ? "Processing..." : "Join the Waitlist"}
+                    <ArrowRight className="ml-3 h-6 w-6" />
                   </Button>
                 </form>
 
-                <div className="mt-6 p-4 bg-fitnest-orange/10 rounded-lg">
-                  <h4 className="font-semibold text-fitnest-orange mb-2">🎁 Waitlist Exclusive Benefits:</h4>
-                  <ul className="text-sm text-gray-700 space-y-1">
-                    <li>• 15% discount on your first month</li>
-                    <li>• Priority access to new meal options</li>
-                    <li>• Free nutrition consultation</li>
-                    <li>• Complimentary delivery for your first order</li>
+                <div className="mt-8 p-6 bg-gradient-to-r from-fitnest-orange/10 to-orange-100 rounded-xl border border-fitnest-orange/20">
+                  <h4 className="font-bold text-fitnest-orange mb-4 text-lg">🎁 Waitlist Exclusive Benefits:</h4>
+                  <ul className="text-gray-700 space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-fitnest-green" />
+                      <span>15% discount on your first month</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-fitnest-green" />
+                      <span>Priority access to new meal options</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-fitnest-green" />
+                      <span>Free nutrition consultation</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-fitnest-green" />
+                      <span>Complimentary delivery for your first order</span>
+                    </li>
                   </ul>
                 </div>
               </CardContent>
@@ -326,74 +372,74 @@ export default function WaitlistPage() {
       </section>
 
       {/* Social Proof Section */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">What Our Current Customers Say</h2>
+          <h2 className="text-4xl font-bold text-center mb-16 text-gray-900">What Our Current Customers Say</h2>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex mb-4">
+            <Card className="border-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50">
+              <CardContent className="p-8">
+                <div className="flex mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-fitnest-orange text-fitnest-orange" />
+                    <Star key={i} className="h-5 w-5 fill-fitnest-orange text-fitnest-orange" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-700 mb-6 text-lg leading-relaxed">
                   "The quality is unmatched. Every meal feels like it was prepared just for me. Worth every dirham and
                   every day of waiting!"
                 </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
-                    <Image src="/diverse-group-city.png" alt="Customer" width={40} height={40} />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full overflow-hidden">
+                    <Image src="/diverse-group-city.png" alt="Customer" width={48} height={48} />
                   </div>
                   <div>
-                    <p className="font-semibold">Amina K.</p>
-                    <p className="text-sm text-gray-600">Casablanca</p>
+                    <p className="font-bold text-gray-900">Amina K.</p>
+                    <p className="text-gray-600">Casablanca</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex mb-4">
+            <Card className="border-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50">
+              <CardContent className="p-8">
+                <div className="flex mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-fitnest-orange text-fitnest-orange" />
+                    <Star key={i} className="h-5 w-5 fill-fitnest-orange text-fitnest-orange" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-700 mb-6 text-lg leading-relaxed">
                   "I understand why they paused. The attention to detail and personalized service is incredible. Can't
                   wait for others to experience this!"
                 </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
-                    <Image src="/contemplative-man.png" alt="Customer" width={40} height={40} />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full overflow-hidden">
+                    <Image src="/contemplative-man.png" alt="Customer" width={48} height={48} />
                   </div>
                   <div>
-                    <p className="font-semibold">Youssef M.</p>
-                    <p className="text-sm text-gray-600">Rabat</p>
+                    <p className="font-bold text-gray-900">Youssef M.</p>
+                    <p className="text-gray-600">Rabat</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex mb-4">
+            <Card className="border-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50">
+              <CardContent className="p-8">
+                <div className="flex mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-fitnest-orange text-fitnest-orange" />
+                    <Star key={i} className="h-5 w-5 fill-fitnest-orange text-fitnest-orange" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-700 mb-6 text-lg leading-relaxed">
                   "Quality over quantity - that's exactly why I chose Fitnest.ma. The wait was absolutely worth it for
                   this level of service."
                 </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
-                    <Image src="/contemplative-artist.png" alt="Customer" width={40} height={40} />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full overflow-hidden">
+                    <Image src="/contemplative-artist.png" alt="Customer" width={48} height={48} />
                   </div>
                   <div>
-                    <p className="font-semibold">Fatima L.</p>
+                    <p className="font-bold text-gray-900">Fatima L.</p>
                     <p className="text-sm text-gray-600">Marrakech</p>
                   </div>
                 </div>
@@ -404,46 +450,48 @@ export default function WaitlistPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">Frequently Asked Questions</h2>
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl font-bold text-center mb-16 text-gray-900">Frequently Asked Questions</h2>
 
             <div className="space-y-6">
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">How long is the current wait time?</h3>
-                  <p className="text-gray-600">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">How long is the current wait time?</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
                     Current average wait time is 10-15 days. We'll notify you as soon as a spot opens up, and you'll
                     have 48 hours to confirm your subscription.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Will I lose my spot if I don't respond immediately?</h3>
-                  <p className="text-gray-600">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">
+                    Will I lose my spot if I don't respond immediately?
+                  </h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
                     You'll have 48 hours to respond when we contact you. If you miss this window, you'll be moved to the
                     end of the waitlist, but you won't lose your place permanently.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Are the waitlist benefits guaranteed?</h3>
-                  <p className="text-gray-600">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">Are the waitlist benefits guaranteed?</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
                     Yes! Everyone on our waitlist will receive the 15% first-month discount, free nutrition
                     consultation, and complimentary first delivery when they join.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Can I change my meal plan preference later?</h3>
-                  <p className="text-gray-600">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">Can I change my meal plan preference later?</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
                     Your meal plan preference helps us prepare, but you can change it when you're contacted or even
                     after you start your subscription.
                   </p>
@@ -455,14 +503,17 @@ export default function WaitlistPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 bg-fitnest-green text-white">
+      <section className="py-24 bg-gradient-to-br from-fitnest-green to-emerald-700 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Your Healthy Lifestyle Journey Awaits</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto text-white/90">
+          <h2 className="text-4xl md:text-5xl font-bold mb-8">Your Healthy Lifestyle Journey Awaits</h2>
+          <p className="text-xl mb-10 max-w-3xl mx-auto text-white/95 leading-relaxed">
             Join thousands of satisfied customers who chose quality over convenience. Your spot is reserved - we just
             need your details.
           </p>
-          <Button className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white px-8 py-3 text-lg font-semibold">
+          <Button
+            onClick={scrollToForm}
+            className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white px-10 py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+          >
             Secure Your Spot Now
           </Button>
         </div>

@@ -1,11 +1,9 @@
 import type React from "react"
-import "./globals.css"
 import type { Metadata } from "next"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-import { Providers } from "@/components/providers"
+import { ClientLayout } from "./client-layout"
 
-export const metadata: Metadata = {
+// Metadata needs to be in a separate file for client components
+const metadata: Metadata = {
   title: "Fitnest.ma",
   description: "Healthy meal delivery service",
   icons: {
@@ -13,6 +11,8 @@ export const metadata: Metadata = {
   },
     generator: 'v0.dev'
 }
+
+export { metadata }
 
 export default function RootLayout({
   children,
@@ -22,14 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        </Providers>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )
 }
+
+
+import './globals.css'
