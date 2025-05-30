@@ -37,6 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Customers", href: "/admin/customers", icon: Users },
     { name: "Products", href: "/admin/products", icon: Package },
     { name: "Meal Plans", href: "/admin/meal-plans", icon: FileText },
+    { name: "Waitlist", href: "/admin/waitlist", icon: Users },
     { name: "Deliveries", href: "/admin/deliveries", icon: Calendar },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart },
     { name: "Images", href: "/admin/images", icon: ImageIcon },
