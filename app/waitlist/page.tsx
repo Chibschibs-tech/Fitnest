@@ -43,13 +43,15 @@ export default function WaitlistPage() {
 
     try {
       // Send the data to our simple logging endpoint
-      await fetch("/api/waitlist-simple", {
+      const response = await fetch("/api/waitlist-simple", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       })
+
+      const result = await response.json()
 
       // Always show success message
       setSubmitStatus("success")
@@ -59,6 +61,9 @@ export default function WaitlistPage() {
 
       // Reset form
       e.currentTarget.reset()
+
+      // Log for debugging
+      console.log("Form submission result:", result)
     } catch (error) {
       console.error("Waitlist submission error:", error)
 
@@ -75,7 +80,7 @@ export default function WaitlistPage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section with Logo */}
-      <section className="relative bg-gradient-to-br from-fitnest-green via-fitnest-green to-emerald-700 py-16 text-white overflow-hidden min-h-screen flex items-center">
+      <section className="relative bg-gradient-to-br from-fitnest-green via-fitnest-green to-emerald-700 py-12 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
 
         {/* Animated background elements */}
@@ -85,50 +90,50 @@ export default function WaitlistPage() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Logo at the top of hero section - increased size */}
-            <div className="flex justify-center mb-8">
+            {/* Logo at the top of hero section - adjusted size */}
+            <div className="flex justify-center mb-6">
               <Image
                 src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png"
                 alt="Fitnest Logo"
-                width={280}
-                height={100}
-                className="h-auto max-w-[280px] w-auto"
+                width={200}
+                height={70}
+                className="h-auto max-w-[200px] w-auto"
                 priority
               />
             </div>
 
-            <Badge className="mb-6 bg-fitnest-orange/90 backdrop-blur-sm text-white px-6 py-3 text-base font-semibold shadow-lg animate-fade-in">
+            <Badge className="mb-4 bg-fitnest-orange/90 backdrop-blur-sm text-white px-6 py-2 text-base font-semibold shadow-lg animate-fade-in">
               🔥 High Demand Alert
             </Badge>
 
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight animate-fade-in-up">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight animate-fade-in-up">
               We're Temporarily
               <span className="block text-fitnest-orange drop-shadow-lg">Pausing New Orders</span>
             </h1>
 
-            <p className="text-lg md:text-xl mb-8 text-white/95 max-w-4xl mx-auto leading-relaxed animate-fade-in-up delay-200">
+            <p className="text-lg md:text-xl mb-6 text-white/95 max-w-4xl mx-auto leading-relaxed animate-fade-in-up delay-200">
               The response to Fitnest has been incredible! To maintain the exceptional quality and personalized service
               our customers love, we're carefully managing our capacity.
             </p>
 
             {/* Call to Action Button */}
-            <div className="mb-8 animate-fade-in-up delay-300">
+            <div className="mb-6 animate-fade-in-up delay-300">
               <Button
                 onClick={scrollToForm}
-                className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white px-8 py-3 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
               >
                 Join the Waitlist Now
                 <ChevronDown className="ml-2 h-5 w-5 animate-bounce" />
               </Button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center animate-fade-in-up delay-400">
-              <div className="flex items-center gap-3 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
-                <Users className="h-6 w-6" />
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up delay-400">
+              <div className="flex items-center gap-2 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Users className="h-5 w-5" />
                 <span className="font-semibold">22 people already joined</span>
               </div>
-              <div className="flex items-center gap-3 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
-                <Clock className="h-6 w-6" />
+              <div className="flex items-center gap-2 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Clock className="h-5 w-5" />
                 <span className="font-semibold">Average wait: 10-15 days</span>
               </div>
             </div>

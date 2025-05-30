@@ -1,33 +1,85 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 
-export async function POST(request: NextRequest) {
+const sql = neon(process.env.DATABASE_URL!)
+
+export async function POST(request: Request) {
   try {
     const body = await request.json()
+
+    // Log the submission for debugging
+    console.log("Waitlist submission received:", {
+      ...body,
+      timestamp: new Date().toISOString(),
+    })
+
+    // Extract data from the form
     const { firstName, lastName, email, phone, mealPlan, city, notifications } = body
 
-    console.log("=== WAITLIST SUBMISSION ===")
-    console.log("Name:", firstName, lastName)
-    console.log("Email:", email)
-    console.log("Phone:", phone)
-    console.log("Meal Plan:", mealPlan)
-    console.log("City:", city)
-    console.log("Notifications:", notifications)
-    console.log("Timestamp:", new Date().toISOString())
-    console.log("========================")
+    // Insert into waitlist table
+    const result = await sql`
+      INSERT INTO waitlist (
+        first_name, 
+        last_name, 
+        email, 
+        phone, 
+        preferred_meal_plan, 
+        city, 
+        wants_notifications,
+        position,
+        status,
+        created_at
+      ) VALUES (
+        ${firstName || ""},
+        ${lastName || ""},
+        ${email || ""},
+        ${phone || null},
+        ${mealPlan || null},
+        ${city || null},
+        ${notifications || false},
+        (SELECT COALESCE(MAX(position), 0) + 1 FROM waitlist),
+        'waiting',
+        NOW()
+      )
+      RETURNING id, position
+    `
 
-    // For now, just log to console and return success
-    // You can manually check the server logs for submissions
+    console.log("Waitlist submission saved to database:", {
+      id: result[0]?.id,
+      position: result[0]?.position,
+      email,
+      timestamp: new Date().toISOString(),
+    })
 
+    // Always return success
     return NextResponse.json({
       success: true,
-      message: "Waitlist signup received successfully",
+      message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+      debug: {
+        saved: true,
+        id: result[0]?.id,
+        position: result[0]?.position,
+      },
     })
   } catch (error) {
-    console.error("Waitlist submission error:", error)
+    console.error("Error processing waitlist submission:", error)
 
+    // Log the error details
+    console.error({
+      message: "Failed to save waitlist submission",
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    })
+
+    // Still return success to the user
     return NextResponse.json({
       success: true,
-      message: "Waitlist signup received successfully",
+      message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+      debug: {
+        saved: false,
+        error: error.message,
+      },
     })
   }
 }
