@@ -3,16 +3,22 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 interface WaitlistSubmission {
   id: number
-  name: string
+  first_name: string
+  last_name: string
   email: string
-  phone?: string
-  meal_plan_preference?: string
-  city?: string
-  notifications: boolean
+  phone: string
+  preferred_meal_plan: string | null
+  city: string
+  wants_notifications: boolean
+  position: number
+  status: string
   created_at: string
+  contacted_at: string | null
+  joined_at: string | null
 }
 
 export default function WaitlistDataTable() {
@@ -48,8 +54,34 @@ export default function WaitlistDataTable() {
     window.location.href = "/api/admin/waitlist/export"
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-"
     return new Date(dateString).toLocaleString()
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusColors = {
+      waiting: "bg-yellow-100 text-yellow-800",
+      contacted: "bg-blue-100 text-blue-800",
+      joined: "bg-green-100 text-green-800",
+      declined: "bg-red-100 text-red-800",
+    }
+
+    return <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>{status}</Badge>
+  }
+
+  const getMealPlanDisplay = (plan: string | null) => {
+    if (!plan) return "-"
+
+    const planNames = {
+      "weight-loss": "Weight Loss",
+      "muscle-gain": "Muscle Gain",
+      "balanced-nutrition": "Balanced Nutrition",
+      keto: "Keto",
+      vegan: "Vegan",
+    }
+
+    return planNames[plan] || plan
   }
 
   if (loading) {
@@ -76,8 +108,11 @@ export default function WaitlistDataTable() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-500">{submissions.length} submissions found</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Waitlist Submissions</h2>
+          <p className="text-sm text-gray-500">{submissions.length} total submissions</p>
+        </div>
         <div className="space-x-2">
           <Button onClick={fetchSubmissions} variant="outline">
             Refresh
@@ -87,32 +122,78 @@ export default function WaitlistDataTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse bg-white rounded-lg shadow">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 text-left">Name</th>
-              <th className="border px-4 py-2 text-left">Email</th>
-              <th className="border px-4 py-2 text-left">Phone</th>
-              <th className="border px-4 py-2 text-left">Meal Plan</th>
-              <th className="border px-4 py-2 text-left">City</th>
-              <th className="border px-4 py-2 text-center">Notifications</th>
-              <th className="border px-4 py-2 text-left">Submitted At</th>
+            <tr className="bg-gray-50">
+              <th className="border px-4 py-3 text-left font-medium">#</th>
+              <th className="border px-4 py-3 text-left font-medium">Name</th>
+              <th className="border px-4 py-3 text-left font-medium">Email</th>
+              <th className="border px-4 py-3 text-left font-medium">Phone</th>
+              <th className="border px-4 py-3 text-left font-medium">Meal Plan</th>
+              <th className="border px-4 py-3 text-left font-medium">City</th>
+              <th className="border px-4 py-3 text-center font-medium">Notifications</th>
+              <th className="border px-4 py-3 text-center font-medium">Status</th>
+              <th className="border px-4 py-3 text-left font-medium">Submitted</th>
+              <th className="border px-4 py-3 text-left font-medium">Contacted</th>
             </tr>
           </thead>
           <tbody>
             {submissions.map((submission) => (
               <tr key={submission.id} className="hover:bg-gray-50">
-                <td className="border px-4 py-2">{submission.name}</td>
-                <td className="border px-4 py-2">{submission.email}</td>
-                <td className="border px-4 py-2">{submission.phone || "-"}</td>
-                <td className="border px-4 py-2">{submission.meal_plan_preference || "-"}</td>
-                <td className="border px-4 py-2">{submission.city || "-"}</td>
-                <td className="border px-4 py-2 text-center">{submission.notifications ? "Yes" : "No"}</td>
-                <td className="border px-4 py-2">{formatDate(submission.created_at)}</td>
+                <td className="border px-4 py-3 font-mono text-sm">#{submission.position}</td>
+                <td className="border px-4 py-3">
+                  <div className="font-medium">
+                    {submission.first_name} {submission.last_name}
+                  </div>
+                </td>
+                <td className="border px-4 py-3">
+                  <a href={`mailto:${submission.email}`} className="text-blue-600 hover:underline">
+                    {submission.email}
+                  </a>
+                </td>
+                <td className="border px-4 py-3">
+                  <a href={`tel:${submission.phone}`} className="text-blue-600 hover:underline">
+                    {submission.phone}
+                  </a>
+                </td>
+                <td className="border px-4 py-3">{getMealPlanDisplay(submission.preferred_meal_plan)}</td>
+                <td className="border px-4 py-3 capitalize">{submission.city}</td>
+                <td className="border px-4 py-3 text-center">
+                  {submission.wants_notifications ? (
+                    <span className="text-green-600">✓</span>
+                  ) : (
+                    <span className="text-gray-400">✗</span>
+                  )}
+                </td>
+                <td className="border px-4 py-3 text-center">{getStatusBadge(submission.status)}</td>
+                <td className="border px-4 py-3 text-sm">{formatDate(submission.created_at)}</td>
+                <td className="border px-4 py-3 text-sm">{formatDate(submission.contacted_at)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+        <h3 className="font-medium mb-2">Summary</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="text-gray-600">Total Submissions:</span>
+            <span className="ml-2 font-medium">{submissions.length}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">Waiting:</span>
+            <span className="ml-2 font-medium">{submissions.filter((s) => s.status === "waiting").length}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">Contacted:</span>
+            <span className="ml-2 font-medium">{submissions.filter((s) => s.status === "contacted").length}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">Joined:</span>
+            <span className="ml-2 font-medium">{submissions.filter((s) => s.status === "joined").length}</span>
+          </div>
+        </div>
       </div>
     </div>
   )
