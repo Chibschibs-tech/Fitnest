@@ -1,41 +1,49 @@
 import { NextResponse } from "next/server"
-import { getAllWaitlistSubmissions, checkWaitlistTable, createWaitlistTable } from "@/lib/waitlist-db"
-import { verifyToken } from "@/lib/jwt"
-import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
+import { neon } from "@neondatabase/serverless"
 
-export async function GET() {
+const sql = neon(process.env.DATABASE_URL!)
+
+export async function GET(request: Request) {
   try {
-    // Check for admin authentication using the existing JWT system
-    const cookieStore = cookies()
-    const sessionToken = cookieStore.get("session-token")?.value
+    // Use the existing session authentication system
+    const user = await getSessionUser(request)
 
-    if (!sessionToken) {
-      return NextResponse.json({ success: false, error: "No session token" }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized - Please log in" }, { status: 401 })
     }
 
-    // Verify the JWT token
-    const decoded = verifyToken(sessionToken)
-    if (!decoded || decoded.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 })
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
     }
 
-    // Ensure the waitlist table exists
-    const tableExists = await checkWaitlistTable()
-
-    if (!tableExists) {
-      await createWaitlistTable()
-    }
+    // Ensure waitlist table exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20),
+        meal_plan_preference VARCHAR(100),
+        city VARCHAR(100),
+        notifications BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
 
     // Get all waitlist submissions
-    const result = await getAllWaitlistSubmissions()
+    const submissions = await sql`
+      SELECT * FROM waitlist 
+      ORDER BY created_at DESC
+    `
 
-    if (result.success) {
-      return NextResponse.json(result)
-    } else {
-      return NextResponse.json({ success: false, error: result.error }, { status: 500 })
-    }
+    return NextResponse.json({
+      success: true,
+      submissions,
+      count: submissions.length,
+    })
   } catch (error) {
-    console.error("Error in waitlist API:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching waitlist submissions:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

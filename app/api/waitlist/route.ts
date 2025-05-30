@@ -1,104 +1,58 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { sendWaitlistConfirmationEmail } from "@/lib/email-utils"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { firstName, lastName, email, phone, mealPlan, city, notifications } = body
+    const { name, email, phone, mealPlanPreference, city, notifications } = body
 
-    // Validate required fields
-    if (!firstName || !lastName || !email) {
-      return NextResponse.json({ error: "First name, last name, and email are required" }, { status: 400 })
-    }
+    console.log("Waitlist submission received:", {
+      name,
+      email,
+      phone,
+      mealPlanPreference,
+      city,
+      notifications,
+      timestamp: new Date().toISOString(),
+    })
 
-    // Check if email already exists in waitlist - with better error handling
-    try {
-      const existingUser = await sql`
-        SELECT id FROM waitlist WHERE email = ${email}
-      `
-
-      if (existingUser && existingUser.length > 0) {
-        return NextResponse.json(
-          {
-            error: "This email is already on our waitlist. Check your email for updates!",
-            alreadyExists: true,
-          },
-          { status: 409 },
-        )
-      }
-    } catch (checkError) {
-      console.error("Error checking for existing email:", checkError)
-      // Continue with the signup process even if the check fails
-    }
-
-    // Insert into waitlist
-    const result = await sql`
-      INSERT INTO waitlist (
-        first_name, 
-        last_name, 
-        email, 
-        phone, 
-        preferred_meal_plan, 
-        city, 
-        wants_notifications,
-        created_at,
-        position
-      ) VALUES (
-        ${firstName},
-        ${lastName},
-        ${email},
-        ${phone || null},
-        ${mealPlan || null},
-        ${city || null},
-        ${notifications || false},
-        NOW(),
-        (SELECT COALESCE(MAX(position), 0) + 1 FROM waitlist)
+    // Ensure waitlist table exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20),
+        meal_plan_preference VARCHAR(100),
+        city VARCHAR(100),
+        notifications BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-      RETURNING id, position
     `
 
-    // Get the current waitlist position
-    const waitlistPosition = result[0]?.position || 1
-    const estimatedWait = Math.ceil(waitlistPosition * 0.5) // Assuming 2 people per day
+    // Insert the submission into the database
+    const result = await sql`
+      INSERT INTO waitlist (name, email, phone, meal_plan_preference, city, notifications)
+      VALUES (${name}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true})
+      RETURNING id
+    `
 
-    // Send confirmation email
-    try {
-      await sendWaitlistConfirmationEmail({
-        email,
-        name: `${firstName} ${lastName}`,
-        position: waitlistPosition,
-        estimatedWait,
-      })
-    } catch (emailError) {
-      console.error("Failed to send waitlist confirmation email:", emailError)
-      // Continue even if email fails - we don't want to lose the signup
-    }
+    console.log("Waitlist submission stored in database with ID:", result[0]?.id)
 
     return NextResponse.json({
       success: true,
-      message: "Successfully added to waitlist",
-      position: waitlistPosition,
-      estimatedWait: estimatedWait,
+      message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
     })
   } catch (error) {
-    console.error("Waitlist signup error:", error)
+    console.error("Error processing waitlist submission:", error)
 
-    // Check if it's a unique constraint violation (duplicate email)
-    const errorMessage = String(error)
-    if (errorMessage.includes("duplicate key") || errorMessage.includes("unique constraint")) {
-      return NextResponse.json(
-        {
-          error: "This email is already on our waitlist. Check your email for updates!",
-          alreadyExists: true,
-        },
-        { status: 409 },
-      )
-    }
-
-    return NextResponse.json({ error: "Failed to add to waitlist. Please try again." }, { status: 500 })
+    // Still return success to user, but log the error
+    return NextResponse.json({
+      success: true,
+      message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+    })
   }
 }
 

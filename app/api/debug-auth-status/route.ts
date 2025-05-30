@@ -1,35 +1,34 @@
 import { NextResponse } from "next/server"
-import { verifyToken } from "@/lib/jwt"
+import { getSessionUser } from "@/lib/simple-auth"
 import { cookies } from "next/headers"
 
-export async function GET() {
-  let sessionToken
+export async function GET(request: Request) {
   try {
     const cookieStore = cookies()
-    sessionToken = cookieStore.get("session-token")?.value
+    const sessionId = cookieStore.get("session-id")?.value
 
-    if (!sessionToken) {
+    if (!sessionId) {
       return NextResponse.json({
         authenticated: false,
-        error: "No session token found",
+        error: "No session-id cookie found",
         cookies: Object.fromEntries(cookieStore.getAll().map((cookie) => [cookie.name, cookie.value])),
       })
     }
 
-    // Verify the JWT token
-    const decoded = verifyToken(sessionToken)
+    // Use the existing session system
+    const user = await getSessionUser(request)
 
     return NextResponse.json({
-      authenticated: !!decoded,
-      user: decoded,
-      sessionToken: sessionToken.substring(0, 20) + "...", // Show partial token for debugging
+      authenticated: !!user,
+      user: user || null,
+      sessionId: sessionId.substring(0, 20) + "...", // Show partial session ID for debugging
       cookies: Object.fromEntries(cookieStore.getAll().map((cookie) => [cookie.name, cookie.value])),
     })
   } catch (error) {
     return NextResponse.json({
       authenticated: false,
       error: error.message,
-      sessionToken: sessionToken?.substring(0, 20) + "..." || "none",
+      sessionId: cookieStore.get("session-id")?.value?.substring(0, 20) + "..." || "none",
     })
   }
 }

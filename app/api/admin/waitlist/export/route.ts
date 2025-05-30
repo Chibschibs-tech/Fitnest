@@ -1,73 +1,56 @@
 import { NextResponse } from "next/server"
-import { getAllWaitlistSubmissions } from "@/lib/waitlist-db"
-import { verifyToken } from "@/lib/jwt"
-import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
+import { neon } from "@neondatabase/serverless"
 
-export async function GET() {
+const sql = neon(process.env.DATABASE_URL!)
+
+export async function GET(request: Request) {
   try {
-    // Check for admin authentication using the existing JWT system
-    const cookieStore = cookies()
-    const sessionToken = cookieStore.get("session-token")?.value
+    // Use the existing session authentication system
+    const user = await getSessionUser(request)
 
-    if (!sessionToken) {
-      return NextResponse.json({ success: false, error: "No session token" }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized - Please log in" }, { status: 401 })
     }
 
-    // Verify the JWT token
-    const decoded = verifyToken(sessionToken)
-    if (!decoded || decoded.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 })
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
     }
 
     // Get all waitlist submissions
-    const result = await getAllWaitlistSubmissions()
-
-    if (!result.success || !result.data) {
-      return NextResponse.json({ success: false, error: result.error || "Failed to fetch data" }, { status: 500 })
-    }
+    const submissions = await sql`
+      SELECT * FROM waitlist 
+      ORDER BY created_at DESC
+    `
 
     // Convert to CSV
-    const headers = [
-      "ID",
-      "First Name",
-      "Last Name",
-      "Email",
-      "Phone",
-      "Meal Plan",
-      "City",
-      "Notifications",
-      "Created At",
-    ]
-    const entries = result.data
+    const headers = ["ID", "Name", "Email", "Phone", "Meal Plan", "City", "Notifications", "Submitted At"]
+    const csvRows = [headers.join(",")]
 
-    const csvRows = [
-      headers.join(","),
-      ...entries.map((entry: any) =>
-        [
-          entry.id,
-          `"${entry.first_name || ""}"`,
-          `"${entry.last_name || ""}"`,
-          `"${entry.email || ""}"`,
-          `"${entry.phone || ""}"`,
-          `"${entry.meal_plan || ""}"`,
-          `"${entry.city || ""}"`,
-          entry.notifications ? "Yes" : "No",
-          entry.created_at,
-        ].join(","),
-      ),
-    ]
+    submissions.forEach((submission: any) => {
+      const row = [
+        submission.id,
+        `"${submission.name}"`,
+        `"${submission.email}"`,
+        `"${submission.phone || ""}"`,
+        `"${submission.meal_plan_preference || ""}"`,
+        `"${submission.city || ""}"`,
+        submission.notifications ? "Yes" : "No",
+        `"${new Date(submission.created_at).toLocaleString()}"`,
+      ]
+      csvRows.push(row.join(","))
+    })
 
     const csvContent = csvRows.join("\n")
 
-    // Return CSV file
     return new NextResponse(csvContent, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="waitlist-entries-${new Date().toISOString().split("T")[0]}.csv"`,
+        "Content-Disposition": 'attachment; filename="waitlist-submissions.csv"',
       },
     })
   } catch (error) {
-    console.error("Error in waitlist export API:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+    console.error("Error exporting waitlist submissions:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
