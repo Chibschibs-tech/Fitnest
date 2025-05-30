@@ -27,6 +27,7 @@ export function middleware(request: NextRequest) {
     "/express-shop",
     "/blog",
     "/faq",
+    "/api/debug-auth-status",
   ]
 
   // Check if the path is public or starts with a public path
@@ -36,6 +37,24 @@ export function middleware(request: NextRequest) {
 
   if (isPublicPath) {
     return NextResponse.next()
+  }
+
+  // Check if the path is an admin route that requires admin authentication
+  const adminRoutes = ["/admin/waitlist", "/api/admin/waitlist"]
+
+  const isAdminRoute = adminRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
+
+  if (isAdminRoute) {
+    // For admin routes, verify the session token and admin role
+    const sessionToken = request.cookies.get("session-token")?.value
+
+    if (!sessionToken) {
+      const loginUrl = new URL("/login", request.url)
+      loginUrl.searchParams.set("callbackUrl", request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    // Additional admin role verification would go here if needed
   }
 
   // For protected routes, check authentication

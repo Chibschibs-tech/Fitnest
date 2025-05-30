@@ -1,13 +1,24 @@
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "../../api/auth/[...nextauth]/route"
+import { cookies } from "next/headers"
+import { verifyToken } from "@/lib/jwt"
 import WaitlistDataTable from "./waitlist-data-table"
 
 export default async function WaitlistAdminPage() {
-  // Check for admin authentication
-  const session = await getServerSession(authOptions)
+  // Check for admin authentication using the existing JWT system
+  const cookieStore = cookies()
+  const sessionToken = cookieStore.get("session-token")?.value
 
-  if (!session) {
+  if (!sessionToken) {
+    redirect("/login?callbackUrl=/admin/waitlist")
+  }
+
+  try {
+    // Verify the JWT token
+    const decoded = verifyToken(sessionToken)
+    if (!decoded || decoded.role !== "admin") {
+      redirect("/login?callbackUrl=/admin/waitlist")
+    }
+  } catch (error) {
     redirect("/login?callbackUrl=/admin/waitlist")
   }
 

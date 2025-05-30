@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server"
 import { getAllWaitlistSubmissions } from "@/lib/waitlist-db"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "../../../auth/[...nextauth]/route"
+import { verifyToken } from "@/lib/jwt"
+import { cookies } from "next/headers"
 
 export async function GET() {
   try {
-    // Check for admin authentication
-    const session = await getServerSession(authOptions)
+    // Check for admin authentication using the existing JWT system
+    const cookieStore = cookies()
+    const sessionToken = cookieStore.get("session-token")?.value
 
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    if (!sessionToken) {
+      return NextResponse.json({ success: false, error: "No session token" }, { status: 401 })
+    }
+
+    // Verify the JWT token
+    const decoded = verifyToken(sessionToken)
+    if (!decoded || decoded.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 })
     }
 
     // Get all waitlist submissions
