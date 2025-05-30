@@ -675,14 +675,14 @@ export default function MealsPage() {
             id: 8,
             name: "Turkey and Spinach Wrap",
             description:
-              "A nutritious whole wheat wrap filled with lean turkey breast, fresh spinach, creamy avocado, and Greek yogurt spread. Perfect for a protein-rich start to your day.",
+              "A nutritious whole wheat wrap filled with lean turkey breast, fresh spinach, creamy avocado, and Greek yogurt spread. Perfect for a protein-rich lunch or dinner.",
             calories: 750,
             protein: 35,
             carbs: 45,
             fat: 20,
             imageUrl: "/turkey-spinach-wrap.png",
             tags: ["high-protein", "wrap", "lean"],
-            mealType: "breakfast",
+            mealType: "main", // Changed from "breakfast" to "main"
             dietaryInfo: ["dairy-free-option"],
             planVariations: {
               muscleGain: {
