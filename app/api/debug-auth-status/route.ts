@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/simple-auth"
 import { cookies } from "next/headers"
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
@@ -15,20 +15,30 @@ export async function GET(request: Request) {
       })
     }
 
-    // Use the existing session system
-    const user = await getSessionUser(request)
+    console.log("Debug: Session ID found:", sessionId)
+
+    // Use the existing session system with the correct parameter
+    const user = await getSessionUser(sessionId)
+
+    console.log("Debug: User from session:", user)
 
     return NextResponse.json({
       authenticated: !!user,
       user: user || null,
-      sessionId: sessionId.substring(0, 20) + "...", // Show partial session ID for debugging
+      sessionId: sessionId.substring(0, 20) + "...",
       cookies: Object.fromEntries(cookieStore.getAll().map((cookie) => [cookie.name, cookie.value])),
+      debug: {
+        sessionIdLength: sessionId.length,
+        sessionIdFull: sessionId, // Temporary for debugging
+      },
     })
   } catch (error) {
+    console.error("Debug auth error:", error)
     return NextResponse.json({
       authenticated: false,
       error: error.message,
-      sessionId: cookieStore.get("session-id")?.value?.substring(0, 20) + "..." || "none",
+      stack: error.stack,
+      sessionId: cookieStore?.get("session-id")?.value?.substring(0, 20) + "..." || "none",
     })
   }
 }

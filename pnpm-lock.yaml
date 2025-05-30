@@ -178,7 +178,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.44.0(1b5b91c5e8b5bda9913f960cc788f96f)
+        version: 0.44.1(1b5b91c5e8b5bda9913f960cc788f96f)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -3139,8 +3139,8 @@ packages:
     resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
 
-  drizzle-orm@0.44.0:
-    resolution: {integrity: sha512-/8wYepe887Gp1eCVILKitNegclGLPUMdK4oDDyDftKJOeHoCylY+XM++chMJloy9oKTceWOALiQMl2aAuFuPTw==}
+  drizzle-orm@0.44.1:
+    resolution: {integrity: sha512-prIWOlwJbiYInvcJxE+IMiJCtMiFVrSUJCwx6AXSJvGOdLu35qZ46QncTZDgloiLNCG0XxTC8agQElSmsl++TA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -9084,7 +9084,7 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.44.0(1b5b91c5e8b5bda9913f960cc788f96f):
+  drizzle-orm@0.44.1(1b5b91c5e8b5bda9913f960cc788f96f):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.817.0
       '@cloudflare/workers-types': 4.20250529.0

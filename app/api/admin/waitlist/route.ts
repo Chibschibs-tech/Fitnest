@@ -1,20 +1,36 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/simple-auth"
 import { neon } from "@neondatabase/serverless"
+import { cookies } from "next/headers"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
+    // Get session ID from cookies
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
+
+    if (!sessionId) {
+      return NextResponse.json({ error: "No session found" }, { status: 401 })
+    }
+
     // Use the existing session authentication system
-    const user = await getSessionUser(request)
+    const user = await getSessionUser(sessionId)
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized - Please log in" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
     if (user.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
+      return NextResponse.json(
+        {
+          error: "Admin access required",
+          userRole: user.role,
+          userEmail: user.email,
+        },
+        { status: 403 },
+      )
     }
 
     // Ensure waitlist table exists
@@ -44,6 +60,6 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error("Error fetching waitlist submissions:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 })
   }
 }
