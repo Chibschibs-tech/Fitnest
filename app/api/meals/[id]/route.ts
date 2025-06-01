@@ -3,13 +3,16 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get("type")
-    const query = searchParams.get("query")
+    const mealId = Number.parseInt(params.id)
 
-    let sqlQuery = `
+    if (isNaN(mealId)) {
+      return NextResponse.json({ message: "Invalid meal ID" }, { status: 400 })
+    }
+
+    const meals = await sql(
+      `
       SELECT 
         id,
         name,
@@ -26,36 +29,19 @@ export async function GET(request: Request) {
         created_at,
         updated_at
       FROM meals 
-      WHERE is_active = true
-    `
-    const params: any[] = []
+      WHERE id = $1 AND is_active = true
+    `,
+      [mealId],
+    )
 
-    // Apply type filter if provided
-    if (type && type !== "all") {
-      sqlQuery += ` AND meal_type = $${params.length + 1}`
-      params.push(type)
+    if (meals.length === 0) {
+      return NextResponse.json({ message: "Meal not found" }, { status: 404 })
     }
 
-    // Apply search filter if provided
-    if (query) {
-      sqlQuery += ` AND (
-        LOWER(name) LIKE $${params.length + 1} OR 
-        LOWER(description) LIKE $${params.length + 2} OR 
-        EXISTS (
-          SELECT 1 FROM unnest(tags) AS tag 
-          WHERE LOWER(tag) LIKE $${params.length + 3}
-        )
-      )`
-      const searchTerm = `%${query.toLowerCase()}%`
-      params.push(searchTerm, searchTerm, searchTerm)
-    }
-
-    sqlQuery += ` ORDER BY created_at DESC`
-
-    const meals = await sql(sqlQuery, params)
+    const meal = meals[0]
 
     // Transform the data to match frontend expectations
-    const transformedMeals = meals.map((meal: any) => ({
+    const transformedMeal = {
       id: meal.id,
       name: meal.name,
       description: meal.description,
@@ -78,11 +64,11 @@ export async function GET(request: Request) {
       sodium: meal.nutrition?.sodium || 0,
       createdAt: meal.created_at,
       updatedAt: meal.updated_at,
-    }))
+    }
 
-    return NextResponse.json(transformedMeals)
+    return NextResponse.json(transformedMeal)
   } catch (error) {
-    console.error("Error fetching meals:", error)
-    return NextResponse.json({ message: "Failed to fetch meals" }, { status: 500 })
+    console.error("Error fetching meal:", error)
+    return NextResponse.json({ message: "Failed to fetch meal" }, { status: 500 })
   }
 }
