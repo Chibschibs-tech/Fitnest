@@ -3,6 +3,9 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: Request) {
   try {
+    console.log("API called - fetching meals")
+    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL)
+
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type")
     const query = searchParams.get("query")
@@ -46,7 +49,13 @@ export async function GET(request: Request) {
 
     sqlQuery += ` ORDER BY created_at DESC`
 
+    console.log("Executing SQL:", sqlQuery)
+    console.log("With params:", params)
+
     const meals = await sql(sqlQuery, params)
+
+    console.log("Raw meals from DB:", meals)
+    console.log("Number of meals found:", meals.length)
 
     // Transform the data to match frontend expectations
     const transformedMeals = meals.map((meal: any) => ({
@@ -73,9 +82,18 @@ export async function GET(request: Request) {
       updatedAt: meal.updated_at,
     }))
 
+    console.log("Transformed meals:", transformedMeals)
+    console.log("Returning meals count:", transformedMeals.length)
+
     return NextResponse.json(transformedMeals)
   } catch (error) {
     console.error("Error fetching meals:", error)
-    return NextResponse.json({ message: "Failed to fetch meals" }, { status: 500 })
+    return NextResponse.json(
+      {
+        message: "Failed to fetch meals",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }

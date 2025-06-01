@@ -1,29 +1,44 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { sql } from "drizzle-orm"
+import { sql } from "@/lib/db"
 
 export async function GET() {
   try {
-    // Simple query to test database connection
-    const result = await db.execute(sql`SELECT 1 as test`)
+    console.log("Testing database connection...")
+    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL)
 
-    // Try to count users
-    const userCount = await db.select({ count: sql`count(*)` }).from(sql`information_schema.tables`)
+    // Test basic connection
+    const result = await sql`SELECT NOW() as current_time`
+    console.log("Database connection test result:", result)
+
+    // Test if meals table exists
+    const tableCheck = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'meals'
+    `
+    console.log("Meals table exists:", tableCheck)
+
+    // Count meals in the table
+    const mealCount = await sql`SELECT COUNT(*) as count FROM meals`
+    console.log("Total meals in database:", mealCount)
+
+    // Get first few meals
+    const sampleMeals = await sql`SELECT id, name, meal_type, is_active FROM meals LIMIT 3`
+    console.log("Sample meals:", sampleMeals)
 
     return NextResponse.json({
-      status: "success",
-      message: "Database connection successful",
-      test: result,
-      tableCount: userCount.length,
-      tables: userCount,
+      success: true,
+      connection: result,
+      tableExists: tableCheck.length > 0,
+      mealCount: mealCount[0]?.count || 0,
+      sampleMeals,
     })
   } catch (error) {
-    console.error("Database test failed:", error)
+    console.error("Database test error:", error)
     return NextResponse.json(
       {
-        status: "error",
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
