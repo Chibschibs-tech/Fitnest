@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { sql } from "@/lib/db"
 
 export async function GET(request: Request) {
   try {
@@ -40,14 +38,10 @@ export async function GET(request: Request) {
     if (query) {
       sqlQuery += ` AND (
         LOWER(name) LIKE $${params.length + 1} OR 
-        LOWER(description) LIKE $${params.length + 2} OR 
-        EXISTS (
-          SELECT 1 FROM unnest(tags) AS tag 
-          WHERE LOWER(tag) LIKE $${params.length + 3}
-        )
+        LOWER(description) LIKE $${params.length + 2}
       )`
       const searchTerm = `%${query.toLowerCase()}%`
-      params.push(searchTerm, searchTerm, searchTerm)
+      params.push(searchTerm, searchTerm)
     }
 
     sqlQuery += ` ORDER BY created_at DESC`
@@ -68,7 +62,6 @@ export async function GET(request: Request) {
       allergens: meal.allergens,
       usdaVerified: meal.usda_verified,
       isActive: meal.is_active,
-      // Extract nutrition values for easy access
       calories: meal.nutrition?.calories || 0,
       protein: meal.nutrition?.protein || 0,
       carbs: meal.nutrition?.carbs || 0,

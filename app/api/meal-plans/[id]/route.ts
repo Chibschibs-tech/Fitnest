@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { sql } from "@/lib/db"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -12,7 +10,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     // Get meal plan details
-    const plans = await sql(
+    const mealPlans = await sql(
       `
       SELECT 
         id,
@@ -31,13 +29,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
       [planId],
     )
 
-    if (plans.length === 0) {
+    if (mealPlans.length === 0) {
       return NextResponse.json({ message: "Meal plan not found" }, { status: 404 })
     }
 
-    const plan = plans[0]
-
-    // Get meals associated with this plan
+    // Get meals in this plan
     const planMeals = await sql(
       `
       SELECT 
@@ -63,45 +59,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       [planId],
     )
 
-    // Transform meals with portion adjustments
-    const transformedMeals = planMeals.map((item: any) => {
-      const adjustedNutrition = {
-        calories: Math.round((item.nutrition?.calories || 0) * item.portion_multiplier),
-        protein: Math.round((item.nutrition?.protein || 0) * item.portion_multiplier),
-        carbs: Math.round((item.nutrition?.carbs || 0) * item.portion_multiplier),
-        fat: Math.round((item.nutrition?.fat || 0) * item.portion_multiplier),
-        fiber: Math.round((item.nutrition?.fiber || 0) * item.portion_multiplier),
-        sugar: Math.round((item.nutrition?.sugar || 0) * item.portion_multiplier),
-        sodium: Math.round((item.nutrition?.sodium || 0) * item.portion_multiplier),
-      }
-
-      return {
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        mealType: item.meal_type, // Use the meal type from meal_plan_items
-        originalMealType: item.original_meal_type,
-        ingredients: item.ingredients,
-        nutrition: adjustedNutrition,
-        imageUrl: item.image_url,
-        tags: item.tags,
-        dietaryInfo: item.dietary_info,
-        allergens: item.allergens,
-        usdaVerified: item.usda_verified,
-        portionMultiplier: item.portion_multiplier,
-        sortOrder: item.sort_order,
-        // Extract nutrition values for easy access
-        calories: adjustedNutrition.calories,
-        protein: adjustedNutrition.protein,
-        carbs: adjustedNutrition.carbs,
-        fat: adjustedNutrition.fat,
-        fiber: adjustedNutrition.fiber,
-        sugar: adjustedNutrition.sugar,
-        sodium: adjustedNutrition.sodium,
-      }
-    })
-
-    // Transform the plan data
+    const plan = mealPlans[0]
     const transformedPlan = {
       id: plan.id,
       name: plan.name,
@@ -111,9 +69,31 @@ export async function GET(request: Request, { params }: { params: { id: string }
       targetCaloriesMax: plan.target_calories_max,
       weeklyPrice: plan.weekly_price,
       isActive: plan.is_active,
-      meals: transformedMeals,
       createdAt: plan.created_at,
       updatedAt: plan.updated_at,
+      meals: planMeals.map((meal: any) => ({
+        id: meal.id,
+        name: meal.name,
+        description: meal.description,
+        mealType: meal.original_meal_type,
+        ingredients: meal.ingredients,
+        nutrition: meal.nutrition,
+        imageUrl: meal.image_url,
+        tags: meal.tags,
+        dietaryInfo: meal.dietary_info,
+        allergens: meal.allergens,
+        usdaVerified: meal.usda_verified,
+        portionMultiplier: meal.portion_multiplier,
+        sortOrder: meal.sort_order,
+        // Adjusted nutrition based on portion multiplier
+        calories: Math.round((meal.nutrition?.calories || 0) * meal.portion_multiplier),
+        protein: Math.round((meal.nutrition?.protein || 0) * meal.portion_multiplier),
+        carbs: Math.round((meal.nutrition?.carbs || 0) * meal.portion_multiplier),
+        fat: Math.round((meal.nutrition?.fat || 0) * meal.portion_multiplier),
+        fiber: Math.round((meal.nutrition?.fiber || 0) * meal.portion_multiplier),
+        sugar: Math.round((meal.nutrition?.sugar || 0) * meal.portion_multiplier),
+        sodium: Math.round((meal.nutrition?.sodium || 0) * meal.portion_multiplier),
+      })),
     }
 
     return NextResponse.json(transformedPlan)

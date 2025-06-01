@@ -11,14 +11,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  webpack: (config) => {
-    // Add alias for bcrypt
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      bcrypt: require.resolve("./lib/bcrypt-stub.js"),
-    }
-    return config
-  },
 }
 
 module.exports = nextConfig

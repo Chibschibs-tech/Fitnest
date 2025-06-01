@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { sql } from "@/lib/db"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -40,7 +38,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const meal = meals[0]
 
-    // Transform the data to match frontend expectations
     const transformedMeal = {
       id: meal.id,
       name: meal.name,
@@ -54,7 +51,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
       allergens: meal.allergens,
       usdaVerified: meal.usda_verified,
       isActive: meal.is_active,
-      // Extract nutrition values for easy access
       calories: meal.nutrition?.calories || 0,
       protein: meal.nutrition?.protein || 0,
       carbs: meal.nutrition?.carbs || 0,

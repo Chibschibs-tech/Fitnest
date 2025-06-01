@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { sql } from "@/lib/db"
 
 export async function GET() {
   try {
-    const plans = await sql(`
+    const mealPlans = await sql(`
       SELECT 
         id,
         name,
@@ -22,8 +20,7 @@ export async function GET() {
       ORDER BY weekly_price ASC
     `)
 
-    // Transform the data to match frontend expectations
-    const transformedPlans = plans.map((plan: any) => ({
+    const transformedPlans = mealPlans.map((plan: any) => ({
       id: plan.id,
       name: plan.name,
       description: plan.description,
