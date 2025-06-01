@@ -3,41 +3,26 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const mealId = Number.parseInt(params.id)
+    const id = Number.parseInt(params.id)
 
-    if (isNaN(mealId)) {
+    if (isNaN(id)) {
       return NextResponse.json({ message: "Invalid meal ID" }, { status: 400 })
     }
 
-    const meals = await sql(
-      `
+    const meals = await sql`
       SELECT 
-        id,
-        name,
-        description,
-        meal_type,
-        ingredients,
-        nutrition,
-        image_url,
-        tags,
-        dietary_info,
-        allergens,
-        usda_verified,
-        is_active,
-        created_at,
-        updated_at
+        id, name, description, meal_type, ingredients, nutrition, 
+        image_url, tags, dietary_info, allergens, usda_verified, 
+        is_active, created_at, updated_at
       FROM meals 
-      WHERE id = $1 AND is_active = true
-    `,
-      [mealId],
-    )
+      WHERE id = ${id} AND is_active = true
+    `
 
     if (meals.length === 0) {
       return NextResponse.json({ message: "Meal not found" }, { status: 404 })
     }
 
     const meal = meals[0]
-
     const transformedMeal = {
       id: meal.id,
       name: meal.name,

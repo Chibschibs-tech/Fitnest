@@ -3,59 +3,64 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: Request) {
   try {
-    console.log("API called - fetching meals")
-    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL)
-
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type")
     const query = searchParams.get("query")
 
-    let sqlQuery = `
-      SELECT 
-        id,
-        name,
-        description,
-        meal_type,
-        ingredients,
-        nutrition,
-        image_url,
-        tags,
-        dietary_info,
-        allergens,
-        usda_verified,
-        is_active,
-        created_at,
-        updated_at
-      FROM meals 
-      WHERE is_active = true
-    `
-    const params: any[] = []
+    let meals
 
-    // Apply type filter if provided
-    if (type && type !== "all") {
-      sqlQuery += ` AND meal_type = $${params.length + 1}`
-      params.push(type)
-    }
-
-    // Apply search filter if provided
-    if (query) {
-      sqlQuery += ` AND (
-        LOWER(name) LIKE $${params.length + 1} OR 
-        LOWER(description) LIKE $${params.length + 2}
-      )`
+    // Handle different query scenarios with tagged templates
+    if (type && type !== "all" && query) {
+      // Both type and search query
       const searchTerm = `%${query.toLowerCase()}%`
-      params.push(searchTerm, searchTerm)
+      meals = await sql`
+        SELECT 
+          id, name, description, meal_type, ingredients, nutrition, 
+          image_url, tags, dietary_info, allergens, usda_verified, 
+          is_active, created_at, updated_at
+        FROM meals 
+        WHERE is_active = true 
+        AND meal_type = ${type}
+        AND (LOWER(name) LIKE ${searchTerm} OR LOWER(description) LIKE ${searchTerm})
+        ORDER BY created_at DESC
+      `
+    } else if (type && type !== "all") {
+      // Only type filter
+      meals = await sql`
+        SELECT 
+          id, name, description, meal_type, ingredients, nutrition, 
+          image_url, tags, dietary_info, allergens, usda_verified, 
+          is_active, created_at, updated_at
+        FROM meals 
+        WHERE is_active = true 
+        AND meal_type = ${type}
+        ORDER BY created_at DESC
+      `
+    } else if (query) {
+      // Only search query
+      const searchTerm = `%${query.toLowerCase()}%`
+      meals = await sql`
+        SELECT 
+          id, name, description, meal_type, ingredients, nutrition, 
+          image_url, tags, dietary_info, allergens, usda_verified, 
+          is_active, created_at, updated_at
+        FROM meals 
+        WHERE is_active = true 
+        AND (LOWER(name) LIKE ${searchTerm} OR LOWER(description) LIKE ${searchTerm})
+        ORDER BY created_at DESC
+      `
+    } else {
+      // No filters - get all meals
+      meals = await sql`
+        SELECT 
+          id, name, description, meal_type, ingredients, nutrition, 
+          image_url, tags, dietary_info, allergens, usda_verified, 
+          is_active, created_at, updated_at
+        FROM meals 
+        WHERE is_active = true
+        ORDER BY created_at DESC
+      `
     }
-
-    sqlQuery += ` ORDER BY created_at DESC`
-
-    console.log("Executing SQL:", sqlQuery)
-    console.log("With params:", params)
-
-    const meals = await sql(sqlQuery, params)
-
-    console.log("Raw meals from DB:", meals)
-    console.log("Number of meals found:", meals.length)
 
     // Transform the data to match frontend expectations
     const transformedMeals = meals.map((meal: any) => ({
@@ -82,18 +87,9 @@ export async function GET(request: Request) {
       updatedAt: meal.updated_at,
     }))
 
-    console.log("Transformed meals:", transformedMeals)
-    console.log("Returning meals count:", transformedMeals.length)
-
     return NextResponse.json(transformedMeals)
   } catch (error) {
     console.error("Error fetching meals:", error)
-    return NextResponse.json(
-      {
-        message: "Failed to fetch meals",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ message: "Failed to fetch meals" }, { status: 500 })
   }
 }
