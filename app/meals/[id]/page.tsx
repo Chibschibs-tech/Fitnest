@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, Utensils, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { calculateMealNutrition, type MealIngredient } from "@/lib/macro-calculator"
 
 interface Meal {
   id: number
@@ -20,6 +21,8 @@ interface Meal {
   tags: string[]
   mealType: string
   dietaryInfo: string[]
+  ingredients?: MealIngredient[]
+  nutrition?: { calories: number; protein: number; carbs: number; fat: number }
 }
 
 export default function MealDetailPage({ params }: { params: { id: string } }) {
@@ -38,29 +41,34 @@ export default function MealDetailPage({ params }: { params: { id: string } }) {
             id: 1,
             name: "Grilled Chicken & Vegetable Medley",
             description: "Tender grilled chicken breast with a colorful mix of roasted vegetables and quinoa.",
-            calories: 420,
-            protein: 35,
-            carbs: 30,
-            fat: 15,
+            ingredients: [
+              { ingredientId: "chicken-breast", amount: 120, displayText: "4 oz grilled chicken breast (~120g)" },
+              { ingredientId: "broccoli", amount: 150, displayText: "1 cup steamed broccoli (~150g)" },
+              { ingredientId: "carrots", amount: 80, displayText: "1/2 cup roasted carrots (~80g)" },
+              { ingredientId: "zucchini", amount: 100, displayText: "1/2 cup grilled zucchini (~100g)" },
+              { ingredientId: "quinoa-cooked", amount: 80, displayText: "1/3 cup cooked quinoa (~80g)" },
+              { ingredientId: "olive-oil", amount: 8, displayText: "2 tsp olive oil (~8g)" },
+            ] as MealIngredient[],
+            get nutrition() {
+              return calculateMealNutrition(this.ingredients!)
+            },
+            get calories() {
+              return this.nutrition!.calories
+            },
+            get protein() {
+              return this.nutrition!.protein
+            },
+            get carbs() {
+              return this.nutrition!.carbs
+            },
+            get fat() {
+              return this.nutrition!.fat
+            },
             imageUrl: "/grilled-chicken-vegetable-medley.png",
-            tags: ["high-protein", "low-carb"],
+            tags: ["high-protein", "balanced"],
             mealType: "lunch",
             dietaryInfo: ["gluten-free"],
           },
-          {
-            id: 2,
-            name: "Rainbow Grain Bowl",
-            description: "A vibrant bowl with mixed grains, roasted vegetables, avocado, and tahini dressing.",
-            calories: 380,
-            protein: 12,
-            carbs: 45,
-            fat: 18,
-            imageUrl: "/rainbow-grain-bowl.png",
-            tags: ["vegetarian", "fiber-rich"],
-            mealType: "lunch",
-            dietaryInfo: ["vegetarian"],
-          },
-          // Add more mock meals as needed
         ]
 
         const foundMeal = mockMeals.find((m) => m.id === Number.parseInt(params.id))
