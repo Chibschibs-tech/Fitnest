@@ -13,7 +13,7 @@ export default function BlogPage() {
       category: "Meal Prep",
       readTime: "5 min read",
       date: "May 2, 2023",
-      image: "/placeholder.svg?key=68xas",
+      image: "/placeholder.svg?height=400&width=600",
     },
     {
       id: 2,
@@ -23,7 +23,7 @@ export default function BlogPage() {
       category: "Nutrition",
       readTime: "7 min read",
       date: "April 18, 2023",
-      image: "/placeholder.svg?key=yizjd",
+      image: "/placeholder.svg?height=400&width=600",
     },
     {
       id: 3,
@@ -33,7 +33,7 @@ export default function BlogPage() {
       category: "Fitness",
       readTime: "8 min read",
       date: "April 5, 2023",
-      image: "/placeholder.svg?key=2c085",
+      image: "/placeholder.svg?height=400&width=600",
     },
     {
       id: 4,
@@ -43,7 +43,7 @@ export default function BlogPage() {
       category: "Nutrition",
       readTime: "6 min read",
       date: "March 22, 2023",
-      image: "/placeholder.svg?key=ow7x3",
+      image: "/placeholder.svg?height=400&width=600",
     },
     {
       id: 5,
@@ -53,7 +53,7 @@ export default function BlogPage() {
       category: "Wellness",
       readTime: "9 min read",
       date: "March 10, 2023",
-      image: "/placeholder.svg?key=koou0",
+      image: "/placeholder.svg?height=400&width=600",
     },
   ]
 
@@ -68,27 +68,30 @@ export default function BlogPage() {
 
       {/* Featured Post */}
       <div className="mb-16">
-        <div className="bg-white rounded-lg overflow-hidden shadow-lg grid md:grid-cols-2">
-          <div className="relative h-64 md:h-auto">
+        <div className="bg-white rounded-lg overflow-hidden shadow-lg grid grid-cols-1 md:grid-cols-2">
+          <div className="relative h-64 md:h-auto order-2 md:order-1">
             <Image
               src={blogPosts[0].image || "/placeholder.svg"}
               alt={blogPosts[0].title}
               fill
               className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
-          <div className="p-8 flex flex-col justify-center">
+          <div className="p-6 md:p-8 flex flex-col justify-center order-1 md:order-2">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+              <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                 {blogPosts[0].category}
               </span>
               <span className="text-xs text-gray-500">{blogPosts[0].readTime}</span>
             </div>
-            <h2 className="text-2xl font-bold mb-3">{blogPosts[0].title}</h2>
-            <p className="text-gray-600 mb-6">{blogPosts[0].excerpt}</p>
+            <h2 className="text-xl md:text-2xl font-bold mb-3">{blogPosts[0].title}</h2>
+            <p className="text-gray-600 mb-6 text-sm md:text-base">{blogPosts[0].excerpt}</p>
             <div className="mt-auto">
               <Link href={`/blog/${blogPosts[0].slug}`}>
-                <Button className="bg-logo-green hover:bg-logo-green/90 text-white">Read Article</Button>
+                <Button className="bg-fitnest-green hover:bg-fitnest-green/90 text-white w-full md:w-auto">
+                  Read Article
+                </Button>
               </Link>
             </div>
           </div>
@@ -103,11 +106,17 @@ export default function BlogPage() {
             className="bg-white rounded-lg overflow-hidden shadow-md transition-transform hover:shadow-lg"
           >
             <div className="relative h-48">
-              <Image src={post.image || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
+              <Image
+                src={post.image || "/placeholder.svg"}
+                alt={post.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
             </div>
             <div className="p-6">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                   {post.category}
                 </span>
                 <span className="text-xs text-gray-500">{post.readTime}</span>
@@ -119,7 +128,7 @@ export default function BlogPage() {
                 <Link href={`/blog/${post.slug}`}>
                   <Button
                     variant="outline"
-                    className="border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                    className="border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white"
                   >
                     Read More
                   </Button>

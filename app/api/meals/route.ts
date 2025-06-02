@@ -3,6 +3,8 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: Request) {
   try {
+    console.log("Fetching meals from database...")
+
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type")
     const query = searchParams.get("query")
@@ -62,6 +64,8 @@ export async function GET(request: Request) {
       `
     }
 
+    console.log(`Found ${meals.length} meals`)
+
     // Transform the data to match frontend expectations
     const transformedMeals = meals.map((meal: any) => ({
       id: meal.id,
@@ -90,6 +94,12 @@ export async function GET(request: Request) {
     return NextResponse.json(transformedMeals)
   } catch (error) {
     console.error("Error fetching meals:", error)
-    return NextResponse.json({ message: "Failed to fetch meals" }, { status: 500 })
+    return NextResponse.json(
+      {
+        message: "Failed to fetch meals",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }

@@ -143,7 +143,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold">Why Choose Fitnest.ma</h2>
+          <h2 className="mb-12 text-center text-3xl font-bold">Why Choose Fitnest</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:grid-cols-3">
             <div className="rounded-lg p-6 text-center shadow-lg bg-gray-50">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-fitnest-green/10 text-fitnest-green">
@@ -158,7 +158,7 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                   />
                 </svg>
               </div>
@@ -180,7 +180,7 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
@@ -202,7 +202,7 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
                   />
                 </svg>
               </div>
@@ -216,12 +216,13 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold">What Our Customers Say</h2>
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Testimonial 1 */}
-            <div className="rounded-lg bg-white p-6 shadow-md">
+      {/* Testimonials Section - Commented out for now */}
+      {/* 
+<section className="py-20 bg-gray-50">
+  <div className="container mx-auto px-4">
+    <h2 className="mb-12 text-center text-3xl font-bold">What Our Customers Say</h2>
+    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="rounded-lg bg-white p-6 shadow-md">
               <div className="mb-4 flex items-center">
                 <div className="mr-4 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
                   <Image src="/diverse-group-city.png" alt="Customer" width={48} height={48} />
@@ -250,7 +251,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Testimonial 2 */}
             <div className="rounded-lg bg-white p-6 shadow-md">
               <div className="mb-4 flex items-center">
                 <div className="mr-4 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
@@ -280,7 +280,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Testimonial 3 */}
             <div className="rounded-lg bg-white p-6 shadow-md">
               <div className="mb-4 flex items-center">
                 <div className="mr-4 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
@@ -309,9 +308,10 @@ export default function Home() {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+    </div>
+  </div>
+</section>
+*/}
 
       {/* Blog Section - Improved mobile horizontal scrolling */}
       <section className="py-20 bg-white">

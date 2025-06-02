@@ -14,7 +14,7 @@ const blogPosts = [
     category: "Meal Prep",
     readTime: "5 min read",
     date: "May 2, 2023",
-    image: "/placeholder.svg?key=1p9sp",
+    image: "/placeholder.svg?height=400&width=800",
     content: `
       <p>Meal prepping is a game-changer for busy professionals who want to maintain a healthy diet without spending hours in the kitchen every day. By dedicating a few hours each week to prepare your meals in advance, you can save time, money, and make healthier food choices throughout the week.</p>
       
@@ -76,7 +76,7 @@ const blogPosts = [
     category: "Nutrition",
     readTime: "7 min read",
     date: "April 18, 2023",
-    image: "/placeholder.svg?key=h9q2w",
+    image: "/placeholder.svg?height=400&width=800",
     content: `
       <p>In the age of information overload, nutrition advice is everywhere. From social media influencers to well-meaning friends, everyone seems to have an opinion on what you should or shouldn't eat. Unfortunately, not all of this advice is based on sound science. Let's examine and debunk five common nutrition myths that persist despite evidence to the contrary.</p>
       
@@ -137,7 +137,7 @@ const blogPosts = [
     category: "Fitness",
     readTime: "8 min read",
     date: "April 5, 2023",
-    image: "/placeholder.svg?key=8jij5",
+    image: "/placeholder.svg?height=400&width=800",
     content: `
       <p>You've been diligently following your diet and exercise plan, and initially, the pounds were melting away. But suddenly, the scale won't budge. You've hit the dreaded weight loss plateau. This frustrating but common phenomenon occurs when your body adapts to your weight loss regimen, making further progress challenging.</p>
       
@@ -208,7 +208,7 @@ const blogPosts = [
     category: "Nutrition",
     readTime: "6 min read",
     date: "March 22, 2023",
-    image: "/placeholder.svg?key=5qcgp",
+    image: "/placeholder.svg?height=400&width=800",
     content: `
       <p>Whether you're an athlete, a fitness enthusiast, or someone looking to improve your body composition, understanding the role of protein in muscle building is crucial. Protein is often called the building block of muscle, but its functions extend far beyond that simple description.</p>
       
@@ -311,7 +311,7 @@ const blogPosts = [
     category: "Wellness",
     readTime: "9 min read",
     date: "March 10, 2023",
-    image: "/placeholder.svg?key=1ivzn",
+    image: "/placeholder.svg?height=400&width=800",
     content: `
       <p>In our fast-paced world, eating has often become a mindless activity—something we do while working at our desks, scrolling through social media, or watching television. We consume meals in minutes without truly tasting our food or recognizing when we're full. This disconnected approach to eating can lead to poor digestion, overeating, and an unhealthy relationship with food.</p>
       
@@ -425,7 +425,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         {/* Back button */}
         <div className="mb-8">
           <Link href="/blog">
-            <Button variant="ghost" className="flex items-center text-logo-green hover:bg-gray-100">
+            <Button variant="ghost" className="flex items-center text-fitnest-green hover:bg-gray-100">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Blog
             </Button>
@@ -435,7 +435,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         {/* Article header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+            <span className="text-sm font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
               {post.category}
             </span>
             <div className="flex items-center text-gray-500 text-sm">
@@ -463,8 +463,15 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         </div>
 
         {/* Featured image */}
-        <div className="relative h-[400px] mb-8 rounded-lg overflow-hidden">
-          <Image src={post.image || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
+        <div className="relative h-[250px] sm:h-[300px] md:h-[400px] mb-8 rounded-lg overflow-hidden">
+          <Image
+            src={post.image || "/placeholder.svg"}
+            alt={post.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+            priority
+          />
         </div>
 
         {/* Article content */}
@@ -473,29 +480,30 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         {/* Related posts */}
         <div className="mt-12 border-t pt-8">
           <h2 className="text-2xl font-bold mb-6">You might also like</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {blogPosts
               .filter((relatedPost) => relatedPost.id !== post.id)
               .slice(0, 3)
               .map((relatedPost) => (
                 <div key={relatedPost.id} className="bg-white rounded-lg overflow-hidden shadow-md">
-                  <div className="relative h-40">
+                  <div className="relative h-32 sm:h-40">
                     <Image
                       src={relatedPost.image || "/placeholder.svg"}
                       alt={relatedPost.title}
                       fill
                       className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                   </div>
-                  <div className="p-4">
-                    <span className="text-xs font-semibold px-2 py-1 bg-logo-green/10 text-logo-green rounded-full">
+                  <div className="p-3 md:p-4">
+                    <span className="text-xs font-semibold px-2 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
                       {relatedPost.category}
                     </span>
-                    <h3 className="text-lg font-bold mt-2 mb-1">{relatedPost.title}</h3>
+                    <h3 className="text-base md:text-lg font-bold mt-2 mb-1 line-clamp-2">{relatedPost.title}</h3>
                     <Link href={`/blog/${relatedPost.slug}`}>
                       <Button
                         variant="outline"
-                        className="w-full mt-2 border-logo-green text-logo-green hover:bg-logo-green hover:text-white"
+                        className="w-full mt-2 border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white text-sm"
                       >
                         Read Article
                       </Button>
