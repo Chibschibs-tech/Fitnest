@@ -191,7 +191,7 @@ export function ExpressShopContent({
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-green-600" />
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-fitnest-green" />
           <p className="mt-4 text-gray-600">Loading products...</p>
         </div>
       </div>
@@ -218,12 +218,14 @@ export function ExpressShopContent({
         )}
 
         <div className="flex justify-center gap-4">
-          <Button onClick={handleRetry}>
+          <Button onClick={handleRetry} className="bg-fitnest-green hover:bg-fitnest-green/90">
             <RefreshCcw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
           <Link href="/express-shop/simple">
-            <Button variant="outline">View Simple Version</Button>
+            <Button variant="outline" className="border-fitnest-green text-fitnest-green hover:bg-fitnest-green/10">
+              View Simple Version
+            </Button>
           </Link>
         </div>
       </div>
@@ -235,17 +237,19 @@ export function ExpressShopContent({
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center">
-          <ShoppingCart className="h-16 w-16 text-gray-400" />
+          <ShoppingCart className="h-16 w-16 text-fitnest-green/50" />
           <h2 className="text-2xl font-semibold">No products available</h2>
           <p className="text-gray-500">Check back soon for our new product lineup!</p>
 
           <div className="mt-4 flex gap-4">
-            <Button onClick={handleRetry}>
+            <Button onClick={handleRetry} className="bg-fitnest-green hover:bg-fitnest-green/90">
               <RefreshCcw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
             <Link href="/express-shop/simple">
-              <Button variant="outline">View Simple Version</Button>
+              <Button variant="outline" className="border-fitnest-green text-fitnest-green hover:bg-fitnest-green/10">
+                View Simple Version
+              </Button>
             </Link>
           </div>
 
@@ -296,11 +300,20 @@ export function ExpressShopContent({
             ))}
           </TabsList>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleRetry}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              className="border-fitnest-green text-fitnest-green hover:bg-fitnest-green/10"
+            >
               <RefreshCcw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-fitnest-green text-fitnest-green hover:bg-fitnest-green/10"
+            >
               <Filter className="mr-2 h-4 w-4" /> Filter
             </Button>
           </div>
@@ -331,7 +344,7 @@ export function ExpressShopContent({
                             <ShoppingCart className="h-12 w-12 text-gray-300" />
                           </div>
                         )}
-                        {product.salePrice && <Badge className="absolute right-2 top-2 bg-green-600">Sale</Badge>}
+                        {product.salePrice && <Badge className="absolute right-2 top-2 bg-fitnest-orange">Sale</Badge>}
                       </div>
                     </Link>
                     <CardHeader className="p-4 pb-0">
@@ -343,7 +356,7 @@ export function ExpressShopContent({
                         <div>
                           {product.salePrice ? (
                             <div className="flex items-center space-x-2">
-                              <span className="text-lg font-bold text-green-600">{product.salePrice} MAD</span>
+                              <span className="text-lg font-bold text-fitnest-green">{product.salePrice} MAD</span>
                               <span className="text-sm text-gray-500 line-through">{product.price} MAD</span>
                             </div>
                           ) : (
@@ -357,7 +370,7 @@ export function ExpressShopContent({
                     </CardContent>
                     <CardFooter className="p-4 pt-0">
                       <Button
-                        className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full bg-fitnest-green hover:bg-fitnest-green/90"
                         onClick={() => handleAddToCart(product.id)}
                         disabled={addingToCart === product.id || status !== "authenticated"}
                       >

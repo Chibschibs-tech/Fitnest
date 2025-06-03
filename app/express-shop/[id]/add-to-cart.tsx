@@ -66,7 +66,7 @@ export function AddToCart({ productId, stock, name }: AddToCartProps) {
 
   return (
     <Button
-      className="w-full bg-green-600 hover:bg-green-700"
+      className="w-full bg-fitnest-green hover:bg-fitnest-green/90"
       onClick={handleAddToCart}
       disabled={loading || stock <= 0}
     >
