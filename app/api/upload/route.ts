@@ -3,6 +3,10 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 
+// New way to set config for route handlers in Next.js App Router
+export const maxDuration = 60 // 60 seconds timeout
+export const dynamic = "force-dynamic"
+
 export async function POST(request: Request): Promise<NextResponse> {
   // Check authentication
   const session = await getServerSession(authOptions)
@@ -34,13 +38,4 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.error("Upload error:", error)
     return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
   }
-}
-
-// Set larger limit for file uploads (default is 4MB)
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "10mb",
-    },
-  },
 }
