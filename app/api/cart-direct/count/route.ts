@@ -3,6 +3,8 @@ import { cookies } from "next/headers"
 import { neon } from "@neondatabase/serverless"
 import { decrypt } from "@/lib/jwt"
 
+export const dynamic = "force-dynamic"
+
 // Helper function to get user ID from either NextAuth or custom JWT
 async function getUserId() {
   const cookieStore = cookies()

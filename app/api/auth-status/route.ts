@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
+import { cookies } from "next/headers"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
@@ -9,38 +11,23 @@ export async function GET() {
 
     if (!sessionId) {
       return NextResponse.json({
-        status: "success",
         authenticated: false,
-        session: null,
-        timestamp: new Date().toISOString(),
+        user: null,
       })
     }
 
     const user = await getSessionUser(sessionId)
 
     return NextResponse.json({
-      status: "success",
       authenticated: !!user,
-      session: user
-        ? {
-            user: {
-              name: user.name,
-              email: user.email,
-              role: user.role,
-            },
-          }
-        : null,
-      timestamp: new Date().toISOString(),
+      user: user || null,
     })
   } catch (error) {
     console.error("Auth status check failed:", error)
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({
+      authenticated: false,
+      user: null,
+      error: error instanceof Error ? error.message : "Unknown error",
+    })
   }
 }

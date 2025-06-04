@@ -1,48 +1,60 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    // Get the email from the query string
-    const { searchParams } = new URL(request.url)
-    const email = searchParams.get("email")
+    const sql = neon(process.env.DATABASE_URL!)
+    const url = new URL(request.url)
 
-    if (!email) {
-      return NextResponse.json({ error: "Email parameter is required" }, { status: 400 })
+    // Check if waitlist table exists
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'waitlist'
+    `
+
+    if (tables.length === 0) {
+      return NextResponse.json({
+        error: "Waitlist table does not exist",
+        suggestion: "Create the waitlist table first",
+      })
     }
 
-    // Check if the email exists in the waitlist
-    const existingUser = await sql`
-      SELECT id, email, first_name, last_name, position, created_at 
-      FROM waitlist 
-      WHERE email = ${email}
+    // Get waitlist table structure
+    const structure = await sql`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'waitlist'
+      ORDER BY ordinal_position
+    `
+
+    // Get sample data
+    const sampleData = await sql`
+      SELECT * FROM waitlist 
+      ORDER BY created_at DESC 
+      LIMIT 5
+    `
+
+    // Get total count
+    const totalCount = await sql`
+      SELECT COUNT(*) as count FROM waitlist
     `
 
     return NextResponse.json({
-      exists: existingUser.length > 0,
-      user: existingUser.length > 0 ? existingUser[0] : null,
+      status: "success",
       tableExists: true,
+      structure,
+      sampleData,
+      totalCount: totalCount[0]?.count || 0,
+      requestUrl: url.toString(),
     })
   } catch (error) {
     console.error("Waitlist debug error:", error)
-
-    // Check if the error is because the table doesn't exist
-    const errorMessage = String(error)
-    const tableDoesNotExist =
-      errorMessage.includes("does not exist") || errorMessage.includes("relation") || errorMessage.includes("table")
-
-    if (tableDoesNotExist) {
-      return NextResponse.json(
-        {
-          error: "Waitlist table does not exist",
-          tableExists: false,
-        },
-        { status: 404 },
-      )
-    }
-
-    return NextResponse.json({ error: "Failed to check waitlist" }, { status: 500 })
+    return NextResponse.json({
+      error: "Debug failed",
+      details: error instanceof Error ? error.message : String(error),
+    })
   }
 }

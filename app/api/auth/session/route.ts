@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/simple-auth"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   try {
     const sessionId = request.cookies.get("session-id")?.value

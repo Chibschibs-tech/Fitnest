@@ -4,6 +4,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { cookies } from "next/headers"
 import { getSession } from "@/lib/jwt"
 
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     // Get session using NextAuth
