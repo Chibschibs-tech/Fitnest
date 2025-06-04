@@ -360,7 +360,7 @@ export function ExpressShopContent({
                               <span className="text-sm text-gray-500 line-through">{product.price} MAD</span>
                             </div>
                           ) : (
-                            <span className="text-lg font-bold">{product.price} MAD</span>
+                            <span className="text-lg font-bold text-fitnest-green">{product.price} MAD</span>
                           )}
                         </div>
                         <Badge variant="outline" className="text-xs">
@@ -368,7 +368,15 @@ export function ExpressShopContent({
                         </Badge>
                       </div>
                     </CardContent>
-                    <CardFooter className="p-4 pt-0">
+                    <CardFooter className="p-4 pt-0 space-y-2">
+                      <Link href={`/express-shop/${product.id}`} className="w-full">
+                        <Button
+                          variant="outline"
+                          className="w-full border-fitnest-green text-fitnest-green hover:bg-fitnest-green/10"
+                        >
+                          View Product
+                        </Button>
+                      </Link>
                       <Button
                         className="w-full bg-fitnest-green hover:bg-fitnest-green/90"
                         onClick={() => handleAddToCart(product.id)}
