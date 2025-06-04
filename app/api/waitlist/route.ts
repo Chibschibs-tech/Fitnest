@@ -124,6 +124,15 @@ export async function POST(request: Request) {
     const submissionId = result[0]?.id
     console.log("Waitlist submission stored in database with ID:", submissionId)
 
+    // Debug email configuration
+    console.log("Email configuration check:", {
+      host: process.env.EMAIL_SERVER_HOST ? "✓" : "✗",
+      port: process.env.EMAIL_SERVER_PORT ? "✓" : "✗",
+      user: process.env.EMAIL_SERVER_USER ? "✓" : "✗",
+      pass: process.env.EMAIL_SERVER_PASSWORD ? "✓" : "✗",
+      from: process.env.EMAIL_FROM ? "✓" : "✗",
+    })
+
     // Get current waitlist position and estimated wait time
     const positionResult = await sql`
       SELECT COUNT(*) as position FROM waitlist WHERE id <= ${submissionId}
@@ -132,21 +141,23 @@ export async function POST(request: Request) {
     const estimatedWait = Math.ceil(position / 10) * 7 // Estimate 7 days per 10 people
 
     // Send confirmation email to the customer
+    let customerEmailResult = null
     try {
-      await sendWaitlistConfirmationEmail({
+      customerEmailResult = await sendWaitlistConfirmationEmail({
         email,
         name,
         position,
         estimatedWait,
       })
-      console.log(`Waitlist confirmation email sent to ${email}`)
+      console.log(`Waitlist confirmation email result:`, customerEmailResult)
     } catch (emailError) {
       console.error("Error sending waitlist confirmation email:", emailError)
     }
 
     // Send admin notification email
+    let adminEmailResult = null
     try {
-      await sendAdminNotification({
+      adminEmailResult = await sendAdminNotification({
         name,
         email,
         phone,
@@ -155,7 +166,7 @@ export async function POST(request: Request) {
         notifications,
         id: submissionId,
       })
-      console.log("Admin notification sent successfully")
+      console.log("Admin notification result:", adminEmailResult)
     } catch (adminEmailError) {
       console.error("Error sending admin notification:", adminEmailError)
     }
@@ -163,6 +174,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+      debug: {
+        id: submissionId,
+        position,
+        saved: true,
+        customerEmail: customerEmailResult,
+        adminEmail: adminEmailResult,
+      },
     })
   } catch (error) {
     console.error("Error processing waitlist submission:", error)
