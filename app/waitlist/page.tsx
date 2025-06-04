@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Clock, Users, Star, ArrowRight, ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 export default function WaitlistPage() {
@@ -16,6 +16,7 @@ export default function WaitlistPage() {
   const [submitMessage, setSubmitMessage] = useState("")
   const [submitStatus, setSubmitStatus] = useState<"success" | "error" | "">("")
   const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
 
   const scrollToForm = () => {
     const formSection = document.getElementById("waitlist-form")
@@ -60,7 +61,9 @@ export default function WaitlistPage() {
       )
 
       // Reset form
-      e.currentTarget.reset()
+      if (formRef.current) {
+        formRef.current.reset()
+      }
 
       // Log for debugging
       console.log("Form submission result:", result)
@@ -221,7 +224,7 @@ export default function WaitlistPage() {
 
             <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
               <CardContent className="p-10">
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label htmlFor="firstName" className="block text-sm font-semibold text-gray-700 mb-3">
