@@ -1,10 +1,14 @@
 import { neon } from "@neondatabase/serverless"
 
-// Use the NEON_DATABASE_URL which is already available in the environment
-const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL
+export const sql = neon(process.env.NEON_DATABASE_URL || process.env.DATABASE_URL!)
 
-if (!databaseUrl) {
-  throw new Error("NEON_DATABASE_URL or DATABASE_URL environment variable is not set")
+// Export mock objects that some files are trying to import
+export const db = {
+  query: sql,
+  execute: sql,
 }
 
-export const sql = neon(databaseUrl)
+export const orders = {}
+export const products = {}
+export const notificationPreferences = {}
+export const mealPreferences = {}

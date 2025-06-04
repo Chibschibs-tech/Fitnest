@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/simple-auth"
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 import { cookies } from "next/headers"
 
-const sql = neon(process.env.DATABASE_URL!)
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {

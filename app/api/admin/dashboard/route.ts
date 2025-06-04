@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
@@ -17,8 +19,6 @@ export async function GET() {
     if (!user || user.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
-
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get current date and date 30 days ago
     const now = new Date()

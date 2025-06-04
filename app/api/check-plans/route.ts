@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
-
     // Check if meal_plans table exists and get available plans
     const plans = await sql`
-      SELECT id, name, description, price 
+      SELECT id, name, description, weekly_price 
       FROM meal_plans 
       ORDER BY id
       LIMIT 10
@@ -24,7 +24,7 @@ export async function GET() {
     return NextResponse.json({
       availablePlans: plans,
       ordersTableStructure: ordersColumns,
-      planIdColumn: ordersColumns.find((col) => col.column_name === "plan_id"),
+      planIdColumn: ordersColumns.find((col: any) => col.column_name === "plan_id"),
       message: "Plan information retrieved",
     })
   } catch (error) {
