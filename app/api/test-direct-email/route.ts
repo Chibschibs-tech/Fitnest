@@ -23,7 +23,7 @@ export async function POST() {
     })
 
     // Create transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host,
       port,
       secure,
