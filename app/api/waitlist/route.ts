@@ -150,7 +150,8 @@ export async function POST(request: Request) {
         meal_plan_preference VARCHAR(100),
         city VARCHAR(100),
         notifications BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        position INTEGER
       )
     `
 
@@ -183,6 +184,11 @@ export async function POST(request: Request) {
     await sql`
       ALTER TABLE waitlist 
       ADD COLUMN IF NOT EXISTS notifications BOOLEAN DEFAULT true
+    `
+
+    await sql`
+      ALTER TABLE waitlist
+      ADD COLUMN IF NOT EXISTS position INTEGER
     `
 
     // Check if user already exists
@@ -218,15 +224,22 @@ export async function POST(request: Request) {
       console.log("User already exists with ID:", userId)
     }
 
-    // Insert the submission into the waitlist with separate firstName and lastName
+    // Get the next position number
+    const positionResult2 = await sql`
+      SELECT COALESCE(MAX(position), 0) + 1 as next_position FROM waitlist
+    `
+    const nextPosition = Number(positionResult2[0]?.next_position || 1)
+
+    // Insert the submission into the waitlist with separate firstName and lastName and position
     const result = await sql`
-      INSERT INTO waitlist (first_name, last_name, email, phone, meal_plan_preference, city, notifications)
-      VALUES (${firstName}, ${lastName}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true})
-      RETURNING id
+      INSERT INTO waitlist (first_name, last_name, email, phone, meal_plan_preference, city, notifications, position)
+      VALUES (${firstName}, ${lastName}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true}, ${nextPosition})
+      RETURNING id, position
     `
 
     const submissionId = result[0]?.id
-    console.log("Waitlist submission stored in database with ID:", submissionId)
+    const position = result[0]?.position || nextPosition
+    console.log("Waitlist submission stored in database with ID:", submissionId, "at position:", position)
 
     // Debug email configuration
     console.log("Email configuration check:", {
@@ -237,11 +250,7 @@ export async function POST(request: Request) {
       from: !!process.env.EMAIL_FROM ? "✓" : "✗",
     })
 
-    // Get current waitlist position and estimated wait time
-    const positionResult = await sql`
-      SELECT COUNT(*) as position FROM waitlist WHERE id <= ${submissionId}
-    `
-    const position = Number(positionResult[0]?.position || 1)
+    // Position is already calculated from the insert, no need to query again
     const estimatedWait = Math.ceil(position / 10) * 7 // Estimate 7 days per 10 people
 
     // Send confirmation email to the customer
