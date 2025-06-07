@@ -23,42 +23,30 @@ async function sendAdminNotification(submissionData: any) {
     // Import nodemailer here to avoid issues
     const nodemailer = require("nodemailer")
 
-    // Create transporter using the same config as email-utils with better error handling
+    // Create transporter using the exact same working config
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_SERVER_HOST,
-      port: Number(process.env.EMAIL_SERVER_PORT),
-      secure: process.env.EMAIL_SERVER_SECURE === "true",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_SERVER_USER,
-        pass: process.env.EMAIL_SERVER_PASSWORD,
+        user: "noreply@fitnest.ma",
+        pass: "vein jobh jbpa jcfe",
       },
-      connectionTimeout: 5000,
-      pool: true,
-      maxConnections: 5,
-      rateDelta: 1000,
-      rateLimit: 5,
-      debug: true,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     })
-
-    // Verify transporter before sending
-    try {
-      await transporter.verify()
-      console.log("Admin email transporter verified successfully")
-    } catch (verifyError) {
-      console.error("Admin email transporter verification failed:", verifyError)
-      throw verifyError
-    }
 
     const adminEmail = "chihab.jabri@gmail.com"
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: '"Fitnest.ma" <noreply@fitnest.ma>',
       to: adminEmail,
-      subject: `New Waitlist Entry - ${firstName} ${lastName}`,
+      subject: `🔔 New Waitlist Entry - ${firstName} ${lastName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #015033; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">New Waitlist Entry</h1>
+            <h1 style="color: white; margin: 0;">🔔 New Waitlist Entry</h1>
           </div>
           <div style="padding: 20px; border: 1px solid #eee;">
             <h2>New waitlist submission received</h2>
@@ -106,31 +94,12 @@ This customer has been added to the waitlist and should be contacted soon.
 
     console.log(`Attempting to send admin notification to ${adminEmail}...`)
 
-    // Implement retry mechanism for transient errors
-    let retries = 0
-    const maxRetries = 3
-
-    while (retries < maxRetries) {
-      try {
-        const info = await transporter.sendMail(mailOptions)
-        console.log(`Admin notification sent successfully to ${adminEmail}: ${info.messageId}`)
-        console.log("Admin email response:", info.response)
-        return { success: true, messageId: info.messageId, response: info.response }
-      } catch (error) {
-        retries++
-        if (retries >= maxRetries) {
-          throw error
-        }
-        console.log(`Retrying admin email send (${retries}/${maxRetries}) after error:`, error)
-        // Wait before retry with exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
-      }
-    }
-
-    return { success: false, error: "Failed after maximum retries" }
+    const info = await transporter.sendMail(mailOptions)
+    console.log(`Admin notification sent successfully to ${adminEmail}: ${info.messageId}`)
+    return { success: true, messageId: info.messageId }
   } catch (error) {
     console.error("Error sending admin notification:", error)
-    return { success: false, error: error instanceof Error ? error.message : String(error), details: error }
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
   }
 }
 
