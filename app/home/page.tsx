@@ -9,7 +9,7 @@ export default function Home() {
       {/* Hero Section - Full banner image with mobile optimization */}
       <section className="relative min-h-[50vh] sm:min-h-[60vh] md:min-h-[calc(100vh-73px)] flex items-end bg-gray-100">
         <Image
-          src="/hero-banner-full.png"
+          src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/hero%20banner"
           alt="Fitnest.ma Hero Banner"
           fill
           className="object-cover object-center"
@@ -24,7 +24,7 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/how-it-works">
-              <Button className="bg-white/20 text-white border-white hover:bg-white/30 w-full sm:w-auto text-sm sm:text-base px-6 py-2 sm:px-8 sm:py-3">
+              <Button className="bg-white text-fitnest-green hover:bg-white/90 w-full sm:w-auto text-sm sm:text-base px-6 py-2 sm:px-8 sm:py-3">
                 How It Works
               </Button>
             </Link>

@@ -44,7 +44,7 @@ export default function WaitlistPage() {
 
     try {
       // Send the data to our simple logging endpoint
-      const response = await fetch("/api/waitlist-simple", {
+      const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
