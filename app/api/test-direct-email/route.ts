@@ -5,12 +5,12 @@ export async function POST() {
   try {
     console.log("Starting direct email test to chihab.jabri@gmail.com")
 
-    // Get environment variables
+    // Get environment variables with the new password
     const host = process.env.EMAIL_SERVER_HOST || "smtp.gmail.com"
     const port = Number(process.env.EMAIL_SERVER_PORT) || 587
     const secure = process.env.EMAIL_SERVER_SECURE === "true"
     const user = process.env.EMAIL_SERVER_USER || "noreply@fitnest.ma"
-    const pass = process.env.EMAIL_SERVER_PASSWORD || "lfih nrfi ybfo asud"
+    const pass = process.env.EMAIL_SERVER_PASSWORD || "vein jobh jbpa jcfe"
     const from = process.env.EMAIL_FROM || "Fitnest.ma <noreply@fitnest.ma>"
 
     console.log("Email config:", {
