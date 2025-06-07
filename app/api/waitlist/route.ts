@@ -23,7 +23,7 @@ async function sendAdminNotification(submissionData: any) {
     // Import nodemailer here to avoid issues
     const nodemailer = require("nodemailer")
 
-    // Create transporter using the same config as email-utils
+    // Create transporter using the same config as email-utils with better error handling
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_SERVER_HOST,
       port: Number(process.env.EMAIL_SERVER_PORT),
@@ -32,7 +32,22 @@ async function sendAdminNotification(submissionData: any) {
         user: process.env.EMAIL_SERVER_USER,
         pass: process.env.EMAIL_SERVER_PASSWORD,
       },
+      connectionTimeout: 5000,
+      pool: true,
+      maxConnections: 5,
+      rateDelta: 1000,
+      rateLimit: 5,
+      debug: true,
     })
+
+    // Verify transporter before sending
+    try {
+      await transporter.verify()
+      console.log("Admin email transporter verified successfully")
+    } catch (verifyError) {
+      console.error("Admin email transporter verification failed:", verifyError)
+      throw verifyError
+    }
 
     const adminEmail = "chihab.jabri@gmail.com"
 
@@ -89,12 +104,33 @@ This customer has been added to the waitlist and should be contacted soon.
 `,
     }
 
-    await transporter.sendMail(mailOptions)
-    console.log(`Admin notification sent to ${adminEmail} for waitlist entry: ${firstName} ${lastName}`)
-    return { success: true }
+    console.log(`Attempting to send admin notification to ${adminEmail}...`)
+
+    // Implement retry mechanism for transient errors
+    let retries = 0
+    const maxRetries = 3
+
+    while (retries < maxRetries) {
+      try {
+        const info = await transporter.sendMail(mailOptions)
+        console.log(`Admin notification sent successfully to ${adminEmail}: ${info.messageId}`)
+        console.log("Admin email response:", info.response)
+        return { success: true, messageId: info.messageId, response: info.response }
+      } catch (error) {
+        retries++
+        if (retries >= maxRetries) {
+          throw error
+        }
+        console.log(`Retrying admin email send (${retries}/${maxRetries}) after error:`, error)
+        // Wait before retry with exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+      }
+    }
+
+    return { success: false, error: "Failed after maximum retries" }
   } catch (error) {
     console.error("Error sending admin notification:", error)
-    return { success: false, error }
+    return { success: false, error: error instanceof Error ? error.message : String(error), details: error }
   }
 }
 
