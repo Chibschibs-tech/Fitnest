@@ -109,8 +109,8 @@ export async function POST(request: Request) {
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255),
-        role VARCHAR(50) DEFAULT 'user',
-        acquisition_source VARCHAR(100) DEFAULT 'direct',
+        role VARCHAR(50) DEFAULT 'customer',
+        acquisition_source VARCHAR(100) DEFAULT 'waitlist',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     // Add acquisition_source column if it doesn't exist
     await sql`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS acquisition_source VARCHAR(100) DEFAULT 'direct'
+      ADD COLUMN IF NOT EXISTS acquisition_source VARCHAR(100) DEFAULT 'waitlist'
     `
 
     await sql`
@@ -145,15 +145,15 @@ export async function POST(request: Request) {
       // Create new user with waitlist acquisition source
       const userResult = await sql`
         INSERT INTO users (name, email, role, acquisition_source)
-        VALUES (${name}, ${email}, 'user', 'waitlist')
+        VALUES (${name}, ${email}, 'customer', 'waitlist')
         RETURNING id
       `
       userId = userResult[0]?.id
-      console.log("Created new user with ID:", userId, "from waitlist")
+      console.log("Created new customer with ID:", userId, "from waitlist")
     } else {
       userId = existingUser[0].id
-      // Update acquisition source if it was 'direct' and now coming from waitlist
-      if (existingUser[0].acquisition_source === "direct") {
+      // Update acquisition source if it was different and now coming from waitlist
+      if (existingUser[0].acquisition_source !== "waitlist") {
         await sql`
           UPDATE users 
           SET acquisition_source = 'waitlist', updated_at = CURRENT_TIMESTAMP
