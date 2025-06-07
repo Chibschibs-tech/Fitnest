@@ -6,12 +6,12 @@ export async function POST() {
     console.log("Starting direct email test to chihab.jabri@gmail.com")
 
     // Get environment variables
-    const host = process.env.EMAIL_SERVER_HOST
-    const port = Number(process.env.EMAIL_SERVER_PORT)
+    const host = process.env.EMAIL_SERVER_HOST || "smtp.gmail.com"
+    const port = Number(process.env.EMAIL_SERVER_PORT) || 587
     const secure = process.env.EMAIL_SERVER_SECURE === "true"
-    const user = process.env.EMAIL_SERVER_USER
-    const pass = process.env.EMAIL_SERVER_PASSWORD
-    const from = process.env.EMAIL_FROM
+    const user = process.env.EMAIL_SERVER_USER || "noreply@fitnest.ma"
+    const pass = process.env.EMAIL_SERVER_PASSWORD || "lfih nrfi ybfo asud"
+    const from = process.env.EMAIL_FROM || "Fitnest.ma <noreply@fitnest.ma>"
 
     console.log("Email config:", {
       host,
@@ -22,11 +22,11 @@ export async function POST() {
       passwordLength: pass?.length || 0,
     })
 
-    // Create transporter
+    // Create transporter with the exact configuration
     const transporter = nodemailer.createTransport({
       host,
       port,
-      secure,
+      secure, // false for 587, true for 465
       auth: {
         user,
         pass,
@@ -58,6 +58,9 @@ export async function POST() {
               <li>Sent at: ${new Date().toISOString()}</li>
               <li>From: ${from}</li>
               <li>To: chihab.jabri@gmail.com</li>
+              <li>Host: ${host}</li>
+              <li>Port: ${port}</li>
+              <li>Secure: ${secure}</li>
             </ul>
             <p>If you receive this email, the configuration is working correctly.</p>
           </div>
@@ -73,6 +76,9 @@ Test Details:
 - Sent at: ${new Date().toISOString()}
 - From: ${from}
 - To: chihab.jabri@gmail.com
+- Host: ${host}
+- Port: ${port}
+- Secure: ${secure}
 
 If you receive this email, the configuration is working correctly.
 `,
