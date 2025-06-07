@@ -134,6 +134,8 @@ const publicRoutes = [
   "/checkout/guest-confirmation",
   "/waitlist",
   "/admin/waitlist",
+  "/home",
+  "/order",
 ]
 
 export function middleware(request: NextRequest) {
