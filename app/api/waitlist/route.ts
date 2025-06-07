@@ -13,7 +13,7 @@ async function sendAdminNotification(submissionData: any) {
     const nodemailer = require("nodemailer")
 
     // Create transporter using the same config as email-utils
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_SERVER_HOST,
       port: Number(process.env.EMAIL_SERVER_PORT),
       secure: process.env.EMAIL_SERVER_SECURE === "true",
@@ -100,7 +100,19 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     })
 
-    // Ensure waitlist table exists
+    // Ensure tables exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
     await sql`
       CREATE TABLE IF NOT EXISTS waitlist (
         id SERIAL PRIMARY KEY,
@@ -114,7 +126,27 @@ export async function POST(request: Request) {
       )
     `
 
-    // Insert the submission into the database
+    // Check if user already exists
+    const existingUser = await sql`
+      SELECT id FROM users WHERE email = ${email}
+    `
+
+    let userId = null
+    if (existingUser.length === 0) {
+      // Create new user (without password since they're from waitlist)
+      const userResult = await sql`
+        INSERT INTO users (name, email, role)
+        VALUES (${name}, ${email}, 'waitlist')
+        RETURNING id
+      `
+      userId = userResult[0]?.id
+      console.log("Created new user with ID:", userId)
+    } else {
+      userId = existingUser[0].id
+      console.log("User already exists with ID:", userId)
+    }
+
+    // Insert the submission into the waitlist
     const result = await sql`
       INSERT INTO waitlist (name, email, phone, meal_plan_preference, city, notifications)
       VALUES (${name}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true})
@@ -152,6 +184,7 @@ export async function POST(request: Request) {
       console.log(`Waitlist confirmation email result:`, customerEmailResult)
     } catch (emailError) {
       console.error("Error sending waitlist confirmation email:", emailError)
+      customerEmailResult = { success: false, error: emailError.message }
     }
 
     // Send admin notification email
@@ -169,6 +202,7 @@ export async function POST(request: Request) {
       console.log("Admin notification result:", adminEmailResult)
     } catch (adminEmailError) {
       console.error("Error sending admin notification:", adminEmailError)
+      adminEmailResult = { success: false, error: adminEmailError.message }
     }
 
     return NextResponse.json({
@@ -176,20 +210,31 @@ export async function POST(request: Request) {
       message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
       debug: {
         id: submissionId,
+        userId,
         position,
         saved: true,
         customerEmail: customerEmailResult,
         adminEmail: adminEmailResult,
+        emailConfig: {
+          host: !!process.env.EMAIL_SERVER_HOST,
+          port: !!process.env.EMAIL_SERVER_PORT,
+          user: !!process.env.EMAIL_SERVER_USER,
+          pass: !!process.env.EMAIL_SERVER_PASSWORD,
+          from: !!process.env.EMAIL_FROM,
+        },
       },
     })
   } catch (error) {
     console.error("Error processing waitlist submission:", error)
 
-    // Still return success to user, but log the error
-    return NextResponse.json({
-      success: true,
-      message: "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
-    })
+    return NextResponse.json(
+      {
+        success: false,
+        message: "There was an error processing your request. Please try again.",
+        error: error.message,
+      },
+      { status: 500 },
+    )
   }
 }
 

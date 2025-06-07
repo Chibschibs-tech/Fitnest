@@ -33,11 +33,10 @@ export default function WaitlistPage() {
 
     const formData = new FormData(e.currentTarget)
     const data = {
-      firstName: formData.get("firstName"),
-      lastName: formData.get("lastName"),
+      name: `${formData.get("firstName")} ${formData.get("lastName")}`.trim(),
       email: formData.get("email"),
       phone: formData.get("phone"),
-      mealPlan: formData.get("mealPlan"),
+      mealPlanPreference: formData.get("mealPlan"),
       city: formData.get("city"),
       notifications: formData.get("notifications") === "on",
     }
