@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { sendWaitlistConfirmationEmail } from "@/lib/email-utils"
+import { randomBytes, createHash } from "crypto"
 
 const sql = neon(process.env.DATABASE_URL!)
+
+// Function to generate a secure temporary password
+function generateTemporaryPassword() {
+  return randomBytes(16).toString("hex")
+}
+
+// Function to hash a password
+function hashPassword(password: string) {
+  return createHash("sha256").update(password).digest("hex")
+}
 
 // Function to send admin notification
 async function sendAdminNotification(submissionData: any) {
@@ -108,7 +119,7 @@ export async function POST(request: Request) {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255),
+        password VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'customer',
         acquisition_source VARCHAR(100) DEFAULT 'waitlist',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -142,14 +153,18 @@ export async function POST(request: Request) {
 
     let userId = null
     if (existingUser.length === 0) {
-      // Create new user with waitlist acquisition source
+      // Generate a temporary password for the new user
+      const tempPassword = generateTemporaryPassword()
+      const hashedPassword = hashPassword(tempPassword)
+
+      // Create new user with waitlist acquisition source and temporary password
       const userResult = await sql`
-        INSERT INTO users (name, email, role, acquisition_source)
-        VALUES (${name}, ${email}, 'customer', 'waitlist')
+        INSERT INTO users (name, email, role, acquisition_source, password)
+        VALUES (${name}, ${email}, 'customer', 'waitlist', ${hashedPassword})
         RETURNING id
       `
       userId = userResult[0]?.id
-      console.log("Created new customer with ID:", userId, "from waitlist")
+      console.log("Created new customer with ID:", userId, "from waitlist with temporary password")
     } else {
       userId = existingUser[0].id
       // Update acquisition source if it was different and now coming from waitlist
