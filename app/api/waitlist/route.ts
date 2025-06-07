@@ -18,7 +18,7 @@ function hashPassword(password: string) {
 // Function to send admin notification
 async function sendAdminNotification(submissionData: any) {
   try {
-    const { name, email, phone, mealPlanPreference, city, notifications, id } = submissionData
+    const { firstName, lastName, email, phone, mealPlanPreference, city, notifications, id } = submissionData
 
     // Import nodemailer here to avoid issues
     const nodemailer = require("nodemailer")
@@ -39,7 +39,7 @@ async function sendAdminNotification(submissionData: any) {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: adminEmail,
-      subject: `New Waitlist Entry - ${name}`,
+      subject: `New Waitlist Entry - ${firstName} ${lastName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #015033; padding: 20px; text-align: center;">
@@ -50,7 +50,7 @@ async function sendAdminNotification(submissionData: any) {
             
             <div style="background-color: #e6f2ed; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <h3 style="margin-top: 0; color: #015033;">Customer Details</h3>
-              <p><strong>Name:</strong> ${name}</p>
+              <p><strong>Name:</strong> ${firstName} ${lastName}</p>
               <p><strong>Email:</strong> ${email}</p>
               <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
               <p><strong>City:</strong> ${city || "Not provided"}</p>
@@ -72,10 +72,10 @@ async function sendAdminNotification(submissionData: any) {
           </div>
         </div>
       `,
-      text: `New Waitlist Entry - ${name}
+      text: `New Waitlist Entry - ${firstName} ${lastName}
 
 Customer Details:
-Name: ${name}
+Name: ${firstName} ${lastName}
 Email: ${email}
 Phone: ${phone || "Not provided"}
 City: ${city || "Not provided"}
@@ -90,7 +90,7 @@ This customer has been added to the waitlist and should be contacted soon.
     }
 
     await transporter.sendMail(mailOptions)
-    console.log(`Admin notification sent to ${adminEmail} for waitlist entry: ${name}`)
+    console.log(`Admin notification sent to ${adminEmail} for waitlist entry: ${firstName} ${lastName}`)
     return { success: true }
   } catch (error) {
     console.error("Error sending admin notification:", error)
@@ -103,8 +103,14 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { name, email, phone, mealPlanPreference, city, notifications } = body
 
+    // Split the combined name back into firstName and lastName for waitlist table
+    const nameParts = name.trim().split(" ")
+    const firstName = nameParts[0] || ""
+    const lastName = nameParts.slice(1).join(" ") || ""
+
     console.log("Waitlist submission received:", {
-      name,
+      firstName,
+      lastName,
       email,
       phone,
       mealPlanPreference,
@@ -113,7 +119,7 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     })
 
-    // Ensure tables exist with acquisition_source column
+    // Ensure users table exists with acquisition_source column
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -133,17 +139,50 @@ export async function POST(request: Request) {
       ADD COLUMN IF NOT EXISTS acquisition_source VARCHAR(100) DEFAULT 'waitlist'
     `
 
+    // Ensure waitlist table exists with firstName and lastName columns
     await sql`
       CREATE TABLE IF NOT EXISTS waitlist (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
+        firstName VARCHAR(255),
+        lastName VARCHAR(255),
         email VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
-        meal_plan_preference VARCHAR(100),
+        mealPlanPreference VARCHAR(100),
         city VARCHAR(100),
         notifications BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `
+
+    // Add missing columns to existing waitlist table if they don't exist
+    await sql`
+      ALTER TABLE waitlist 
+      ADD COLUMN IF NOT EXISTS firstName VARCHAR(255)
+    `
+
+    await sql`
+      ALTER TABLE waitlist 
+      ADD COLUMN IF NOT EXISTS lastName VARCHAR(255)
+    `
+
+    await sql`
+      ALTER TABLE waitlist 
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
+    `
+
+    await sql`
+      ALTER TABLE waitlist 
+      ADD COLUMN IF NOT EXISTS mealPlanPreference VARCHAR(100)
+    `
+
+    await sql`
+      ALTER TABLE waitlist 
+      ADD COLUMN IF NOT EXISTS city VARCHAR(100)
+    `
+
+    await sql`
+      ALTER TABLE waitlist 
+      ADD COLUMN IF NOT EXISTS notifications BOOLEAN DEFAULT true
     `
 
     // Check if user already exists
@@ -157,7 +196,7 @@ export async function POST(request: Request) {
       const tempPassword = generateTemporaryPassword()
       const hashedPassword = hashPassword(tempPassword)
 
-      // Create new user with waitlist acquisition source and temporary password
+      // Create new user with combined name and waitlist acquisition source
       const userResult = await sql`
         INSERT INTO users (name, email, role, acquisition_source, password)
         VALUES (${name}, ${email}, 'customer', 'waitlist', ${hashedPassword})
@@ -179,10 +218,10 @@ export async function POST(request: Request) {
       console.log("User already exists with ID:", userId)
     }
 
-    // Insert the submission into the waitlist
+    // Insert the submission into the waitlist with separate firstName and lastName
     const result = await sql`
-      INSERT INTO waitlist (name, email, phone, meal_plan_preference, city, notifications)
-      VALUES (${name}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true})
+      INSERT INTO waitlist (firstName, lastName, email, phone, mealPlanPreference, city, notifications)
+      VALUES (${firstName}, ${lastName}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true})
       RETURNING id
     `
 
@@ -195,7 +234,7 @@ export async function POST(request: Request) {
       port: process.env.EMAIL_SERVER_PORT ? "✓" : "✗",
       user: process.env.EMAIL_SERVER_USER ? "✓" : "✗",
       pass: process.env.EMAIL_SERVER_PASSWORD ? "✓" : "✗",
-      from: process.env.EMAIL_FROM ? "✓" : "✗",
+      from: !!process.env.EMAIL_FROM ? "✓" : "✗",
     })
 
     // Get current waitlist position and estimated wait time
@@ -224,7 +263,8 @@ export async function POST(request: Request) {
     let adminEmailResult = null
     try {
       adminEmailResult = await sendAdminNotification({
-        name,
+        firstName,
+        lastName,
         email,
         phone,
         mealPlanPreference,
