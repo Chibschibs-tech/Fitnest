@@ -105,7 +105,7 @@ export async function POST(request: Request) {
 
     // Split the combined name back into firstName and lastName for waitlist table
     const nameParts = name.trim().split(" ")
-    const firstName = nameParts[0] || ""
+    const firstName = nameParts[0] || "Unknown"
     const lastName = nameParts.slice(1).join(" ") || ""
 
     console.log("Waitlist submission received:", {
@@ -143,11 +143,11 @@ export async function POST(request: Request) {
     await sql`
       CREATE TABLE IF NOT EXISTS waitlist (
         id SERIAL PRIMARY KEY,
-        firstName VARCHAR(255),
-        lastName VARCHAR(255),
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255),
         email VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
-        mealPlanPreference VARCHAR(100),
+        meal_plan_preference VARCHAR(100),
         city VARCHAR(100),
         notifications BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -157,12 +157,12 @@ export async function POST(request: Request) {
     // Add missing columns to existing waitlist table if they don't exist
     await sql`
       ALTER TABLE waitlist 
-      ADD COLUMN IF NOT EXISTS firstName VARCHAR(255)
+      ADD COLUMN IF NOT EXISTS first_name VARCHAR(255) NOT NULL
     `
 
     await sql`
       ALTER TABLE waitlist 
-      ADD COLUMN IF NOT EXISTS lastName VARCHAR(255)
+      ADD COLUMN IF NOT EXISTS last_name VARCHAR(255)
     `
 
     await sql`
@@ -172,7 +172,7 @@ export async function POST(request: Request) {
 
     await sql`
       ALTER TABLE waitlist 
-      ADD COLUMN IF NOT EXISTS mealPlanPreference VARCHAR(100)
+      ADD COLUMN IF NOT EXISTS meal_plan_preference VARCHAR(100)
     `
 
     await sql`
@@ -220,7 +220,7 @@ export async function POST(request: Request) {
 
     // Insert the submission into the waitlist with separate firstName and lastName
     const result = await sql`
-      INSERT INTO waitlist (firstName, lastName, email, phone, mealPlanPreference, city, notifications)
+      INSERT INTO waitlist (first_name, last_name, email, phone, meal_plan_preference, city, notifications)
       VALUES (${firstName}, ${lastName}, ${email}, ${phone || null}, ${mealPlanPreference || null}, ${city || null}, ${notifications || true})
       RETURNING id
     `
