@@ -46,6 +46,7 @@ async function sendAdminNotification(submissionData: any) {
               <p><strong>Meal Plan Preference:</strong> ${mealPlanPreference || "Not specified"}</p>
               <p><strong>Notifications:</strong> ${notifications ? "Yes" : "No"}</p>
               <p><strong>Submission ID:</strong> ${id}</p>
+              <p><strong>Acquisition Source:</strong> Waitlist</p>
               <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
             </div>
             
@@ -70,6 +71,7 @@ City: ${city || "Not provided"}
 Meal Plan Preference: ${mealPlanPreference || "Not specified"}
 Notifications: ${notifications ? "Yes" : "No"}
 Submission ID: ${id}
+Acquisition Source: Waitlist
 Date: ${new Date().toLocaleString()}
 
 This customer has been added to the waitlist and should be contacted soon.
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     })
 
-    // Ensure tables exist
+    // Ensure tables exist with acquisition_source column
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -108,9 +110,16 @@ export async function POST(request: Request) {
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255),
         role VARCHAR(50) DEFAULT 'user',
+        acquisition_source VARCHAR(100) DEFAULT 'direct',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `
+
+    // Add acquisition_source column if it doesn't exist
+    await sql`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS acquisition_source VARCHAR(100) DEFAULT 'direct'
     `
 
     await sql`
@@ -128,21 +137,30 @@ export async function POST(request: Request) {
 
     // Check if user already exists
     const existingUser = await sql`
-      SELECT id FROM users WHERE email = ${email}
+      SELECT id, acquisition_source FROM users WHERE email = ${email}
     `
 
     let userId = null
     if (existingUser.length === 0) {
-      // Create new user (without password since they're from waitlist)
+      // Create new user with waitlist acquisition source
       const userResult = await sql`
-        INSERT INTO users (name, email, role)
-        VALUES (${name}, ${email}, 'waitlist')
+        INSERT INTO users (name, email, role, acquisition_source)
+        VALUES (${name}, ${email}, 'user', 'waitlist')
         RETURNING id
       `
       userId = userResult[0]?.id
-      console.log("Created new user with ID:", userId)
+      console.log("Created new user with ID:", userId, "from waitlist")
     } else {
       userId = existingUser[0].id
+      // Update acquisition source if it was 'direct' and now coming from waitlist
+      if (existingUser[0].acquisition_source === "direct") {
+        await sql`
+          UPDATE users 
+          SET acquisition_source = 'waitlist', updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${userId}
+        `
+        console.log("Updated existing user acquisition source to waitlist")
+      }
       console.log("User already exists with ID:", userId)
     }
 
@@ -213,6 +231,7 @@ export async function POST(request: Request) {
         userId,
         position,
         saved: true,
+        acquisitionSource: "waitlist",
         customerEmail: customerEmailResult,
         adminEmail: adminEmailResult,
         emailConfig: {
