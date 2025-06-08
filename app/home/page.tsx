@@ -45,12 +45,7 @@ export default function Home() {
             {/* Weight Loss Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image
-                  src="/weight-loss-chicken-vegetables.png"
-                  alt="Weight Loss Meal Plan"
-                  fill
-                  className="object-cover"
-                />
+                <Image src="/weight-loss-meal.png" alt="Weight Loss Meal Plan" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Weight Loss Plan</h3>
@@ -92,7 +87,7 @@ export default function Home() {
             {/* Muscle Gain Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image src="/hearty-muscle-meal-ribeye.png" alt="Muscle Gain Meal Plan" fill className="object-cover" />
+                <Image src="/muscle-gain-meal.png" alt="Muscle Gain Meal Plan" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Muscle Gain Plan</h3>
@@ -113,7 +108,7 @@ export default function Home() {
             {/* Keto Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image src="/keto-salmon-avocado.png" alt="Keto Meal Plan" fill className="object-cover" />
+                <Image src="/keto-meal.png" alt="Keto Meal Plan" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Keto Plan</h3>
@@ -219,104 +214,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Testimonials Section */}
-      {/* Testimonials Section - Commented out for now */}
-      {/* 
-<section className="py-20 bg-gray-50">
-  <div className="container mx-auto px-4">
-    <h2 className="mb-12 text-center text-3xl font-bold">What Our Customers Say</h2>
-    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      <div className="rounded-lg bg-white p-6 shadow-md">
-              <div className="mb-4 flex items-center">
-                <div className="mr-4 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                  <Image src="/diverse-group-city.png" alt="Customer" width={48} height={48} />
-                </div>
-                <div>
-                  <h4 className="font-semibold">Sarah M.</h4>
-                  <p className="text-sm text-gray-600">Weight Loss Plan</p>
-                </div>
-              </div>
-              <p className="text-gray-700">
-                "I've lost 10kg in 3 months with Fitnest.ma's weight loss plan. The meals are delicious and I never feel
-                like I'm on a diet!"
-              </p>
-              <div className="mt-4 flex text-fitnest-orange">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-white p-6 shadow-md">
-              <div className="mb-4 flex items-center">
-                <div className="mr-4 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                  <Image src="/contemplative-man.png" alt="Customer" width={48} height={48} />
-                </div>
-                <div>
-                  <h4 className="font-semibold">Ahmed K.</h4>
-                  <p className="text-sm text-gray-600">Muscle Gain Plan</p>
-                </div>
-              </div>
-              <p className="text-gray-700">
-                "The muscle gain plan has been a game-changer for my fitness journey. High protein, tasty meals that
-                help me recover after workouts."
-              </p>
-              <div className="mt-4 flex text-fitnest-orange">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-white p-6 shadow-md">
-              <div className="mb-4 flex items-center">
-                <div className="mr-4 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                  <Image src="/contemplative-artist.png" alt="Customer" width={48} height={48} />
-                </div>
-                <div>
-                  <h4 className="font-semibold">Leila T.</h4>
-                  <p className="text-sm text-gray-600">Keto Plan</p>
-                </div>
-              </div>
-              <p className="text-gray-700">
-                "The keto meals are amazing! I've been on the plan for 2 months and have more energy than ever. The
-                variety keeps me from getting bored."
-              </p>
-              <div className="mt-4 flex text-fitnest-orange">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            </div>
-    </div>
-  </div>
-</section>
-*/}
 
       {/* Blog Section - Improved mobile horizontal scrolling */}
       <section className="py-20 bg-white">
