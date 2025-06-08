@@ -17,7 +17,7 @@ export default function Home() {
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
         />
         <div className="relative z-10 container mx-auto px-4 pb-8 sm:pb-12 md:pb-16">
-          <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+          <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-0 sm:flex-row sm:space-x-4">
             <Link href="/meal-plans">
               <Button className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 w-full sm:w-auto text-sm sm:text-base px-6 py-2 sm:px-8 sm:py-3">
                 View Meal Plans
@@ -45,7 +45,12 @@ export default function Home() {
             {/* Weight Loss Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image src="/vibrant-weight-loss-meal.png" alt="Weight Loss Meal Plan" fill className="object-cover" />
+                <Image
+                  src="/weight-loss-chicken-vegetables.png"
+                  alt="Weight Loss Meal Plan"
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Weight Loss Plan</h3>
@@ -87,7 +92,7 @@ export default function Home() {
             {/* Muscle Gain Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image src="/hearty-muscle-meal.png" alt="Muscle Gain Meal Plan" fill className="object-cover" />
+                <Image src="/hearty-muscle-meal-ribeye.png" alt="Muscle Gain Meal Plan" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Muscle Gain Plan</h3>
@@ -108,7 +113,7 @@ export default function Home() {
             {/* Keto Plan */}
             <div className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
               <div className="relative h-48">
-                <Image src="/colorful-keto-plate.png" alt="Keto Meal Plan" fill className="object-cover" />
+                <Image src="/keto-salmon-avocado.png" alt="Keto Meal Plan" fill className="object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-2">Keto Plan</h3>
