@@ -136,7 +136,7 @@ export default function WaitlistPage() {
               </div>
               <div className="flex items-center gap-2 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
                 <Clock className="h-5 w-5" />
-                <span className="font-semibold">Average wait: 10-15 days</span>
+                <span className="font-semibold">Average wait: 7 days</span>
               </div>
             </div>
           </div>
@@ -357,19 +357,11 @@ export default function WaitlistPage() {
                   <ul className="text-gray-700 space-y-2">
                     <li className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-fitnest-green" />
-                      <span>15% discount on your first month</span>
+                      <span>10% discount on your first subscription</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-fitnest-green" />
-                      <span>Priority access to new meal options</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-fitnest-green" />
-                      <span>Free nutrition consultation</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-fitnest-green" />
-                      <span>Complimentary delivery for your first order</span>
+                      <span>Delicious complimentary snacks with your first order</span>
                     </li>
                   </ul>
                 </div>
@@ -468,8 +460,8 @@ export default function WaitlistPage() {
                 <CardContent className="p-8">
                   <h3 className="text-xl font-bold mb-4 text-gray-900">How long is the current wait time?</h3>
                   <p className="text-gray-600 text-lg leading-relaxed">
-                    Current average wait time is 10-15 days. We'll notify you as soon as a spot opens up, and you'll
-                    have 48 hours to confirm your subscription.
+                    Current average wait time is 7 days maximum. We'll call you before to confirm your subscription, and
+                    you'll have 48 hours to confirm after we contact you.
                   </p>
                 </CardContent>
               </Card>
@@ -490,8 +482,8 @@ export default function WaitlistPage() {
                 <CardContent className="p-8">
                   <h3 className="text-xl font-bold mb-4 text-gray-900">Are the waitlist benefits guaranteed?</h3>
                   <p className="text-gray-600 text-lg leading-relaxed">
-                    Yes! Everyone on our waitlist will receive the 15% first-month discount, free nutrition
-                    consultation, and complimentary first delivery when they join.
+                    Yes! Everyone on our waitlist will receive the 10% first-subscription discount and complimentary
+                    snacks with their first order when they join.
                   </p>
                 </CardContent>
               </Card>

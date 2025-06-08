@@ -196,39 +196,53 @@ export async function sendWaitlistConfirmationEmail(data: {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">You're on the Waitlist!</h1>
+            <img src="https://obtmksfewry4ishp.public.blob.vercel-storage.com/Logo/Logo-Fitnest-white-NwDGrdKRIJziMZXVVN9cKNeWBx1ENP.png" alt="Fitnest Logo" width="180" style="max-width: 100%;">
           </div>
-          <div style="padding: 20px; border: 1px solid #eee;">
-            <p>Hello ${firstName},</p>
-            <p>Thank you for joining the Fitnest waitlist! We're experiencing high demand and are carefully managing our capacity to ensure every customer receives the exceptional quality and service we're known for.</p>
+          
+          <div style="padding: 30px; border: 1px solid #eee; background-color: #fff;">
+            <h2 style="color: ${FITNEST_GREEN}; margin-top: 0; font-size: 24px;">You're on the Waitlist!</h2>
+            <p style="font-size: 16px; line-height: 1.6; color: #444;">Hello ${firstName},</p>
+            <p style="font-size: 16px; line-height: 1.6; color: #444;">Thank you for joining the Fitnest waitlist! We're experiencing high demand and are carefully managing our capacity to ensure every customer receives the exceptional quality and service we're known for.</p>
             
-            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <h2 style="margin-top: 0; color: ${FITNEST_GREEN};">Your Waitlist Details</h2>
-              <p><strong>Position:</strong> #${position}</p>
-              <p><strong>Estimated Wait:</strong> ${estimatedWait} days</p>
-              <p><strong>Date Added:</strong> ${new Date().toLocaleDateString()}</p>
+            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 20px; margin: 25px 0; border-radius: 8px; border-left: 4px solid ${FITNEST_GREEN};">
+              <h3 style="margin-top: 0; color: ${FITNEST_GREEN}; font-size: 18px;">Your Waitlist Details</h3>
+              <p style="margin: 8px 0; font-size: 16px;"><strong>Position:</strong> #${position}</p>
+              <p style="margin: 8px 0; font-size: 16px;"><strong>Maximum Wait Time:</strong> 7 days</p>
+              <p style="margin: 8px 0; font-size: 16px;"><strong>Date Added:</strong> ${new Date().toLocaleDateString()}</p>
+              <p style="margin: 12px 0 0 0; font-size: 16px; font-style: italic;">We'll call you before your spot is ready to confirm your subscription details. The wait time is typically less than a week.</p>
             </div>
             
-            <p>While you wait, here's what you can expect:</p>
-            <ul>
-              <li><strong>15% discount</strong> on your first month when you join</li>
-              <li><strong>Priority access</strong> to new meal options</li>
-              <li><strong>Free nutrition consultation</strong> with our experts</li>
-              <li><strong>Complimentary delivery</strong> for your first order</li>
+            <h3 style="color: ${FITNEST_ORANGE}; font-size: 18px;">While You Wait, Here's What You'll Get:</h3>
+            <ul style="font-size: 16px; line-height: 1.6; color: #444; padding-left: 20px;">
+              <li><strong>10% discount</strong> on your first subscription</li>
+              <li><strong>Delicious complimentary snacks</strong> with your first order</li>
             </ul>
             
-            <p>We'll notify you as soon as a spot opens up. In the meantime, feel free to explore our website to learn more about our meal plans and nutrition philosophy.</p>
+            <p style="font-size: 16px; line-height: 1.6; color: #444;">We'll notify you as soon as a spot opens up. In the meantime, feel free to explore our website to learn more about our meal plans and nutrition philosophy.</p>
             
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="https://fitnest.ma/meal-plans" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Explore Meal Plans</a>
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="https://fitnest.ma/meal-plans" style="background-color: ${FITNEST_GREEN}; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Explore Meal Plans</a>
             </div>
             
-            <p style="margin-top: 30px;">Thank you for your patience and interest in Fitnest!</p>
-            <p>Best regards,<br>The Fitnest Team</p>
+            <p style="margin-top: 35px; font-size: 16px; line-height: 1.6; color: #444;">Thank you for your patience and interest in Fitnest!</p>
+            <p style="font-size: 16px; line-height: 1.6; color: #444;">Best regards,<br>The Fitnest Team</p>
           </div>
-          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ${new Date().getFullYear()} Fitnest. All rights reserved.</p>
-            <p>If you have any questions, please contact us at support@fitnest.ma</p>
+          
+          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 20px; text-align: center;">
+            <h3 style="color: ${FITNEST_GREEN}; margin-top: 0; font-size: 18px;">Follow Us</h3>
+            <div style="margin: 15px 0;">
+              <a href="https://instagram.com/fitnest.ma" style="display: inline-block; margin: 0 10px; color: ${FITNEST_GREEN}; text-decoration: none;">
+                <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" width="30" height="30" alt="Instagram" style="border: none;">
+              </a>
+              <a href="https://facebook.com/fitnest.ma" style="display: inline-block; margin: 0 10px; color: ${FITNEST_GREEN}; text-decoration: none;">
+                <img src="https://cdn-icons-png.flaticon.com/512/124/124010.png" width="30" height="30" alt="Facebook" style="border: none;">
+              </a>
+              <a href="https://tiktok.com/@fitnest.ma" style="display: inline-block; margin: 0 10px; color: ${FITNEST_GREEN}; text-decoration: none;">
+                <img src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" width="30" height="30" alt="TikTok" style="border: none;">
+              </a>
+            </div>
+            <p style="font-size: 14px; color: #666; margin-top: 15px;">© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.</p>
+            <p style="font-size: 14px; color: #666;">If you have any questions, please contact us at support@fitnest.ma</p>
           </div>
         </div>
       `,
@@ -240,14 +254,14 @@ Thank you for joining the Fitnest waitlist! We're experiencing high demand and a
 
 YOUR WAITLIST DETAILS
 Position: #${position}
-Estimated Wait: ${estimatedWait} days
+Maximum Wait Time: 7 days
 Date Added: ${new Date().toLocaleDateString()}
 
-While you wait, here's what you can expect:
-- 15% discount on your first month when you join
-- Priority access to new meal options
-- Free nutrition consultation with our experts
-- Complimentary delivery for your first order
+We'll call you before your spot is ready to confirm your subscription details. The wait time is typically less than a week.
+
+WHILE YOU WAIT, HERE'S WHAT YOU'LL GET:
+- 10% discount on your first subscription
+- Delicious complimentary snacks with your first order
 
 We'll notify you as soon as a spot opens up. In the meantime, feel free to explore our website to learn more about our meal plans and nutrition philosophy.
 
@@ -256,7 +270,12 @@ Thank you for your patience and interest in Fitnest!
 Best regards,
 The Fitnest Team
 
-© ${new Date().getFullYear()} Fitnest. All rights reserved.
+FOLLOW US
+Instagram: @fitnest.ma
+Facebook: /fitnest.ma
+TikTok: @fitnest.ma
+
+© ${new Date().getFullYear()} Fitnest.ma. All rights reserved.
 `,
     }
 
