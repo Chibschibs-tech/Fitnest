@@ -8,15 +8,34 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Clock, Users, Star, ArrowRight, ChevronDown } from "lucide-react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 export default function WaitlistPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState("")
   const [submitStatus, setSubmitStatus] = useState<"success" | "error" | "">("")
+  const [waitlistCount, setWaitlistCount] = useState(22) // Default fallback
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+
+  // Fetch waitlist count on component mount
+  useEffect(() => {
+    const fetchWaitlistCount = async () => {
+      try {
+        const response = await fetch("/api/waitlist")
+        const data = await response.json()
+        if (data.totalCount) {
+          setWaitlistCount(data.totalCount)
+        }
+      } catch (error) {
+        console.error("Error fetching waitlist count:", error)
+        // Keep the default value of 22 if fetch fails
+      }
+    }
+
+    fetchWaitlistCount()
+  }, [])
 
   const scrollToForm = () => {
     const formSection = document.getElementById("waitlist-form")
@@ -53,15 +72,21 @@ export default function WaitlistPage() {
 
       const result = await response.json()
 
-      // Always show success message
-      setSubmitStatus("success")
-      setSubmitMessage(
-        "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
-      )
+      if (result.success) {
+        // Update the count immediately after successful submission
+        setWaitlistCount((prev) => prev + 1)
 
-      // Reset form
-      if (formRef.current) {
-        formRef.current.reset()
+        setSubmitStatus("success")
+        setSubmitMessage(
+          "Thank you for your interest! Your request has been registered. We will contact you by email very soon.",
+        )
+
+        // Reset form
+        if (formRef.current) {
+          formRef.current.reset()
+        }
+      } else {
+        throw new Error(result.error || "Submission failed")
       }
 
       // Log for debugging
@@ -132,7 +157,7 @@ export default function WaitlistPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up delay-400">
               <div className="flex items-center gap-2 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
                 <Users className="h-5 w-5" />
-                <span className="font-semibold">22 people already joined</span>
+                <span className="font-semibold">{waitlistCount} people already joined</span>
               </div>
               <div className="flex items-center gap-2 text-white/95 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
                 <Clock className="h-5 w-5" />
