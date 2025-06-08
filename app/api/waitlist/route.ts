@@ -328,10 +328,27 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  // Return a static response to avoid database authentication issues
-  // The counter will be updated client-side after successful submissions
-  return NextResponse.json({
-    totalCount: 22, // Static fallback
-    weeklySignups: 0,
-  })
+  try {
+    // Try to get the real count from the database using the same connection as POST
+    console.log("Attempting to fetch waitlist count from database...")
+
+    const result = await sql`SELECT COUNT(*) as count FROM waitlist`
+    const totalCount = Number(result[0]?.count || 22)
+
+    console.log("Waitlist count fetched successfully:", totalCount)
+
+    return NextResponse.json({
+      totalCount,
+      weeklySignups: 0,
+    })
+  } catch (error) {
+    console.error("Waitlist stats error:", error)
+
+    // Return a fallback response instead of an error
+    console.log("Falling back to static count of 22")
+    return NextResponse.json({
+      totalCount: 22, // Fallback to the original number
+      weeklySignups: 0,
+    })
+  }
 }
