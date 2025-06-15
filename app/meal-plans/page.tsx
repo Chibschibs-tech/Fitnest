@@ -137,7 +137,7 @@ export default function MealPlansPage() {
                   </Button>
                 </Link>
                 <Link href={`/order?plan=${plan.id}`} className="flex-1">
-                  <Button className="w-full bg-green-600 hover:bg-green-700">Order Now</Button>
+                  <Button className="w-full bg-fitnest-green hover:bg-fitnest-green/90">Order Now</Button>
                 </Link>
               </div>
             </CardFooter>
@@ -153,7 +153,7 @@ export default function MealPlansPage() {
               Take our quick quiz to get personalized recommendations based on your lifestyle, goals, and preferences.
             </p>
             <Link href="/meal-quiz">
-              <Button className="bg-green-600 hover:bg-green-700">
+              <Button className="bg-fitnest-green hover:bg-fitnest-green/90">
                 Take the Quiz <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -192,7 +192,7 @@ export default function MealPlansPage() {
           Choose your plan, customize your meals, and enjoy delicious, nutritious food delivered fresh to your door.
         </p>
         <Link href="/order">
-          <Button size="lg" className="bg-green-600 hover:bg-green-700">
+          <Button size="lg" className="bg-fitnest-green hover:bg-fitnest-green/90">
             Order Your Meals Now
           </Button>
         </Link>
