@@ -613,6 +613,102 @@ The Fitnest.ma Team
   }
 }
 
+export async function sendWaitlistAdminNotification(submissionData: any) {
+  try {
+    const { firstName, lastName, email, phone, mealPlanPreference, city, notifications, id } = submissionData
+
+    console.log(`Attempting to send admin notification for waitlist entry ${id}`)
+
+    // Create and verify transporter using the same config as other emails
+    const transporter = createTransporter()
+    await verifyTransporter(transporter)
+
+    const adminEmail = "chihab.jabri@gmail.com"
+
+    const mailOptions = {
+      from: getEnv("EMAIL_FROM"),
+      to: adminEmail,
+      subject: `🔔 New Waitlist Entry - ${firstName} ${lastName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${FITNEST_GREEN}; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">🔔 New Waitlist Entry</h1>
+          </div>
+          <div style="padding: 20px; border: 1px solid #eee;">
+            <h2>New waitlist submission received</h2>
+            
+            <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h3 style="margin-top: 0; color: ${FITNEST_GREEN};">Customer Details</h3>
+              <p><strong>Name:</strong> ${firstName} ${lastName}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+              <p><strong>City:</strong> ${city || "Not provided"}</p>
+              <p><strong>Meal Plan Preference:</strong> ${mealPlanPreference || "Not specified"}</p>
+              <p><strong>Notifications:</strong> ${notifications ? "Yes" : "No"}</p>
+              <p><strong>Submission ID:</strong> ${id}</p>
+              <p><strong>Acquisition Source:</strong> Waitlist</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            
+            <p>This customer has been added to the waitlist and should be contacted soon.</p>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://fitnest.ma/admin/waitlist" style="background-color: ${FITNEST_GREEN}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View All Waitlist Entries</a>
+            </div>
+          </div>
+          <div style="background-color: ${FITNEST_LIGHT_GREEN}; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            <p>© ${new Date().getFullYear()} Fitnest.ma Admin Notification</p>
+          </div>
+        </div>
+      `,
+      text: `New Waitlist Entry - ${firstName} ${lastName}
+
+Customer Details:
+Name: ${firstName} ${lastName}
+Email: ${email}
+Phone: ${phone || "Not provided"}
+City: ${city || "Not provided"}
+Meal Plan Preference: ${mealPlanPreference || "Not specified"}
+Notifications: ${notifications ? "Yes" : "No"}
+Submission ID: ${id}
+Acquisition Source: Waitlist
+Date: ${new Date().toLocaleString()}
+
+This customer has been added to the waitlist and should be contacted soon.
+`,
+    }
+
+    // Implement retry mechanism for transient errors
+    let retries = 0
+    const maxRetries = 3
+
+    while (retries < maxRetries) {
+      try {
+        const info = await transporter.sendMail(mailOptions)
+        console.log(`Admin notification sent successfully to ${adminEmail}: ${info.messageId}`)
+        return { success: true, messageId: info.messageId }
+      } catch (error) {
+        retries++
+        if (retries >= maxRetries) {
+          throw error
+        }
+        console.log(`Retrying admin email send (${retries}/${maxRetries}) after error:`, error)
+        // Wait before retry with exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+      }
+    }
+
+    return { success: false, error: "Failed after maximum retries" }
+  } catch (error) {
+    console.error("Error sending admin notification:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      details: error,
+    }
+  }
+}
+
 // Helper function to check if emails can be sent
 export async function checkEmailConfig() {
   try {

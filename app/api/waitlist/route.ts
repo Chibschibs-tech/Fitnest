@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { sendWaitlistConfirmationEmail } from "@/lib/email-utils"
+import { sendWaitlistConfirmationEmail, sendWaitlistAdminNotification } from "@/lib/email-utils"
 import { randomBytes, createHash } from "crypto"
 
 // Use the NEON_DATABASE_URL which should be the correct one
@@ -14,94 +14,6 @@ function generateTemporaryPassword() {
 // Function to hash a password
 function hashPassword(password: string) {
   return createHash("sha256").update(password).digest("hex")
-}
-
-// Function to send admin notification
-async function sendAdminNotification(submissionData: any) {
-  try {
-    const { firstName, lastName, email, phone, mealPlanPreference, city, notifications, id } = submissionData
-
-    // Import nodemailer here to avoid issues
-    const nodemailer = require("nodemailer")
-
-    // Create transporter using the exact same working config
-    const transporter = nodemailer.createTransporter({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: "noreply@fitnest.ma",
-        pass: "vein jobh jbpa jcfe",
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    })
-
-    const adminEmail = "chihab.jabri@gmail.com"
-
-    const mailOptions = {
-      from: '"Fitnest.ma" <noreply@fitnest.ma>',
-      to: adminEmail,
-      subject: `🔔 New Waitlist Entry - ${firstName} ${lastName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #015033; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">🔔 New Waitlist Entry</h1>
-          </div>
-          <div style="padding: 20px; border: 1px solid #eee;">
-            <h2>New waitlist submission received</h2>
-            
-            <div style="background-color: #e6f2ed; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <h3 style="margin-top: 0; color: #015033;">Customer Details</h3>
-              <p><strong>Name:</strong> ${firstName} ${lastName}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-              <p><strong>City:</strong> ${city || "Not provided"}</p>
-              <p><strong>Meal Plan Preference:</strong> ${mealPlanPreference || "Not specified"}</p>
-              <p><strong>Notifications:</strong> ${notifications ? "Yes" : "No"}</p>
-              <p><strong>Submission ID:</strong> ${id}</p>
-              <p><strong>Acquisition Source:</strong> Waitlist</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
-            </div>
-            
-            <p>This customer has been added to the waitlist and should be contacted soon.</p>
-            
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="https://fitnest.ma/admin/waitlist" style="background-color: #015033; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View All Waitlist Entries</a>
-            </div>
-          </div>
-          <div style="background-color: #e6f2ed; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ${new Date().getFullYear()} Fitnest.ma Admin Notification</p>
-          </div>
-        </div>
-      `,
-      text: `New Waitlist Entry - ${firstName} ${lastName}
-
-Customer Details:
-Name: ${firstName} ${lastName}
-Email: ${email}
-Phone: ${phone || "Not provided"}
-City: ${city || "Not provided"}
-Meal Plan Preference: ${mealPlanPreference || "Not specified"}
-Notifications: ${notifications ? "Yes" : "No"}
-Submission ID: ${id}
-Acquisition Source: Waitlist
-Date: ${new Date().toLocaleString()}
-
-This customer has been added to the waitlist and should be contacted soon.
-`,
-    }
-
-    console.log(`Attempting to send admin notification to ${adminEmail}...`)
-
-    const info = await transporter.sendMail(mailOptions)
-    console.log(`Admin notification sent successfully to ${adminEmail}: ${info.messageId}`)
-    return { success: true, messageId: info.messageId }
-  } catch (error) {
-    console.error("Error sending admin notification:", error)
-    return { success: false, error: error instanceof Error ? error.message : String(error) }
-  }
 }
 
 export async function POST(request: Request) {
@@ -277,7 +189,7 @@ export async function POST(request: Request) {
     // Send admin notification email
     let adminEmailResult = null
     try {
-      adminEmailResult = await sendAdminNotification({
+      adminEmailResult = await sendWaitlistAdminNotification({
         firstName,
         lastName,
         email,
