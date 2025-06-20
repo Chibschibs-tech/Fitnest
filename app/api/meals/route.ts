@@ -1,33 +1,63 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
+    const sql = neon(process.env.NEON_DATABASE_URL!)
     const { searchParams } = new URL(request.url)
     const mealType = searchParams.get("type")
 
-    let query = sql`
-      SELECT id, name, description, meal_type, ingredients, nutrition, image_url, tags, dietary_info, allergens
-      FROM meals
-      WHERE 1=1
-    `
-
+    let query
     if (mealType && mealType !== "all") {
       query = sql`
-        SELECT id, name, description, meal_type, ingredients, nutrition, image_url, tags, dietary_info, allergens
+        SELECT id, name, description, calories, protein, carbs, fat, image_url, category, created_at, updated_at
         FROM meals
-        WHERE meal_type = ${mealType}
+        WHERE category = ${mealType}
+        ORDER BY created_at DESC
+      `
+    } else {
+      query = sql`
+        SELECT id, name, description, calories, protein, carbs, fat, image_url, category, created_at, updated_at
+        FROM meals
+        ORDER BY created_at DESC
       `
     }
 
     const meals = await query
 
-    return NextResponse.json({
-      success: true,
-      meals,
-    })
+    // Transform the data to match what the frontend expects
+    const transformedMeals = meals.map((meal) => ({
+      id: meal.id,
+      name: meal.name,
+      description: meal.description,
+      mealType: meal.category,
+      ingredients: meal.description, // Using description as ingredients for now
+      nutrition: {
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+      },
+      imageUrl: meal.image_url,
+      tags: [],
+      dietaryInfo: [],
+      allergens: [],
+      usdaVerified: false,
+      isActive: true,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      fiber: 0,
+      sugar: 0,
+      sodium: 0,
+      createdAt: meal.created_at,
+      updatedAt: meal.updated_at,
+    }))
+
+    return NextResponse.json(transformedMeals)
   } catch (error) {
     console.error("Error fetching meals:", error)
     return NextResponse.json(
