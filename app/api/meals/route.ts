@@ -5,27 +5,25 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const sql = neon(process.env.NEON_DATABASE_URL!)
+    const sql = neon(process.env.DATABASE_URL!)
     const { searchParams } = new URL(request.url)
     const mealType = searchParams.get("type")
 
-    let query
+    let meals
     if (mealType && mealType !== "all") {
-      query = sql`
-        SELECT id, name, description, calories, protein, carbs, fat, image_url, category, created_at, updated_at
+      meals = await sql`
+        SELECT id, name, description, calories, protein, carbs, fat, "imageUrl", category, "createdAt", "updatedAt"
         FROM meals
         WHERE category = ${mealType}
-        ORDER BY created_at DESC
+        ORDER BY "createdAt" DESC
       `
     } else {
-      query = sql`
-        SELECT id, name, description, calories, protein, carbs, fat, image_url, category, created_at, updated_at
+      meals = await sql`
+        SELECT id, name, description, calories, protein, carbs, fat, "imageUrl", category, "createdAt", "updatedAt"
         FROM meals
-        ORDER BY created_at DESC
+        ORDER BY "createdAt" DESC
       `
     }
-
-    const meals = await query
 
     // Transform the data to match what the frontend expects
     const transformedMeals = meals.map((meal) => ({
@@ -33,28 +31,17 @@ export async function GET(request: NextRequest) {
       name: meal.name,
       description: meal.description,
       mealType: meal.category,
-      ingredients: meal.description, // Using description as ingredients for now
+      ingredients: meal.description, // Using description as ingredients
       nutrition: {
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
+        calories: meal.calories || 0,
+        protein: meal.protein || 0,
+        carbs: meal.carbs || 0,
+        fat: meal.fat || 0,
       },
-      imageUrl: meal.image_url,
+      imageUrl: meal.imageUrl,
       tags: [],
       dietaryInfo: [],
       allergens: [],
-      usdaVerified: false,
-      isActive: true,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      fiber: 0,
-      sugar: 0,
-      sodium: 0,
-      createdAt: meal.created_at,
-      updatedAt: meal.updated_at,
     }))
 
     return NextResponse.json(transformedMeals)
