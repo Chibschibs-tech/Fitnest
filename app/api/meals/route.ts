@@ -6,26 +6,42 @@ export const dynamic = "force-dynamic"
 export async function GET(request: NextRequest) {
   try {
     const sql = neon(process.env.DATABASE_URL!)
+    const { searchParams } = new URL(request.url)
+    const mealType = searchParams.get("type")
 
-    const meals = await sql`
-      SELECT id, name, description, meal_type, ingredients, nutrition, image_url, tags, dietary_info, allergens
-      FROM meals
-      ORDER BY id DESC
-    `
+    let meals
+    if (mealType && mealType !== "all") {
+      meals = await sql`
+        SELECT id, name, description, meal_type, image_url
+        FROM meals
+        WHERE meal_type = ${mealType}
+        ORDER BY name ASC
+      `
+    } else {
+      meals = await sql`
+        SELECT id, name, description, meal_type, image_url
+        FROM meals
+        ORDER BY meal_type ASC, name ASC
+      `
+    }
 
-    // Return the meals array directly, not wrapped in an object
     return NextResponse.json(
       meals.map((meal) => ({
         id: meal.id,
         name: meal.name,
         description: meal.description,
-        mealType: meal.meal_type || "main",
-        ingredients: meal.ingredients || meal.description || {},
-        nutrition: meal.nutrition || {},
-        imageUrl: meal.image_url || "/placeholder.svg?height=200&width=300",
-        tags: meal.tags || [],
-        dietaryInfo: meal.dietary_info || [],
-        allergens: meal.allergens || [],
+        mealType: meal.meal_type,
+        ingredients: meal.description,
+        nutrition: {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+        },
+        imageUrl: meal.image_url,
+        tags: [],
+        dietaryInfo: [],
+        allergens: [],
         usdaVerified: false,
         isActive: true,
         calories: 0,
