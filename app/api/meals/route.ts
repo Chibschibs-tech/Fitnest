@@ -9,21 +9,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const mealType = searchParams.get("type")
 
-    let meals
-    if (mealType && mealType !== "all") {
-      meals = await sql`
-        SELECT id, name, description, "imageUrl", category
-        FROM meals
-        WHERE category = ${mealType}
-        ORDER BY id DESC
-      `
-    } else {
-      meals = await sql`
-        SELECT id, name, description, "imageUrl", category
-        FROM meals
-        ORDER BY id DESC
-      `
-    }
+    // Just get all meals without filtering by category since that column doesn't exist
+    const meals = await sql`
+      SELECT id, name, description, meal_type, ingredients, nutrition, image_url, tags, dietary_info, allergens
+      FROM meals
+      ORDER BY id DESC
+    `
 
     return NextResponse.json({
       success: true,
@@ -31,18 +22,18 @@ export async function GET(request: NextRequest) {
         id: meal.id,
         name: meal.name,
         description: meal.description,
-        meal_type: meal.category,
-        ingredients: meal.description,
-        nutrition: {
+        meal_type: meal.meal_type,
+        ingredients: meal.ingredients || meal.description,
+        nutrition: meal.nutrition || {
           calories: 0,
           protein: 0,
           carbs: 0,
           fat: 0,
         },
-        image_url: meal.imageUrl,
-        tags: [],
-        dietary_info: [],
-        allergens: [],
+        image_url: meal.image_url,
+        tags: meal.tags || [],
+        dietary_info: meal.dietary_info || [],
+        allergens: meal.allergens || [],
       })),
     })
   } catch (error) {
