@@ -5,30 +5,23 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    // Try different environment variables
-    const dbUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL
-
-    if (!dbUrl) {
-      throw new Error("No database URL found in environment variables")
-    }
-
-    const sql = neon(dbUrl)
+    const sql = neon(process.env.DATABASE_URL!)
     const { searchParams } = new URL(request.url)
     const mealType = searchParams.get("type")
 
     let meals
     if (mealType && mealType !== "all") {
       meals = await sql`
-        SELECT id, name, description, "imageUrl", category, "createdAt", "updatedAt"
+        SELECT id, name, description, "imageUrl", category
         FROM meals
         WHERE category = ${mealType}
-        ORDER BY "createdAt" DESC
+        ORDER BY id DESC
       `
     } else {
       meals = await sql`
-        SELECT id, name, description, "imageUrl", category, "createdAt", "updatedAt"
+        SELECT id, name, description, "imageUrl", category
         FROM meals
-        ORDER BY "createdAt" DESC
+        ORDER BY id DESC
       `
     }
 
