@@ -12,39 +12,39 @@ export async function GET(request: NextRequest) {
     let meals
     if (mealType && mealType !== "all") {
       meals = await sql`
-        SELECT id, name, description, calories, protein, carbs, fat, "imageUrl", category, "createdAt", "updatedAt"
+        SELECT id, name, description, calories, protein, carbs, fat, image_url, category, created_at, updated_at
         FROM meals
         WHERE category = ${mealType}
-        ORDER BY "createdAt" DESC
+        ORDER BY created_at DESC
       `
     } else {
       meals = await sql`
-        SELECT id, name, description, calories, protein, carbs, fat, "imageUrl", category, "createdAt", "updatedAt"
+        SELECT id, name, description, calories, protein, carbs, fat, image_url, category, created_at, updated_at
         FROM meals
-        ORDER BY "createdAt" DESC
+        ORDER BY created_at DESC
       `
     }
 
-    // Transform the data to match what the frontend expects
-    const transformedMeals = meals.map((meal) => ({
-      id: meal.id,
-      name: meal.name,
-      description: meal.description,
-      mealType: meal.category,
-      ingredients: meal.description, // Using description as ingredients
-      nutrition: {
-        calories: meal.calories || 0,
-        protein: meal.protein || 0,
-        carbs: meal.carbs || 0,
-        fat: meal.fat || 0,
-      },
-      imageUrl: meal.imageUrl,
-      tags: [],
-      dietaryInfo: [],
-      allergens: [],
-    }))
-
-    return NextResponse.json(transformedMeals)
+    return NextResponse.json({
+      success: true,
+      meals: meals.map((meal) => ({
+        id: meal.id,
+        name: meal.name,
+        description: meal.description,
+        meal_type: meal.category,
+        ingredients: meal.description,
+        nutrition: {
+          calories: meal.calories,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat,
+        },
+        image_url: meal.image_url,
+        tags: [],
+        dietary_info: [],
+        allergens: [],
+      })),
+    })
   } catch (error) {
     console.error("Error fetching meals:", error)
     return NextResponse.json(
