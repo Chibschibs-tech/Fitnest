@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import {
   format,
   addHours,
@@ -16,7 +17,7 @@ import {
   isWithinInterval,
   isSameDay,
 } from "date-fns"
-import { CalendarIcon, ChevronLeft, Info, Check, AlertCircle } from 'lucide-react'
+import { Check, AlertCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -25,36 +26,14 @@ import { Separator } from "@/components/ui/separator"
 import { Calendar } from "@/components/ui/calendar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { cn } from "@/lib/utils"
+import { mealPlans } from "@/lib/meal-plan-data"
 
-// Data (should be fetched from an API in a real app)
-const mealPlans = {
-  "weight-loss": { title: "Weight Loss", basePrice: 350, image: "/vibrant-weight-loss-meal.png" },
-  "stay-fit": { title: "Stay Fit", basePrice: 320, image: "/vibrant-nutrition-plate.png" },
-  "muscle-gain": { title: "Muscle Gain", basePrice: 400, image: "/hearty-muscle-meal.png" },
-  keto: { title: "Keto", basePrice: 380, image: "/colorful-keto-plate.png" },
-}
-const mealTypes = [
-  { id: "breakfast", label: "Breakfast" },
-  { id: "lunch", label: "Lunch" },
-  { id: "dinner", label: "Dinner" },
-]
-const snackOptions = [
-  { id: "0-snacks", label: "No Snacks", multiplier: 0 },
-  { id: "1-snack", label: "1 Snack / Day", multiplier: 0.2 },
-  { id: "2-snacks", label: "2 Snacks / Day", multiplier: 0.35 },
-]
+// Data
 const durationOptions = [
   { id: "1-week", label: "1 Week", weeks: 1 },
   { id: "2-weeks", label: "2 Weeks", weeks: 2 },
   { id: "1-month", label: "1 Month", weeks: 4 },
 ]
-const sampleMeals = {
-  breakfast: [{ id: "b1", name: "Protein Stack" }, { id: "b2", name: "Berry Parfait" }],
-  lunch: [{ id: "l1", name: "Chicken Medley" }, { id: "l2", name: "Rainbow Bowl" }],
-  dinner: [{ id: "d1", name: "Salmon Quinoa" }, { id: "d2", name: "Turkey Meatballs" }],
-  snack: [{ id: "s1", name: "Yogurt" }, { id: "s2", name: "Energy Bites" }],
-}
 
 // Helper to determine the start of the selection period
 const getCalendarStartInfo = () => {
@@ -63,39 +42,30 @@ const getCalendarStartInfo = () => {
   let calendarViewStart = startOfWeek(now, { weekStartsOn: 1 })
 
   const dayOfWeek = getDay(now) // Sunday is 0
-  if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) {
+  if (dayOfWeek >= 5) { // Friday, Saturday, Sunday
     calendarViewStart = nextMonday(now)
   }
   
   return { calendarViewStart, firstSelectableDate }
 }
 
-export function OrderProcess() {
+function OrderProcessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const planIdFromUrl = searchParams.get("plan")
 
   // State
   const [step, setStep] = useState(1)
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
-  const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>(["lunch", "dinner"])
-  const [selectedSnacks, setSelectedSnacks] = useState("0-snacks")
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planIdFromUrl)
   const [duration, setDuration] = useState("1-week")
   const [selectedDays, setSelectedDays] = useState<Date[]>([])
   const [menuSelections, setMenuSelections] = useState<Record<string, Record<string, string[]>>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [displayMonth, setDisplayMonth] = useState<Date>()
 
-  // FIX: Initialize selectedPlanId from URL search params
-  useEffect(() => {
-    const planIdFromUrl = searchParams.get("plan")
-    if (planIdFromUrl && mealPlans[planIdFromUrl as keyof typeof mealPlans]) {
-      setSelectedPlanId(planIdFromUrl)
-    }
-  }, [searchParams])
-
   // Memoized values for performance
   const { calendarViewStart, firstSelectableDate } = useMemo(getCalendarStartInfo, [])
-  const selectedPlan = selectedPlanId ? mealPlans[selectedPlanId as keyof typeof mealPlans] : null
+  const selectedPlan = selectedPlanId ? mealPlans[selectedPlanId] : null
   const weeksInDuration = useMemo(() => durationOptions.find(d => d.id === duration)?.weeks || 1, [duration])
   const calendarEndDate = useMemo(() => endOfWeek(addWeeks(calendarViewStart, weeksInDuration - 1)), [calendarViewStart, weeksInDuration])
 
@@ -111,25 +81,18 @@ export function OrderProcess() {
   // Price Calculation
   const totalPrice = useMemo(() => {
     if (!selectedPlan) return 0
-    const basePrice = selectedPlan.basePrice / 7
-    let mealTypeMultiplier = 0
-    if (selectedMealTypes.includes("breakfast")) mealTypeMultiplier += 0.3
-    if (selectedMealTypes.includes("lunch")) mealTypeMultiplier += 0.35
-    if (selectedMealTypes.includes("dinner")) mealTypeMultiplier += 0.35
-    const snackMultiplier = snackOptions.find((option) => option.id === selectedSnacks)?.multiplier || 0
-    const dailyPrice = basePrice * (mealTypeMultiplier + snackMultiplier)
+    const dailyPrice = selectedPlan.price / 7
     return Math.round(dailyPrice * selectedDays.length)
-  }, [selectedPlan, selectedMealTypes, selectedSnacks, selectedDays])
+  }, [selectedPlan, selectedDays])
 
   // Validation
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {}
     if (!selectedPlanId) newErrors.mealPlan = "Please select a meal plan."
-    if (selectedMealTypes.length < 2) newErrors.mealTypes = "Please select at least 2 meal types."
     
     for (let i = 0; i < weeksInDuration; i++) {
       const weekStart = addWeeks(startOfWeek(calendarViewStart, { weekStartsOn: 1 }), i)
-      const selectedInWeek = selectedDays.filter((day) => isWithinInterval(day, { start: weekStart, end: endOfWeek(weekStart) }))
+      const selectedInWeek = selectedDays.filter((day) => isWithinInterval(day, { start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) }))
       if (selectedInWeek.length < 2) {
         newErrors.days = `Please select at least 2 days for the week of ${format(weekStart, "MMM d")}.`
         break
@@ -140,14 +103,14 @@ export function OrderProcess() {
   }
 
   const isMenuComplete = useMemo(() => {
-    if (selectedDays.length === 0) return false
-    const snackCount = selectedSnacks === "1-snack" ? 1 : selectedSnacks === "2-snacks" ? 2 : 0
+    if (selectedDays.length === 0 || !selectedPlan) return false
     return selectedDays.every(day => {
       const dayISO = day.toISOString().split('T')[0]
       const dayMenu = menuSelections[dayISO]
-      return dayMenu && dayMenu.meals?.length === selectedMealTypes.length && dayMenu.snacks?.length === snackCount
+      // Simplified check: just ensure the menu for the day exists
+      return dayMenu && dayMenu.meals?.length > 0
     })
-  }, [menuSelections, selectedDays, selectedMealTypes, selectedSnacks])
+  }, [menuSelections, selectedDays, selectedPlan])
 
   // Handlers
   const handleNext = () => {
@@ -162,22 +125,23 @@ export function OrderProcess() {
         window.scrollTo(0, 0)
       }
     } else {
-      if (!isMenuComplete) {
-        setErrors({ menu: "Please complete your menu selections for all days." })
-        return
-      }
       // Proceed to checkout logic
       router.push("/checkout")
     }
   }
 
-  if (!selectedPlanId) {
+  if (!selectedPlan) {
     return (
       <div className="container mx-auto py-12 text-center">
-        <h2 className="text-2xl font-bold">Invalid Meal Plan</h2>
-        <p className="text-gray-600 mt-2">The meal plan you selected does not exist. Please go back and select a valid plan.</p>
+        <Alert variant="destructive" className="max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Invalid Meal Plan</AlertTitle>
+          <AlertDescription>
+            The meal plan you selected does not exist. Please go back and select a valid plan.
+          </AlertDescription>
+        </Alert>
         <Link href="/meal-plans" className="mt-4 inline-block">
-          <Button>View Meal Plans</Button>
+          <Button>View All Meal Plans</Button>
         </Link>
       </div>
     )
@@ -192,22 +156,24 @@ export function OrderProcess() {
             <Card>
               <CardHeader>
                 <CardTitle>Step 1: Customize Your Plan</CardTitle>
-                <CardDescription>Select your preferences to create the perfect meal plan.</CardDescription>
+                <CardDescription>Select your subscription duration and delivery days.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
-                {/* Duration and Day Selection */}
                 <div>
-                  <Label className="text-base font-medium mb-3 block">1. Select duration and delivery days</Label>
+                  <Label className="text-base font-medium mb-3 block">1. Select duration</Label>
                   <RadioGroup value={duration} onValueChange={setDuration} className="grid grid-cols-3 gap-4 mb-4">
                     {durationOptions.map((option) => (
                       <div key={option.id}>
                         <RadioGroupItem value={option.id} id={`duration-${option.id}`} className="peer sr-only" />
-                        <Label htmlFor={`duration-${option.id}`} className="flex items-center justify-center rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green">
+                        <Label htmlFor={`duration-${option.id}`} className="flex items-center justify-center rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green cursor-pointer">
                           <span className="font-semibold">{option.label}</span>
                         </Label>
                       </div>
                     ))}
                   </RadioGroup>
+                </div>
+                <div>
+                  <Label className="text-base font-medium mb-3 block">2. Select delivery days</Label>
                   <div className="p-4 border rounded-md">
                     <p className="text-sm text-gray-600 mb-4">Select at least 2 delivery days for each week.</p>
                     <Calendar
@@ -225,7 +191,7 @@ export function OrderProcess() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={handleNext} className="w-full">Continue to Menu Building</Button>
+                <Button onClick={handleNext} className="w-full" disabled={selectedDays.length === 0}>Continue to Menu Building</Button>
               </CardFooter>
             </Card>
           )}
@@ -235,19 +201,20 @@ export function OrderProcess() {
              <Card>
               <CardHeader>
                 <CardTitle>Step 2: Build Your Menu</CardTitle>
-                <CardDescription>Select your meals for each delivery day.</CardDescription>
+                <CardDescription>We'll select meals based on your plan. You can proceed to checkout.</CardDescription>
               </CardHeader>
               <CardContent>
-                {errors.menu && <Alert variant="destructive" className="mb-4"><AlertCircle className="h-4 w-4" /><AlertTitle>Incomplete Menu</AlertTitle><AlertDescription>{errors.menu}</AlertDescription></Alert>}
                 <Accordion type="multiple" className="w-full">
                   {selectedDays.map(day => {
                     const dayISO = day.toISOString().split('T')[0]
                     return (
                       <AccordionItem value={dayISO} key={dayISO}>
-                        <AccordionTrigger>{format(day, "EEEE, MMM d")}</AccordionTrigger>
+                        <AccordionTrigger className="flex justify-between w-full">
+                          <span>{format(day, "EEEE, MMM d")}</span>
+                          <Check className="h-5 w-5 text-green-500" />
+                        </AccordionTrigger>
                         <AccordionContent>
-                          {/* Meal selection logic here */}
-                          <p>Meal selection for {format(day, "PPP")}</p>
+                          <p className="text-sm text-gray-600">Our chefs will curate a delicious selection of meals from the <span className="font-semibold">{selectedPlan.name}</span> for this day.</p>
                         </AccordionContent>
                       </AccordionItem>
                     )
@@ -256,7 +223,7 @@ export function OrderProcess() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                <Button onClick={handleNext} disabled={!isMenuComplete}>Proceed to Checkout</Button>
+                <Button onClick={handleNext}>Proceed to Checkout</Button>
               </CardFooter>
             </Card>
           )}
@@ -270,15 +237,12 @@ export function OrderProcess() {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {selectedPlan && (
-                  <div className="flex items-center space-x-4">
-                    <Image src={selectedPlan.image || "/placeholder.svg"} alt={selectedPlan.title} width={64} height={64} className="rounded-md object-cover" />
-                    <div>
-                      <h3 className="font-semibold">{selectedPlan.title}</h3>
-                      <p className="text-sm text-gray-500">{selectedMealTypes.length} meals, {selectedSnacks.replace("-", " ")}</p>
-                    </div>
+                <div className="flex items-center space-x-4">
+                  <Image src={selectedPlan.image || "/placeholder.svg"} alt={selectedPlan.name} width={64} height={64} className="rounded-md object-cover" />
+                  <div>
+                    <h3 className="font-semibold">{selectedPlan.name}</h3>
                   </div>
-                )}
+                </div>
                 <Separator />
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span>Duration:</span><span>{durationOptions.find(d => d.id === duration)?.label}</span></div>
@@ -295,5 +259,13 @@ export function OrderProcess() {
         </div>
       </div>
     </div>
+  )
+}
+
+export function OrderProcess() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OrderProcessContent />
+    </Suspense>
   )
 }
