@@ -40,7 +40,7 @@ export function FeaturedMealPlans() {
             description: "Well-balanced meals to maintain your health and energy throughout the day.",
             price: 299,
             image: "/vibrant-nutrition-plate.png",
-            category: "balanced-nutrition",
+            category: "stay-fit",
           },
           {
             id: "3",
@@ -108,7 +108,8 @@ export function FeaturedMealPlans() {
                     </p>
                   </CardContent>
                   <CardFooter>
-                    <Link href={`/meal-plans/${plan.id}`} className="w-full">
+                    {/* FIX: Linking to the meal plan detail page using the correct slug (plan.category) */}
+                    <Link href={`/meal-plans/${plan.category}`} className="w-full">
                       <Button className="w-full bg-emerald-600 hover:bg-emerald-700">View Plan</Button>
                     </Link>
                   </CardFooter>

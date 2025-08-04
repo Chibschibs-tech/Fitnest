@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Clock, Users, Utensils } from "lucide-react"
+import { CheckCircle, Clock, Users, Utensils } from 'lucide-react'
 
 const mealPlans = {
   "weight-loss": {
@@ -199,7 +200,6 @@ const mealPlans = {
 }
 
 export default function MealPlanPage({ params }: { params: { id: string } }) {
-  // Handle both numeric IDs and string slugs
   const plan = mealPlans[params.id as keyof typeof mealPlans]
 
   if (!plan) {
@@ -224,9 +224,12 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
                   <div className="text-lg line-through text-green-200">{plan.originalPrice} MAD</div>
                 )}
               </div>
-              <Button size="lg" className="bg-fitnest-orange hover:bg-orange-600 text-white">
-                Start Your Plan
-              </Button>
+              {/* FIX: Wrap button in a Link to navigate to the order page with the correct plan ID */}
+              <Link href={`/order?plan=${plan.id}`}>
+                <Button size="lg" className="bg-fitnest-orange hover:bg-orange-600 text-white">
+                  Start Your Plan
+                </Button>
+              </Link>
             </div>
             <div className="relative">
               <Image
@@ -351,9 +354,12 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
               <CardContent className="p-6 text-center">
                 <h3 className="text-xl font-bold mb-2">Ready to Start?</h3>
                 <p className="text-green-100 mb-4">Join thousands of satisfied customers</p>
-                <Button className="w-full bg-fitnest-orange hover:bg-orange-600">
-                  Order Now - {plan.price} MAD/week
-                </Button>
+                {/* FIX: Wrap button in a Link to navigate to the order page with the correct plan ID */}
+                <Link href={`/order?plan=${plan.id}`}>
+                  <Button className="w-full bg-fitnest-orange hover:bg-orange-600">
+                    Order Now - {plan.price} MAD/week
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
