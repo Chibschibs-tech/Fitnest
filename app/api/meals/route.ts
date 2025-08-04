@@ -5,7 +5,14 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    // Try different environment variables in order of preference
+    const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL
+    
+    if (!databaseUrl) {
+      throw new Error("No database URL found in environment variables")
+    }
+
+    const sql = neon(databaseUrl)
     const { searchParams } = new URL(request.url)
     const mealType = searchParams.get("type")
 
