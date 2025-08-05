@@ -4,11 +4,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Clock, Users, Utensils } from 'lucide-react'
-import { mealPlans } from "@/lib/meal-plan-data"
+import { CheckCircle, Clock, Users, Utensils } from "lucide-react"
+import { allMealPlans } from "@/lib/meal-plan-data"
 
 export default function MealPlanPage({ params }: { params: { id: string } }) {
-  const plan = mealPlans[params.id]
+  const plan = allMealPlans.find((p) => p.id === params.id)
 
   if (!plan) {
     notFound()
