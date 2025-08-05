@@ -24,7 +24,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 // Mock data for meals, replace with actual data fetching
 const sampleMeals = [
@@ -253,12 +254,18 @@ export function OrderProcess() {
     } else if (step === 2) {
       // Add validation for step 2 if needed
       // For now, just navigate
+      // Here you would save the orderState and proceed to checkout
+      console.log("Final Order State:", orderState)
       router.push("/checkout")
     }
   }
 
   const handlePrevStep = () => {
-    setStep((prev) => prev - 1)
+    if (step > 1) {
+      setStep(step - 1)
+    } else {
+      router.back()
+    }
   }
 
   const handleMealSelection = (date: string, mealId: string) => {
@@ -755,6 +762,13 @@ export function OrderProcess() {
                   ...
                 </div>
               */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Validation Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
             </div>
           )}
 
