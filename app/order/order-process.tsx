@@ -1,57 +1,20 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import {
-  addDays,
-  addWeeks,
-  startOfDay,
-  isFriday,
-  isSaturday,
-  isSunday,
-  nextMonday,
-  format,
-  isSameWeek,
-  startOfWeek,
-  isBefore,
-  addHours,
-  getDay,
-} from "date-fns"
+import { format, addDays, getDay, isBefore, addHours } from "date-fns"
+import { CalendarIcon, ChevronLeft, Info, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { CheckCircle, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-
-// Mock data for meals, replace with actual data fetching
-const sampleMeals = [
-  { id: "meal-1", name: "Grilled Chicken Salad" },
-  { id: "meal-2", name: "Salmon with Quinoa" },
-  { id: "meal-3", name: "Vegan Lentil Soup" },
-  { id: "meal-4", name: "Beef Stir-fry" },
-]
-
-const sampleSnacks = [
-  { id: "snack-1", name: "Protein Bar" },
-  { id: "snack-2", name: "Apple Slices with Peanut Butter" },
-  { id: "snack-3", name: "Greek Yogurt" },
-]
-
-type MealPlanType = "weight-loss" | "muscle-gain" | "keto"
-type Duration = 1 | 2 | 4 // in weeks
-
-interface OrderState {
-  planType: MealPlanType
-  mealsPerDay: number
-  snacksPerDay: number
-  duration: Duration
-  deliveryDays: Date[]
-  menu: Record<string, { meals: string[]; snacks: string[] }>
-}
+import { cn } from "@/lib/utils"
 
 // Define meal plan data - UPDATED with Stay Fit instead of Balanced Nutrition
 const mealPlans = {
@@ -125,7 +88,7 @@ const paymentCycles = [
 ]
 
 // Sample meals for menu building
-const sampleMealsOld = {
+const sampleMeals = {
   breakfast: [
     { id: "b1", name: "Fluffy Protein Stack", image: "/fluffy-protein-stack.png", calories: 320 },
     { id: "b2", name: "Layered Berry Parfait", image: "/layered-berry-parfait.png", calories: 280 },
@@ -159,147 +122,6 @@ const sampleMealsOld = {
 
 export function OrderProcess() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [orderState, setOrderState] = useState<OrderState>({
-    planType: "weight-loss",
-    mealsPerDay: 2,
-    snacksPerDay: 1,
-    duration: 1,
-    deliveryDays: [],
-    menu: {},
-  })
-  const [error, setError] = useState<string | null>(null)
-
-  // --- Robust Date and Calendar Logic ---
-
-  const { calendarViewStartDate, minSelectableDate } = useMemo(() => {
-    const now = new Date()
-    const minDate = addDays(startOfDay(now), 2) // 48-hour buffer
-
-    let viewStartDate = startOfWeek(now, { weekStartsOn: 1 }) // Start view on Monday
-
-    // The "Friday Rule": If it's Friday, Saturday, or Sunday, start everything from next week.
-    if (isFriday(now) || isSaturday(now) || isSunday(now)) {
-      viewStartDate = nextMonday(now)
-    }
-
-    return {
-      calendarViewStartDate: viewStartDate,
-      minSelectableDate: minDate,
-    }
-  }, [])
-
-  const calendarEndDate = useMemo(() => {
-    // The calendar view should extend for the selected duration
-    return addWeeks(calendarViewStartDate, orderState.duration)
-  }, [calendarViewStartDate, orderState.duration])
-
-  const isDateDisabled = (date: Date) => {
-    // Disable dates before the 48-hour minimum and outside the calculated duration view
-    return isBefore(date, minSelectableDate) || !isBefore(date, calendarEndDate)
-  }
-
-  // --- Handlers and Validation ---
-
-  const handleDaySelect = (day: Date | undefined) => {
-    if (!day || isDateDisabled(day)) return
-
-    const newDeliveryDays = orderState.deliveryDays.some((d) => d.getTime() === day.getTime())
-      ? orderState.deliveryDays.filter((d) => d.getTime() !== day.getTime())
-      : [...orderState.deliveryDays, day]
-
-    setOrderState((prev) => ({
-      ...prev,
-      deliveryDays: newDeliveryDays.sort((a, b) => a.getTime() - b.getTime()),
-    }))
-    setError(null) // Clear previous errors on new selection
-  }
-
-  const validateStep1 = () => {
-    // Create an array of week start dates to validate against
-    const weeksToValidate: Date[] = []
-    for (let i = 0; i < orderState.duration; i++) {
-      weeksToValidate.push(addWeeks(calendarViewStartDate, i))
-    }
-
-    // Check each week for the minimum number of delivery days
-    for (const weekStart of weeksToValidate) {
-      const daysInWeek = orderState.deliveryDays.filter((day) => isSameWeek(day, weekStart, { weekStartsOn: 1 }))
-      if (daysInWeek.length < 2) {
-        setError(`Please select at least 2 delivery days for the week of ${format(weekStart, "MMM do")}.`)
-        return false // Validation failed
-      }
-    }
-
-    if (orderState.deliveryDays.length === 0) {
-      setError("Please select your delivery days.")
-      return false
-    }
-
-    setError(null) // All checks passed
-    return true
-  }
-
-  const handleNextStep = () => {
-    if (step === 1) {
-      if (validateStep1()) {
-        // Initialize menu for step 2
-        const initialMenu: OrderState["menu"] = {}
-        orderState.deliveryDays.forEach((day) => {
-          initialMenu[format(day, "yyyy-MM-dd")] = { meals: [], snacks: [] }
-        })
-        setOrderState((prev) => ({ ...prev, menu: initialMenu }))
-        setStep(2)
-      }
-    } else if (step === 2) {
-      // Add validation for step 2 if needed
-      // For now, just navigate
-      // Here you would save the orderState and proceed to checkout
-      console.log("Final Order State:", orderState)
-      router.push("/checkout")
-    }
-  }
-
-  const handlePrevStep = () => {
-    if (step > 1) {
-      setStep(step - 1)
-    } else {
-      router.back()
-    }
-  }
-
-  const handleMealSelection = (date: string, mealId: string) => {
-    setOrderState((prev) => {
-      const currentMeals = prev.menu[date]?.meals || []
-      const newMeals = currentMeals.includes(mealId)
-        ? currentMeals.filter((id) => id !== mealId)
-        : [...currentMeals, mealId].slice(0, prev.mealsPerDay)
-      return {
-        ...prev,
-        menu: {
-          ...prev.menu,
-          [date]: { ...prev.menu[date], meals: newMeals },
-        },
-      }
-    })
-  }
-
-  const handleSnackSelection = (date: string, snackId: string) => {
-    setOrderState((prev) => {
-      const currentSnacks = prev.menu[date]?.snacks || []
-      const newSnacks = currentSnacks.includes(snackId)
-        ? currentSnacks.filter((id) => id !== snackId)
-        : [...currentSnacks, snackId].slice(0, prev.snacksPerDay)
-      return {
-        ...prev,
-        menu: {
-          ...prev.menu,
-          [date]: { ...prev.menu[date], snacks: newSnacks },
-        },
-      }
-    })
-  }
-
   const searchParams = useSearchParams()
   const planIdFromUrl = searchParams.get("plan")
 
@@ -369,6 +191,9 @@ export function OrderProcess() {
   useEffect(() => {
     setStartDate(calculateStartDate())
   }, [selectedDays])
+
+  // Current step
+  const [step, setStep] = useState(1)
 
   // Menu selections
   const [menuSelections, setMenuSelections] = useState<Record<string, Record<string, any>>>({})
@@ -479,7 +304,7 @@ export function OrderProcess() {
   }
 
   // Handle meal selection for menu building
-  const handleMealSelectionOld = (day: string, mealType: string, meal: any) => {
+  const handleMealSelection = (day: string, mealType: string, meal: any) => {
     setMenuSelections((prev) => ({
       ...prev,
       [day]: {
@@ -609,242 +434,660 @@ export function OrderProcess() {
   }
 
   return (
-    <div className="container mx-auto py-12 px-4">
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">
-            Step {step}: {step === 1 ? "Customize Your Plan" : "Build Your Menu"}
-          </CardTitle>
-          <CardDescription className="text-center">
-            {step === 1
-              ? "Select your preferences to create the perfect meal plan."
-              : "Choose your meals and snacks for each delivery day."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === 1 && (
-            <div className="space-y-8">
-              {/* Plan Type */}
-              <div>
-                <Label className="text-lg font-semibold">Plan Type</Label>
-                <RadioGroup
-                  value={orderState.planType}
-                  onValueChange={(value: MealPlanType) => setOrderState((prev) => ({ ...prev, planType: value }))}
-                  className="grid grid-cols-3 gap-4 mt-2"
-                >
-                  {["weight-loss", "muscle-gain", "keto"].map((plan) => (
-                    <div key={plan}>
-                      <RadioGroupItem value={plan} id={plan} className="sr-only" />
-                      <Label
-                        htmlFor={plan}
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary capitalize cursor-pointer"
-                      >
-                        {plan.replace("-", " ")}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {/* Meals and Snacks */}
-              <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <Label htmlFor="meals-per-day" className="text-lg font-semibold">
-                    Meals per day
-                  </Label>
-                  <Select
-                    value={String(orderState.mealsPerDay)}
-                    onValueChange={(value) =>
-                      setOrderState((prev) => ({
-                        ...prev,
-                        mealsPerDay: Number(value),
-                      }))
-                    }
-                  >
-                    <SelectTrigger id="meals-per-day">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5].map((num) => (
-                        <SelectItem key={num} value={String(num)}>
-                          {num}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="snacks-per-day" className="text-lg font-semibold">
-                    Snacks per day
-                  </Label>
-                  <Select
-                    value={String(orderState.snacksPerDay)}
-                    onValueChange={(value) =>
-                      setOrderState((prev) => ({
-                        ...prev,
-                        snacksPerDay: Number(value),
-                      }))
-                    }
-                  >
-                    <SelectTrigger id="snacks-per-day">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[0, 1, 2, 3].map((num) => (
-                        <SelectItem key={num} value={String(num)}>
-                          {num}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* NEW: Subscription Duration */}
-              <div>
-                <Label className="text-lg font-semibold">Subscription Duration</Label>
-                <RadioGroup
-                  value={String(orderState.duration)}
-                  onValueChange={(value) =>
-                    setOrderState((prev) => ({
-                      ...prev,
-                      duration: Number(value) as Duration,
-                      deliveryDays: [], // Reset selected days when duration changes
-                    }))
-                  }
-                  className="grid grid-cols-3 gap-4 mt-2"
-                >
-                  {[
-                    { value: 1, label: "1 Week" },
-                    { value: 2, label: "2 Weeks" },
-                    { value: 4, label: "1 Month" },
-                  ].map((item) => (
-                    <div key={item.value}>
-                      <RadioGroupItem value={String(item.value)} id={`duration-${item.value}`} className="sr-only" />
-                      <Label
-                        htmlFor={`duration-${item.value}`}
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer"
-                      >
-                        {item.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {/* NEW: Dynamic Delivery Days Calendar */}
-              <div>
-                <Label className="text-lg font-semibold">Select Delivery Days</Label>
-                <p className="text-sm text-muted-foreground">
-                  Choose at least 2 delivery days per week for your selected duration.
-                </p>
-                <div className="flex justify-center mt-4">
-                  <Calendar
-                    mode="multiple"
-                    selected={orderState.deliveryDays}
-                    onSelect={handleDaySelect}
-                    disabled={isDateDisabled}
-                    fromMonth={calendarViewStartDate}
-                    toMonth={calendarEndDate}
-                    // Show more months for longer durations for better UX
-                    numberOfMonths={orderState.duration === 4 ? 2 : 1}
-                    className="rounded-md border"
-                  />
-                </div>
-              </div>
-
-              {/*
-                HIDDEN: Payment Cycle feature is deactivated as requested.
-                The code is kept for future use.
-
-                <div>
-                  <Label className="text-lg font-semibold">Payment Cycle</Label>
-                  ...
-                </div>
-              */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Validation Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mb-8">
+        <Button variant="ghost" onClick={handleBack} className="mb-4">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          {step === 1 ? "Back to Meal Plans" : "Back"}
+        </Button>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold">Customize Your Perfect Meal Plan</h1>
+          <div className="hidden md:flex items-center space-x-2 text-sm">
+            <div
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full",
+                step >= 1 ? "bg-fitnest-green text-white" : "bg-gray-200 text-gray-500",
               )}
+            >
+              1
             </div>
+            <div className={cn("w-8 h-0.5", step >= 2 ? "bg-fitnest-green" : "bg-gray-200")} />
+            <div
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full",
+                step >= 2 ? "bg-fitnest-green text-white" : "bg-gray-200 text-gray-500",
+              )}
+            >
+              2
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          {step === 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Choose Your Plan Options</CardTitle>
+                <CardDescription>Customize your meal plan to fit your needs</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                {/* Meal Plan Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Choose your meal plan</Label>
+                  <RadioGroup
+                    value={selectedPlanId}
+                    onValueChange={setSelectedPlanId}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {Object.entries(mealPlans).map(([id, plan]) => (
+                      <div key={id}>
+                        <RadioGroupItem value={id} id={`plan-${id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`plan-${id}`}
+                          className="flex items-center space-x-4 rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                        >
+                          <div className="relative h-16 w-16 overflow-hidden rounded-md">
+                            <Image
+                              src={plan.image || "/placeholder.svg"}
+                              alt={plan.title}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{plan.title}</h3>
+                            <p className="text-sm text-gray-500">{plan.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                  {errors.mealPlan && <p className="text-red-500 text-sm mt-2">{errors.mealPlan}</p>}
+                </div>
+
+                {/* Meal Types Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">How many meals per day?</Label>
+                  <p className="text-sm text-gray-500 mb-4">Select a minimum of 2 meals, including lunch or dinner.</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {mealTypes.map((mealType) => (
+                      <div key={mealType.id} className="relative">
+                        <input
+                          type="checkbox"
+                          id={`meal-type-${mealType.id}`}
+                          checked={selectedMealTypes.includes(mealType.id)}
+                          onChange={() => handleMealTypeToggle(mealType.id)}
+                          className="peer sr-only"
+                        />
+                        <label
+                          htmlFor={`meal-type-${mealType.id}`}
+                          className={cn(
+                            "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 cursor-pointer",
+                            selectedMealTypes.includes(mealType.id) ? "border-fitnest-green" : "",
+                          )}
+                        >
+                          {selectedMealTypes.includes(mealType.id) && (
+                            <div className="absolute top-2 right-2 h-5 w-5 bg-fitnest-green rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          <div className="text-center">
+                            <h3 className="font-semibold">{mealType.label}</h3>
+                            <p className="text-sm text-gray-500">{mealType.description}</p>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  {errors.mealTypes && <p className="text-red-500 text-sm mt-2">{errors.mealTypes}</p>}
+                </div>
+
+                {/* Snacks Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">How many snacks per day?</Label>
+                  <RadioGroup
+                    value={selectedSnacks}
+                    onValueChange={setSelectedSnacks}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                  >
+                    {snackOptions.map((option) => (
+                      <div key={option.id}>
+                        <RadioGroupItem value={option.id} id={`snack-${option.id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`snack-${option.id}`}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                        >
+                          <div className="text-center">
+                            <h3 className="font-semibold">{option.label}</h3>
+                            <p className="text-sm text-gray-500">{option.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Days Selection - UPDATED to require minimum 3 days */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">How many days a week?</Label>
+                  <p className="text-sm text-gray-500 mb-4">Select a minimum of 3 days.</p>
+
+                  <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                    {weekdays.map((day) => (
+                      <div key={day.id} className="relative">
+                        <input
+                          type="checkbox"
+                          id={`day-${day.id}`}
+                          checked={selectedDays.includes(day.id)}
+                          onChange={() => handleDayToggle(day.id)}
+                          className="peer sr-only"
+                        />
+                        <label
+                          htmlFor={`day-${day.id}`}
+                          className={cn(
+                            "flex items-center justify-center w-12 h-12 rounded-full border-2 border-muted bg-white hover:bg-gray-50 hover:border-gray-200 cursor-pointer",
+                            selectedDays.includes(day.id) ? "border-fitnest-green bg-fitnest-green text-white" : "",
+                          )}
+                        >
+                          {day.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  {errors.days && <p className="text-red-500 text-sm mt-2">{errors.days}</p>}
+                </div>
+
+                {/* Payment Cycle */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Payment Cycle</Label>
+                  <RadioGroup
+                    value={paymentCycle}
+                    onValueChange={setPaymentCycle}
+                    className="grid gap-4 md:grid-cols-3"
+                  >
+                    {paymentCycles.map((cycle) => (
+                      <div key={cycle.id}>
+                        <RadioGroupItem value={cycle.id} id={`cycle-${cycle.id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`cycle-${cycle.id}`}
+                          className="relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                        >
+                          {cycle.popular && (
+                            <div className="absolute -top-2 -right-2 bg-fitnest-orange text-white text-xs px-2 py-1 rounded-full">
+                              Popular
+                            </div>
+                          )}
+                          <div className="text-center">
+                            <h3 className="font-semibold">{cycle.label}</h3>
+                            <p className="text-sm text-gray-500">{cycle.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {/* Start Date - UPDATED with better explanation */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Start Date</Label>
+                  <div className="flex flex-col space-y-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full md:w-[280px] justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={setStartDate}
+                          initialFocus
+                          disabled={(date) => isBefore(date, minStartDate)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <div className="text-sm text-gray-500 space-y-1">
+                      <p>We need at least 48 hours to prepare your first delivery.</p>
+                      <p>Your start date will be the next occurrence of your first selected day of the week.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  Back
+                </Button>
+                <Button onClick={handleNext} disabled={!startDate || !selectedPlanId}>
+                  Continue to Menu Building
+                </Button>
+              </CardFooter>
+            </Card>
           )}
 
           {step === 2 && (
-            <Accordion
-              type="single"
-              collapsible
-              className="w-full"
-              defaultValue={
-                orderState.deliveryDays.length > 0 ? format(orderState.deliveryDays[0], "yyyy-MM-dd") : undefined
-              }
-            >
-              {orderState.deliveryDays.map((day) => {
-                const dateStr = format(day, "yyyy-MM-dd")
-                const dayMenu = orderState.menu[dateStr]
-                const isComplete =
-                  dayMenu.meals.length === orderState.mealsPerDay && dayMenu.snacks.length === orderState.snacksPerDay
-                return (
-                  <AccordionItem value={dateStr} key={dateStr}>
-                    <AccordionTrigger>
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <span>{format(day, "EEEE, MMMM do")}</span>
-                        {isComplete && <CheckCircle className="h-5 w-5 text-green-500" />}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-6">
-                        <div>
-                          <h4 className="font-semibold mb-2">
-                            Meals ({dayMenu.meals.length}/{orderState.mealsPerDay})
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {sampleMeals.map((meal) => (
-                              <Button
-                                key={meal.id}
-                                variant={dayMenu.meals.includes(meal.id) ? "default" : "outline"}
-                                onClick={() => handleMealSelection(dateStr, meal.id)}
-                              >
-                                {meal.name}
-                              </Button>
-                            ))}
+            <Card>
+              <CardHeader>
+                <CardTitle>Build Your Menu</CardTitle>
+                <CardDescription>Select your meals for each day of your plan</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {errors.menu && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{errors.menu}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Accordion type="single" collapsible className="w-full">
+                  {selectedDays.map((day, index) => (
+                    <AccordionItem key={day} value={day}>
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center">
+                            <span className="font-medium">{formatDay(day)}</span>
+                          </div>
+                          <div className="flex items-center">
+                            {Object.keys(menuSelections[day] || {}).every(
+                              (mealType) => menuSelections[day]?.[mealType],
+                            ) ? (
+                              <span className="text-sm text-green-600 mr-2 flex items-center">
+                                <Check className="h-4 w-4 mr-1" /> Complete
+                              </span>
+                            ) : (
+                              <span className="text-sm text-amber-600 mr-2">Incomplete</span>
+                            )}
                           </div>
                         </div>
-                        {orderState.snacksPerDay > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2">
-                              Snacks ({dayMenu.snacks.length}/{orderState.snacksPerDay})
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {sampleSnacks.map((snack) => (
-                                <Button
-                                  key={snack.id}
-                                  variant={dayMenu.snacks.includes(snack.id) ? "default" : "outline"}
-                                  onClick={() => handleSnackSelection(dateStr, snack.id)}
-                                >
-                                  {snack.name}
-                                </Button>
-                              ))}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-6 pt-2">
+                          {/* Meal Types */}
+                          {selectedMealTypes.map((mealType) => (
+                            <div key={`${day}-${mealType}`} className="border rounded-lg p-4">
+                              <h4 className="font-medium text-base mb-4 capitalize">
+                                {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+                              </h4>
+
+                              {menuSelections[day]?.[mealType] ? (
+                                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                  <div className="flex items-center">
+                                    <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                      <Image
+                                        src={menuSelections[day][mealType].image || "/placeholder.svg"}
+                                        alt={menuSelections[day][mealType].name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <h5 className="font-medium">{menuSelections[day][mealType].name}</h5>
+                                      <p className="text-sm text-gray-500">
+                                        {menuSelections[day][mealType].calories} calories
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleMealSelection(day, mealType, null)}
+                                  >
+                                    Change
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                  {sampleMeals[mealType as keyof typeof sampleMeals].map((option) => (
+                                    <div
+                                      key={option.id}
+                                      className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                      onClick={() => handleMealSelection(day, mealType, option)}
+                                    >
+                                      <div className="relative h-32 w-full">
+                                        <Image
+                                          src={option.image || "/placeholder.svg"}
+                                          alt={option.name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div className="p-2">
+                                        <h5 className="font-medium text-sm">{option.name}</h5>
+                                        <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                )
-              })}
-            </Accordion>
+                          ))}
+
+                          {/* Snacks */}
+                          {selectedSnacks === "1-snack" && (
+                            <div key={`${day}-snack1`} className="border rounded-lg p-4">
+                              <h4 className="font-medium text-base mb-4">Snack</h4>
+
+                              {menuSelections[day]?.["snack1"] ? (
+                                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                  <div className="flex items-center">
+                                    <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                      <Image
+                                        src={menuSelections[day]["snack1"].image || "/placeholder.svg"}
+                                        alt={menuSelections[day]["snack1"].name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <h5 className="font-medium">{menuSelections[day]["snack1"].name}</h5>
+                                      <p className="text-sm text-gray-500">
+                                        {menuSelections[day]["snack1"].calories} calories
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleMealSelection(day, "snack1", null)}
+                                  >
+                                    Change
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                  {sampleMeals["snack"].map((option) => (
+                                    <div
+                                      key={option.id}
+                                      className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                      onClick={() => handleMealSelection(day, "snack1", option)}
+                                    >
+                                      <div className="relative h-32 w-full">
+                                        <Image
+                                          src={option.image || "/placeholder.svg"}
+                                          alt={option.name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div className="p-2">
+                                        <h5 className="font-medium text-sm">{option.name}</h5>
+                                        <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {selectedSnacks === "2-snacks" && (
+                            <>
+                              <div key={`${day}-snack1`} className="border rounded-lg p-4">
+                                <h4 className="font-medium text-base mb-4">First Snack</h4>
+
+                                {menuSelections[day]?.["snack1"] ? (
+                                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                    <div className="flex items-center">
+                                      <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                        <Image
+                                          src={menuSelections[day]["snack1"].image || "/placeholder.svg"}
+                                          alt={menuSelections[day]["snack1"].name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div>
+                                        <h5 className="font-medium">{menuSelections[day]["snack1"].name}</h5>
+                                        <p className="text-sm text-gray-500">
+                                          {menuSelections[day]["snack1"].calories} calories
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleMealSelection(day, "snack1", null)}
+                                    >
+                                      Change
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                    {sampleMeals["snack"].map((option) => (
+                                      <div
+                                        key={option.id}
+                                        className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                        onClick={() => handleMealSelection(day, "snack1", option)}
+                                      >
+                                        <div className="relative h-32 w-full">
+                                          <Image
+                                            src={option.image || "/placeholder.svg"}
+                                            alt={option.name}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        </div>
+                                        <div className="p-2">
+                                          <h5 className="font-medium text-sm">{option.name}</h5>
+                                          <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div key={`${day}-snack2`} className="border rounded-lg p-4">
+                                <h4 className="font-medium text-base mb-4">Second Snack</h4>
+
+                                {menuSelections[day]?.["snack2"] ? (
+                                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                    <div className="flex items-center">
+                                      <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
+                                        <Image
+                                          src={menuSelections[day]["snack2"].image || "/placeholder.svg"}
+                                          alt={menuSelections[day]["snack2"].name}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <div>
+                                        <h5 className="font-medium">{menuSelections[day]["snack2"].name}</h5>
+                                        <p className="text-sm text-gray-500">
+                                          {menuSelections[day]["snack2"].calories} calories
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleMealSelection(day, "snack2", null)}
+                                    >
+                                      Change
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                    {sampleMeals["snack"].map((option) => (
+                                      <div
+                                        key={option.id}
+                                        className="border rounded-md overflow-hidden cursor-pointer hover:border-fitnest-green transition-colors"
+                                        onClick={() => handleMealSelection(day, "snack2", option)}
+                                      >
+                                        <div className="relative h-32 w-full">
+                                          <Image
+                                            src={option.image || "/placeholder.svg"}
+                                            alt={option.name}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        </div>
+                                        <div className="p-2">
+                                          <h5 className="font-medium text-sm">{option.name}</h5>
+                                          <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  Back
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  className="bg-fitnest-orange hover:bg-fitnest-orange/90"
+                  disabled={!isMenuComplete()}
+                >
+                  Proceed to Checkout
+                </Button>
+              </CardFooter>
+            </Card>
           )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handlePrevStep} disabled={step === 1}>
-            Previous
-          </Button>
-          <Button onClick={handleNextStep}>{step === 1 ? "Next: Build Menu" : "Proceed to Checkout"}</Button>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <div className="lg:col-span-1">
+          <div className="sticky top-20">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {selectedPlan && (
+                  <div className="flex items-center space-x-4">
+                    <div className="relative h-16 w-16 overflow-hidden rounded-md">
+                      <Image
+                        src={selectedPlan.image || "/placeholder.svg"}
+                        alt={selectedPlan.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{selectedPlan.title}</h3>
+                      <p className="text-sm text-gray-500">
+                        {selectedMealTypes.length} meals,{" "}
+                        {selectedSnacks !== "0-snacks"
+                          ? selectedSnacks === "1-snack"
+                            ? "1 snack"
+                            : "2 snacks"
+                          : "no snacks"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Meal Plan:</span>
+                    <span>{selectedPlan?.title || "Not selected"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Meals Per Day:</span>
+                    <span>{selectedMealTypes.length} meals</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Snacks Per Day:</span>
+                    <span>
+                      {selectedSnacks === "0-snacks"
+                        ? "No snacks"
+                        : selectedSnacks === "1-snack"
+                          ? "1 snack"
+                          : "2 snacks"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Allergies:</span>
+                    <span>
+                      {selectedAllergies.length > 0
+                        ? selectedAllergies.map((id) => allergies.find((a) => a.id === id)?.label).join(", ")
+                        : "None"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Days Per Week:</span>
+                    <span>{selectedDays.length} days</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Payment Cycle:</span>
+                    <span>{paymentCycles.find((cycle) => cycle.id === paymentCycle)?.label || "Not selected"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Start Date:</span>
+                    <span>{startDate ? format(startDate, "MMM d, yyyy") : "Not selected"}</span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Price per day:</span>
+                    <span>{calculateDailyPrice()} MAD</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Total price:</span>
+                    <span>{calculateTotalPrice()} MAD</span>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-gray-50 p-3">
+                  <div className="flex">
+                    <Info className="h-5 w-5 text-fitnest-orange mr-2" />
+                    <div className="text-sm text-gray-600">
+                      <p className="font-medium">Flexible Subscription</p>
+                      <p>You can pause, modify, or cancel your subscription anytime.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                {step === 2 ? (
+                  <Button
+                    onClick={handleNext}
+                    className="w-full bg-fitnest-orange hover:bg-fitnest-orange/90"
+                    disabled={!isMenuComplete()}
+                  >
+                    Proceed to Checkout
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    className="w-full"
+                    disabled={!selectedPlanId || selectedDays.length < 3 || selectedMealTypes.length < 2 || !startDate}
+                  >
+                    Continue to Menu Building
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
