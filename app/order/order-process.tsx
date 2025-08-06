@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format, addDays, getDay, isBefore, addHours } from "date-fns"
-import { CalendarIcon, ChevronLeft, Info, Check, AlertCircle } from "lucide-react"
+import { CalendarIcon, ChevronLeft, Info, Check, AlertCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -81,10 +81,11 @@ const weekdays = [
   { id: "sunday", label: "S", fullLabel: "Sunday" },
 ]
 
-const paymentCycles = [
-  { id: "weekly", label: "Weekly", description: "Pay every week", multiplier: 1 },
-  { id: "monthly", label: "Monthly", description: "Pay every month", multiplier: 0.95, popular: true },
-  { id: "3-months", label: "3 Months", description: "Pay every 3 months", multiplier: 0.9 },
+// NEW: Duration options
+const durationOptions = [
+  { value: 1, label: "1 Week" },
+  { value: 2, label: "2 Weeks" },
+  { value: 4, label: "1 Month" },
 ]
 
 // Sample meals for menu building
@@ -138,6 +139,9 @@ export function OrderProcess() {
   // Selected snack option
   const [selectedSnacks, setSelectedSnacks] = useState("0-snacks")
 
+  // NEW: Duration state
+  const [duration, setDuration] = useState(1) // Default to 1 week
+
   // Add selectedAllergies state after the selectedSnacks state
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([])
 
@@ -145,7 +149,7 @@ export function OrderProcess() {
   const [selectedDays, setSelectedDays] = useState<string[]>(["monday", "tuesday", "wednesday"])
 
   // Payment cycle
-  const [paymentCycle, setPaymentCycle] = useState("monthly")
+  // const [paymentCycle, setPaymentCycle] = useState("monthly")
 
   // Calculate the minimum valid start date (48 hours from now)
   const minStartDate = addHours(new Date(), 48)
@@ -224,24 +228,19 @@ export function OrderProcess() {
     return Math.round(basePrice * (mealTypeMultiplier + snackMultiplier) * 10) / 10
   }
 
-  // Calculate total price
+  // Calculate total price - UPDATED to use duration
   const calculateTotalPrice = () => {
     const dailyPrice = calculateDailyPrice()
     const daysPerWeek = selectedDays.length
-    const cycleMultiplier = paymentCycles.find((cycle) => cycle.id === paymentCycle)?.multiplier || 1
 
-    // Calculate based on payment cycle
-    let totalPrice = 0
-    if (paymentCycle === "weekly") {
-      totalPrice = dailyPrice * daysPerWeek
-    } else if (paymentCycle === "monthly") {
-      totalPrice = dailyPrice * daysPerWeek * 4
-    } else if (paymentCycle === "3-months") {
-      totalPrice = dailyPrice * daysPerWeek * 12
+    let totalPrice = dailyPrice * daysPerWeek * duration
+
+    // Apply discount for longer durations
+    if (duration === 2) {
+      totalPrice *= 0.95 // 5% discount for 2 weeks
+    } else if (duration === 4) {
+      totalPrice *= 0.9 // 10% discount for 1 month (4 weeks)
     }
-
-    // Apply cycle discount
-    totalPrice = totalPrice * cycleMultiplier
 
     return Math.round(totalPrice)
   }
@@ -364,7 +363,7 @@ export function OrderProcess() {
     return Object.keys(newErrors).length === 0
   }
 
-  // Handle next step
+  // Handle next step - UPDATED to use duration
   const handleNext = () => {
     if (validateStep()) {
       if (step < 2) {
@@ -376,7 +375,7 @@ export function OrderProcess() {
           planId: selectedPlanId,
           planName: selectedPlan?.title,
           planPrice: calculateTotalPrice(),
-          duration: paymentCycle === "weekly" ? "1 week" : paymentCycle === "monthly" ? "4 weeks" : "12 weeks",
+          duration: `${duration} week(s)`,
           mealsPerWeek: selectedDays.length,
           customizations: {
             dietaryRestrictions: selectedAllergies
@@ -386,7 +385,7 @@ export function OrderProcess() {
             snacks: selectedSnacks,
           },
           deliverySchedule: {
-            frequency: paymentCycle,
+            frequency: `${duration} week(s)`,
             selectedDays: selectedDays,
             startDate: startDate?.toISOString(),
           },
@@ -571,6 +570,34 @@ export function OrderProcess() {
                   </RadioGroup>
                 </div>
 
+                {/* NEW: Duration Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Subscription Duration</Label>
+                  <RadioGroup
+                    value={String(duration)}
+                    onValueChange={(value) => setDuration(Number(value))}
+                    className="grid gap-4 md:grid-cols-3"
+                  >
+                    {durationOptions.map((option) => (
+                      <div key={option.value}>
+                        <RadioGroupItem
+                          value={String(option.value)}
+                          id={`duration-${option.value}`}
+                          className="peer sr-only"
+                        />
+                        <Label
+                          htmlFor={`duration-${option.value}`}
+                          className="relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                        >
+                          <div className="text-center">
+                            <h3 className="font-semibold">{option.label}</h3>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
                 {/* Days Selection - UPDATED to require minimum 3 days */}
                 <div>
                   <Label className="text-base font-medium mb-3 block">How many days a week?</Label>
@@ -600,36 +627,6 @@ export function OrderProcess() {
                   </div>
 
                   {errors.days && <p className="text-red-500 text-sm mt-2">{errors.days}</p>}
-                </div>
-
-                {/* Payment Cycle */}
-                <div>
-                  <Label className="text-base font-medium mb-3 block">Payment Cycle</Label>
-                  <RadioGroup
-                    value={paymentCycle}
-                    onValueChange={setPaymentCycle}
-                    className="grid gap-4 md:grid-cols-3"
-                  >
-                    {paymentCycles.map((cycle) => (
-                      <div key={cycle.id}>
-                        <RadioGroupItem value={cycle.id} id={`cycle-${cycle.id}`} className="peer sr-only" />
-                        <Label
-                          htmlFor={`cycle-${cycle.id}`}
-                          className="relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
-                        >
-                          {cycle.popular && (
-                            <div className="absolute -top-2 -right-2 bg-fitnest-orange text-white text-xs px-2 py-1 rounded-full">
-                              Popular
-                            </div>
-                          )}
-                          <div className="text-center">
-                            <h3 className="font-semibold">{cycle.label}</h3>
-                            <p className="text-sm text-gray-500">{cycle.description}</p>
-                          </div>
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
                 </div>
 
                 {/* Start Date - UPDATED with better explanation */}
@@ -815,17 +812,17 @@ export function OrderProcess() {
                                       onClick={() => handleMealSelection(day, "snack1", option)}
                                     >
                                       <div className="relative h-32 w-full">
-                                        <Image
-                                          src={option.image || "/placeholder.svg"}
-                                          alt={option.name}
-                                          fill
-                                          className="object-cover"
-                                        />
-                                      </div>
-                                      <div className="p-2">
-                                        <h5 className="font-medium text-sm">{option.name}</h5>
-                                        <p className="text-xs text-gray-500">{option.calories} calories</p>
-                                      </div>
+                                          <Image
+                                            src={option.image || "/placeholder.svg"}
+                                            alt={option.name}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        </div>
+                                        <div className="p-2">
+                                          <h5 className="font-medium text-sm">{option.name}</h5>
+                                          <p className="text-xs text-gray-500">{option.calories} calories</p>
+                                        </div>
                                     </div>
                                   ))}
                                 </div>
@@ -1033,8 +1030,10 @@ export function OrderProcess() {
                     <span>{selectedDays.length} days</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Payment Cycle:</span>
-                    <span>{paymentCycles.find((cycle) => cycle.id === paymentCycle)?.label || "Not selected"}</span>
+                    <span>Duration:</span>
+                    <span>
+                      {duration} {duration > 1 ? "Weeks" : "Week"}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Start Date:</span>
