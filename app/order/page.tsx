@@ -1,8 +1,17 @@
 import { OrderProcess } from "./order-process"
-
-// Force dynamic rendering to avoid prerendering issues
-export const dynamic = "force-dynamic"
+import { Suspense } from "react"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
 export default function OrderPage() {
-  return <OrderProcess />
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
+      <OrderProcess />
+    </Suspense>
+  )
 }
