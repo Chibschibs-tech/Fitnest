@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { format, addDays, isBefore, addHours, isAfter } from "date-fns"
+import { format, addDays, isBefore, addHours, isAfter, startOfWeek, startOfDay } from "date-fns"
 import { CalendarIcon, ChevronLeft, Info, Check, AlertCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -132,18 +132,26 @@ const [errors, setErrors] = useState<{
   menu?: string
 }>({})
 
-const minStartDate = addHours(new Date(), 48)
+const today = new Date()
+const weekStartsOn: 0 | 1 = 0 // Sunday; adjust to 1 if you prefer Monday
+const allowedWeeks = duration === 1 ? 2 : duration === 2 ? 3 : 4
+const allowedStart = startOfWeek(today, { weekStartsOn })
+const allowedEnd = addDays(allowedStart, allowedWeeks * 7 - 1)
+const todayStart = startOfDay(today)
+
 const sortedSelectedDays = [...selectedDays].sort((a, b) => a.getTime() - b.getTime())
 const startDate = sortedSelectedDays.length > 0 ? sortedSelectedDays[0] : undefined
 
 // Reset selected days if duration changes and selected days fall outside the new range
 useEffect(() => {
-  const maxDate = addDays(minStartDate, duration * 7)
-  const filteredDays = selectedDays.filter((day) => !isAfter(day, maxDate))
+  const filteredDays = selectedDays.filter((day) => {
+    const t = startOfDay(day)
+    return !isBefore(t, todayStart) && !isAfter(t, allowedEnd)
+  })
   if (filteredDays.length !== selectedDays.length) {
     setSelectedDays(filteredDays)
   }
-}, [duration, minStartDate, selectedDays])
+}, [duration, allowedEnd, todayStart, selectedDays])
 
 // Calculate base price per day
 const calculateDailyPrice = () => {
@@ -445,8 +453,12 @@ return (
                     mode="multiple"
                     selected={selectedDays}
                     onSelect={(days) => setSelectedDays(days || [])}
-                    disabled={(date) => isBefore(date, minStartDate)}
-                    numberOfMonths={duration === 4 ? 2 : 1}
+                    disabled={(date) => {
+                      const d = startOfDay(date)
+                      // disable past dates and anything outside the allowed window
+                      return isBefore(d, todayStart) || isAfter(d, allowedEnd)
+                    }}
+                    numberOfMonths={allowedWeeks >= 4 ? 2 : 1}
                     className="rounded-md border"
                   />
                 </div>

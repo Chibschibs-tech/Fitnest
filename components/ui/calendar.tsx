@@ -47,10 +47,10 @@ function Calendar({
         // days
         day: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100'),
         day_selected:
-          'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
+          'bg-fitnest-green text-white hover:bg-fitnest-green hover:text-white focus:bg-fitnest-green focus:text-white',
         day_today: 'bg-accent text-accent-foreground',
         day_outside: 'text-muted-foreground opacity-50',
-        day_disabled: 'text-muted-foreground opacity-50',
+        day_disabled: 'text-gray-400 bg-gray-100/70 opacity-70 cursor-not-allowed',
         day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
         day_hidden: 'invisible',
         ...classNames,
