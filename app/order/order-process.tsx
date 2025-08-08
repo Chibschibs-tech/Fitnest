@@ -443,7 +443,6 @@ return (
                 <div className="flex justify-center p-1">
                   <Calendar
                     mode="multiple"
-                    min={3}
                     selected={selectedDays}
                     onSelect={(days) => setSelectedDays(days || [])}
                     disabled={(date) => isBefore(date, minStartDate)}
