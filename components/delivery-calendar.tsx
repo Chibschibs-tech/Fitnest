@@ -3,47 +3,72 @@
 import "react-day-picker/dist/style.css"
 import "./delivery-calendar.css"
 
+import { useEffect, useMemo, useState } from "react"
 import { DayPicker } from "react-day-picker"
 import { enGB } from "date-fns/locale"
-import { startOfWeek, startOfDay, addDays } from "date-fns"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  addDays,
+  compareAsc,
+  format,
+  isSameDay,
+  startOfDay,
+  startOfWeek,
+} from "date-fns"
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
-import { useEffect, useState } from "react"
+import { buttonVariants, Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 type Props = {
   value: Date[]
   onChange: (dates: Date[]) => void
   /**
-   * Allowed window in weeks starting from the current week.
-   * Example: 2 => current week + 1 following week (2 weeks total)
-   *          3 => current week + 2 following weeks (3 weeks total)
-   *          4 => current week + 3 following weeks (4 weeks total)
+   * Duration in weeks selected by the user:
+   * - 1 => "1 Week"
+   * - 2 => "2 Weeks"
+   * - 4 => "1 Month"
+   *
+   * Late-week rule (Thu/Fri/Sat/Sun): we extend the selectable window by +1 week.
+   * 48-hour rule: today and tomorrow are always disabled.
    */
   allowedWeeks: number
   className?: string
 }
 
+function isLateWeek(d: Date) {
+  // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  const dow = d.getDay()
+  return dow === 0 || dow >= 4 // Thu, Fri, Sat, Sun
+}
+
 /**
  * DeliveryCalendar
  * - Monday-first (enGB)
- * - 48h rule: "today" and "tomorrow" are always disabled (unselectable)
- * - Past and out-of-range dates disabled/grey
- * - Two months displayed side-by-side on ≥640px; one month on small screens
- * - Selected dates are solid Fitnest green, no blue rings
+ * - 48h rule: today and tomorrow are disabled
+ * - Late-week (Thu–Sun) extends the window by +1 week to ensure enough days
+ * - Two months side-by-side on ≥640px to reduce empty space
+ * - Solid green selection, no blue rings
+ * - Selected date chips + Clear all action
  */
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
 
-  // 48h rule: earliest selectable date is start of the day, 2 days from now
+  // 48-hour rule: earliest selectable day is two days from now (start of that day)
   const minSelectable = startOfDay(addDays(today, 2))
 
-  // Window: current week start through N weeks ahead (inclusive)
+  // Base week window starts on the current week's Monday
   const weekStartsOn = 1 as const // Monday
   const allowedStart = startOfWeek(today, { weekStartsOn })
-  const allowedEnd = addDays(allowedStart, allowedWeeks * 7 - 1)
 
-  // Responsive: 2 months on md+, 1 month on small screens
+  // Late-week logic: if Thu/Fri/Sat/Sun, extend the window by +1 week
+  const userDurationWeeks = Math.max(1, allowedWeeks || 1)
+  const extraWeek = isLateWeek(today) ? 1 : 0
+  const effectiveWeeks = userDurationWeeks + extraWeek
+
+  // End of selectable window (inclusive)
+  const allowedEnd = addDays(allowedStart, effectiveWeeks * 7 - 1)
+
+  // Responsive: 2 months on ≥640px, 1 month otherwise
   const [months, setMonths] = useState(2)
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 640px)")
@@ -53,6 +78,18 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
     return () => mql.removeEventListener("change", update)
   }, [])
 
+  // Chips helpers
+  const selectedSorted = useMemo(
+    () => [...value].sort((a, b) => compareAsc(startOfDay(a), startOfDay(b))),
+    [value],
+  )
+
+  const removeDate = (d: Date) => {
+    onChange(value.filter((v) => !isSameDay(v, d)))
+  }
+
+  const clearAll = () => onChange([])
+
   return (
     <div className={cn("rounded-xl border bg-white p-4", className)}>
       <DayPicker
@@ -60,9 +97,9 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
         mode="multiple"
         selected={value}
         onSelect={(days) => onChange(days || [])}
-        // Disable everything before the 48h min OR after the allowed window
+        // Disable everything before 48h min OR after the effective window end
         disabled={[{ before: minSelectable }, { after: allowedEnd }]}
-        // Clamp navigation and start users on the first selectable month
+        // Clamp navigation and start on the first selectable month
         defaultMonth={minSelectable}
         fromDate={minSelectable}
         toDate={allowedEnd}
@@ -70,7 +107,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
         numberOfMonths={months}
         className="rdp fitnest-calendar"
         classNames={{
-          // Containers
+          // Layout
           months: "flex w-full flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between",
           month: "space-y-4",
           caption: "flex justify-center pt-1 relative items-center",
@@ -93,7 +130,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           row: "flex w-full mt-1",
           cell: "h-10 w-10 text-center text-sm p-0 relative",
 
-          // Day button (do NOT use buttonVariants to avoid rings)
+          // Day button (avoid ring utilities)
           day_button:
             "h-10 w-10 p-0 rounded-full font-medium cursor-pointer " +
             "focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 border-0",
@@ -107,7 +144,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           IconLeft: () => <ChevronLeft className="h-4 w-4" />,
           IconRight: () => <ChevronRight className="h-4 w-4" />,
         }}
-        // Inline safety overrides
+        // Extra safety overrides (no blue rings)
         styles={{
           day_button: {
             outline: "none",
@@ -149,6 +186,50 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           <span className="inline-block h-3 w-3 rounded-full border border-gray-300 bg-white" />
           Today
         </span>
+      </div>
+
+      {/* Selected date chips + Clear all */}
+      <div className="mt-5 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-gray-700">Selected dates</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-gray-600 hover:text-gray-900"
+            onClick={clearAll}
+            disabled={selectedSorted.length === 0}
+          >
+            Clear all
+          </Button>
+        </div>
+
+        {selectedSorted.length === 0 ? (
+          <p className="text-sm text-gray-500">No dates selected yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {selectedSorted.map((d) => {
+              const key = format(d, "yyyy-MM-dd")
+              const label = format(d, "EEE, MMM d") // e.g., Thu, Aug 14
+              return (
+                <Badge
+                  key={key}
+                  variant="secondary"
+                  className="inline-flex items-center gap-2 rounded-full bg-gray-100 text-gray-800"
+                >
+                  {label}
+                  <button
+                    type="button"
+                    onClick={() => removeDate(d)}
+                    aria-label={`Remove ${label}`}
+                    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-gray-600 hover:text-gray-900 focus:outline-none"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </Badge>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
