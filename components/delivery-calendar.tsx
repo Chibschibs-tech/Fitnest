@@ -23,9 +23,9 @@ type Props = {
 /**
  * DeliveryCalendar
  * - Monday-first (enGB)
- * - Out-of-range and past dates disabled and grey
- * - Selected dates are filled Fitnest green (no blue rings)
- * - Self-contained styling via DayPicker "styles" prop (inline styles override any external CSS)
+ * - Past and out-of-range dates are disabled
+ * - Selected dates are filled Fitnest green (#015033), no blue rings
+ * - Styling is controlled via DayPicker "styles" to override any defaults
  */
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
@@ -62,13 +62,16 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           // grid
           table: "w-full border-collapse space-y-1",
           head_row: "flex",
-          head_cell: "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none",
+          head_cell:
+            "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none tabular-nums",
           row: "flex w-full mt-1",
           cell: "h-10 w-10 text-center text-sm p-0 relative",
+          // day buttons
           day: cn(
             buttonVariants({ variant: "ghost" }),
-            "h-10 w-10 p-0 font-medium rounded-full data-[selected]:opacity-100",
+            "h-10 w-10 p-0 font-medium rounded-full data-[selected]:opacity-100 focus-visible:ring-0 focus:outline-none",
           ),
+          day_selected: "rounded-full text-white",
           day_outside: "text-muted-foreground opacity-40",
           day_disabled: "opacity-60 cursor-not-allowed",
           day_hidden: "invisible",
@@ -77,10 +80,14 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           IconLeft: () => <ChevronLeft className="h-4 w-4" />,
           IconRight: () => <ChevronRight className="h-4 w-4" />,
         }}
-        // Inline styles here have the highest precedence (no more blue rings)
+        // Strong, inline overrides — no blue rings
         styles={{
           day: {
             borderRadius: 9999,
+            outline: "none",
+            boxShadow: "none",
+            border: "none",
+            WebkitTapHighlightColor: "transparent",
           },
           day_selected: {
             backgroundColor: "#015033",
@@ -88,10 +95,6 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
             border: "none",
             boxShadow: "none",
             outline: "none",
-          },
-          day_selected_span: {
-            backgroundColor: "#015033",
-            color: "#ffffff",
           },
           day_today: {
             border: "1px solid #d1d5db",
@@ -102,17 +105,13 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
             backgroundColor: "#f3f4f6",
             borderRadius: 9999,
           },
-          button: {
-            outline: "none",
-            boxShadow: "none",
-          },
         }}
       />
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-fitnest-green" />
+          <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "#015033" }} />
           Selected
         </span>
         <span className="inline-flex items-center gap-2">

@@ -322,6 +322,108 @@ export function OrderProcess() {
                 <CardDescription>Customize your meal plan to fit your needs</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
+                {/* Meal Plan Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Choose your meal plan</Label>
+                  <RadioGroup
+                    value={selectedPlanId}
+                    onValueChange={setSelectedPlanId}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {Object.entries(mealPlans).map(([id, plan]) => (
+                      <div key={id}>
+                        <RadioGroupItem value={id} id={`plan-${id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`plan-${id}`}
+                          className="flex items-center space-x-4 rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green cursor-pointer"
+                        >
+                          <div className="relative h-16 w-16 overflow-hidden rounded-md">
+                            <Image
+                              src={plan.image || "/placeholder.svg?height=64&width=64&query=meal+plan"}
+                              alt={plan.title}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{plan.title}</h3>
+                            <p className="text-sm text-gray-500">{plan.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                  {errors.mealPlan && <p className="text-red-500 text-sm mt-2">{errors.mealPlan}</p>}
+                </div>
+
+                {/* Meal Types Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">How many meals per day?</Label>
+                  <p className="text-sm text-gray-500 mb-4">Select a minimum of 2 meals, including lunch or dinner.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {mealTypes.map((mealType) => (
+                      <div key={mealType.id} className="relative">
+                        <input
+                          type="checkbox"
+                          id={`meal-type-${mealType.id}`}
+                          checked={selectedMealTypes.includes(mealType.id)}
+                          onChange={() =>
+                            setSelectedMealTypes((prev) =>
+                              prev.includes(mealType.id)
+                                ? prev.filter((id) => id !== mealType.id)
+                                : [...prev, mealType.id],
+                            )
+                          }
+                          className="peer sr-only"
+                        />
+                        <label
+                          htmlFor={`meal-type-${mealType.id}`}
+                          className={cn(
+                            "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 cursor-pointer",
+                            selectedMealTypes.includes(mealType.id) ? "border-fitnest-green" : "",
+                          )}
+                        >
+                          {selectedMealTypes.includes(mealType.id) && (
+                            <div className="absolute top-2 right-2 h-5 w-5 bg-fitnest-green rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          <div className="text-center">
+                            <h3 className="font-semibold">{mealType.label}</h3>
+                            <p className="text-sm text-gray-500">{mealType.description}</p>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.mealTypes && <p className="text-red-500 text-sm mt-2">{errors.mealTypes}</p>}
+                </div>
+
+                {/* Snacks Selection */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">How many snacks per day?</Label>
+                  <RadioGroup
+                    value={selectedSnacks}
+                    onValueChange={setSelectedSnacks}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                  >
+                    {snackOptions.map((option) => (
+                      <div key={option.id}>
+                        <RadioGroupItem value={option.id} id={`snack-${option.id}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`snack-${option.id}`}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green cursor-pointer"
+                        >
+                          <div className="text-center">
+                            <h3 className="font-semibold">{option.label}</h3>
+                            <p className="text-sm text-gray-500">{option.description}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
                 {/* Duration Selection */}
                 <div>
                   <Label className="text-base font-medium mb-3 block">Subscription Duration</Label>
@@ -339,7 +441,7 @@ export function OrderProcess() {
                         />
                         <Label
                           htmlFor={`duration-${option.value}`}
-                          className="relative flex flex-col items-center justify-center rounded-md border-2 border-muted bg-white p-4 h-full hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green"
+                          className="relative flex flex-col items-center justify-center rounded-md border-2 border-muted bg-white p-4 h-full hover:bg-gray-50 hover:border-gray-200 peer-data-[state=checked]:border-fitnest-green [&:has([data-state=checked])]:border-fitnest-green cursor-pointer"
                         >
                           <h3 className="font-semibold">{option.label}</h3>
                         </Label>
@@ -360,6 +462,7 @@ export function OrderProcess() {
                     onChange={(days) => setSelectedDays(days)}
                     className="w-full"
                   />
+                  {errors.days && <p className="text-red-500 text-sm mt-2">{errors.days}</p>}
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
@@ -564,7 +667,7 @@ export function OrderProcess() {
           )}
         </div>
 
-        {/* Order Summary column unchanged */}
+        {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="sticky top-20">
             <Card>
@@ -576,7 +679,7 @@ export function OrderProcess() {
                   <div className="flex items-center space-x-4">
                     <div className="relative h-16 w-16 overflow-hidden rounded-md">
                       <Image
-                        src={selectedPlan.image || "/placeholder.svg"}
+                        src={selectedPlan.image || "/placeholder.svg?height=64&width=64&query=plan"}
                         alt={selectedPlan.title}
                         fill
                         className="object-cover"
@@ -640,7 +743,7 @@ export function OrderProcess() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Price per day:</span>
-                    <span>{selectedPlan ? Math.round((selectedPlan.basePrice / 7) * 100) / 100 : 0} MAD</span>
+                    <span>{calculateDailyPrice()} MAD</span>
                   </div>
                   <div className="flex justify-between font-semibold">
                     <span>Total price:</span>
