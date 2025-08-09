@@ -1,38 +1,47 @@
-/* Scoped to DayPicker rendered with class "fitnest-calendar" */
+/* Scoped overrides: ensure no blue rings and strong selected/disabled visuals */
+.fitnest-calendar {
+  /* Remove base DayPicker border on day buttons (v8/v9 variables) */
+  --rdp-day_button-border: 0;
+  --rdp-day_button-border-width: 0;
+  --rdp-day_button-border-color: transparent;
+}
 
-/* Remove any blue focus rings and outlines */
-.fitnest-calendar .rdp-day:focus,
-.fitnest-calendar .rdp-day:focus-visible,
-.fitnest-calendar .rdp-button_reset:focus,
-.fitnest-calendar .rdp-button_reset:focus-visible {
+/* Remove any blue focus rings/outlines */
+.fitnest-calendar .rdp-day_button,
+.fitnest-calendar .rdp-day_button:focus,
+.fitnest-calendar .rdp-day_button:focus-visible {
   outline: none !important;
   box-shadow: none !important;
+  border: none !important;
 }
 
 /* Selected day: solid Fitnest green fill */
-.fitnest-calendar .rdp-day[aria-selected="true"] {
-  background-color: #015033 !important; /* Fitnest green */
+.fitnest-calendar .rdp-day_button[aria-selected="true"],
+.fitnest-calendar .rdp-selected .rdp-day_button,
+.fitnest-calendar .rdp-day_selected .rdp-day_button {
+  background-color: #015033 !important;
   color: #ffffff !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 /* Today: subtle grey border circle */
-.fitnest-calendar .rdp-day[aria-current="date"] {
+.fitnest-calendar .rdp-day_button[aria-current="date"] {
   border: 1px solid #d1d5db !important; /* gray-300 */
   border-radius: 9999px;
 }
 
-/* Disabled days (past and out of allowed window) */
-.fitnest-calendar .rdp-day:disabled,
-.fitnest-calendar .rdp-day[aria-disabled="true"] {
+/* Disabled days (past and out of allowed window + 48h rule) */
+.fitnest-calendar .rdp-day_button:disabled,
+.fitnest-calendar .rdp-day_button[aria-disabled="true"],
+.fitnest-calendar .rdp-day_disabled .rdp-day_button {
   color: #9ca3af !important; /* gray-400 */
   background-color: #f3f4f6 !important; /* gray-100 */
   border-radius: 9999px;
   cursor: not-allowed !important;
 }
 
-/* Outside days: dimmed text */
-.fitnest-calendar .rdp-day_outside {
+/* Outside-of-month days: dim text */
+.fitnest-calendar .rdp-day_outside .rdp-day_button {
   opacity: 0.4 !important;
 }
