@@ -4,17 +4,16 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format, addDays, isBefore, isAfter, startOfWeek, startOfDay } from "date-fns"
-import { enGB } from "date-fns/locale"
-import { ChevronLeft, Info, Check, AlertCircle } from 'lucide-react'
+import { ChevronLeft, Info, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
-import { Calendar } from "@/components/ui/calendar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
+import { DeliveryCalendar } from "@/components/delivery-calendar"
 
 // Define meal plan data
 const mealPlans = {
@@ -135,7 +134,7 @@ export function OrderProcess() {
 
   // Calendar rules
   const today = new Date()
-  const weekStartsOn: 1 = 1 // Monday
+  const weekStartsOn = 1 as const // Monday
   const allowedWeeks = duration === 1 ? 2 : duration === 2 ? 3 : 4
   const allowedStart = startOfWeek(today, { weekStartsOn })
   const allowedEnd = addDays(allowedStart, allowedWeeks * 7 - 1)
@@ -368,7 +367,13 @@ export function OrderProcess() {
                           type="checkbox"
                           id={`meal-type-${mealType.id}`}
                           checked={selectedMealTypes.includes(mealType.id)}
-                          onChange={() => setSelectedMealTypes((prev) => prev.includes(mealType.id) ? prev.filter((id) => id !== mealType.id) : [...prev, mealType.id])}
+                          onChange={() =>
+                            setSelectedMealTypes((prev) =>
+                              prev.includes(mealType.id)
+                                ? prev.filter((id) => id !== mealType.id)
+                                : [...prev, mealType.id],
+                            )
+                          }
                           className="peer sr-only"
                         />
                         <label
@@ -452,18 +457,11 @@ export function OrderProcess() {
                     Click on the dates you'd like to receive your meals. Select at least 3 days.
                   </p>
                   <div className="flex justify-center p-1">
-                    <Calendar
-                      locale={enGB} // Monday as first day of week
-                      mode="multiple"
-                      selected={selectedDays}
-                      onSelect={(days) => setSelectedDays(days || [])}
-                      disabled={(date) => {
-                        const d = startOfDay(date)
-                        // disable past dates and anything outside the allowed window
-                        return isBefore(d, todayStart) || isAfter(d, allowedEnd)
-                      }}
-                      numberOfMonths={allowedWeeks >= 4 ? 2 : 1}
-                      className="rounded-md border"
+                    <DeliveryCalendar
+                      allowedWeeks={allowedWeeks}
+                      value={selectedDays}
+                      onChange={(days) => setSelectedDays(days)}
+                      className="w-full"
                     />
                   </div>
                   {errors.days && <p className="text-red-500 text-sm mt-2">{errors.days}</p>}
@@ -523,7 +521,10 @@ export function OrderProcess() {
                                   <div className="flex items-center">
                                     <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
                                       <Image
-                                        src={menuSelections[day.toISOString()][mealType].image || "/placeholder.svg?height=64&width=64&query=meal"}
+                                        src={
+                                          menuSelections[day.toISOString()][mealType].image ||
+                                          "/placeholder.svg?height=64&width=64&query=meal"
+                                        }
                                         alt={menuSelections[day.toISOString()][mealType].name}
                                         fill
                                         className="object-cover"
@@ -556,7 +557,9 @@ export function OrderProcess() {
                                     >
                                       <div className="relative h-32 w-full">
                                         <Image
-                                          src={option.image || "/placeholder.svg?height=128&width=192&query=meal+option"}
+                                          src={
+                                            option.image || "/placeholder.svg?height=128&width=192&query=meal+option"
+                                          }
                                           alt={option.name}
                                           fill
                                           className="object-cover"
@@ -587,7 +590,10 @@ export function OrderProcess() {
                                     <div className="flex items-center">
                                       <div className="relative h-16 w-16 overflow-hidden rounded-md mr-3">
                                         <Image
-                                          src={menuSelections[day.toISOString()][snackKey].image || "/placeholder.svg?height=64&width=64&query=snack"}
+                                          src={
+                                            menuSelections[day.toISOString()][snackKey].image ||
+                                            "/placeholder.svg?height=64&width=64&query=snack"
+                                          }
                                           alt={menuSelections[day.toISOString()][snackKey].name}
                                           fill
                                           className="object-cover"
@@ -620,7 +626,9 @@ export function OrderProcess() {
                                       >
                                         <div className="relative h-32 w-full">
                                           <Image
-                                            src={option.image || "/placeholder.svg?height=128&width=192&query=snack+option"}
+                                            src={
+                                              option.image || "/placeholder.svg?height=128&width=192&query=snack+option"
+                                            }
                                             alt={option.name}
                                             fill
                                             className="object-cover"
@@ -762,11 +770,7 @@ export function OrderProcess() {
                     Proceed to Checkout
                   </Button>
                 ) : (
-                  <Button
-                    onClick={handleNext}
-                    className="w-full"
-                    disabled={!selectedPlanId || selectedDays.length < 3}
-                  >
+                  <Button onClick={handleNext} className="w-full" disabled={!selectedPlanId || selectedDays.length < 3}>
                     Continue to Menu Building
                   </Button>
                 )}
