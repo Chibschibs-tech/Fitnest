@@ -151,3 +151,29 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* DayPicker overrides to enforce Fitnest styles */
+.rdp .rdp-day[aria-selected="true"],
+.rdp .rdp-button[aria-selected="true"],
+.rdp .rdp-day_selected {
+  background-color: #015033 !important; /* Fitnest green */
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important; /* kill blue ring */
+  outline: none !important;
+}
+
+.rdp .rdp-day:focus,
+.rdp .rdp-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Disabled/unavailable dates look grey */
+.rdp .rdp-day[disabled],
+.rdp .rdp-button[disabled],
+.rdp .rdp-day_disabled {
+  color: #9ca3af !important; /* gray-400 */
+  background-color: #f3f4f6 !important; /* gray-100 */
+  cursor: not-allowed !important;
+}

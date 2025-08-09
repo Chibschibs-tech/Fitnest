@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { ClientLayout } from "./client-layout"
+import "./globals.css"
 
 // Metadata needs to be in a separate file for client components
 const metadata: Metadata = {
@@ -27,6 +28,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-import './globals.css'
