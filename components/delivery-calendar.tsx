@@ -6,15 +6,8 @@ import "./delivery-calendar.css"
 import { useEffect, useMemo, useState } from "react"
 import { DayPicker } from "react-day-picker"
 import { enGB } from "date-fns/locale"
-import {
-  addDays,
-  compareAsc,
-  format,
-  isSameDay,
-  startOfDay,
-  startOfWeek,
-} from "date-fns"
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { addDays, compareAsc, endOfDay, format, isSameDay, startOfDay, startOfWeek } from "date-fns"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buttonVariants, Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,52 +16,40 @@ type Props = {
   value: Date[]
   onChange: (dates: Date[]) => void
   /**
-   * Duration in weeks selected by the user:
-   * - 1 => "1 Week"
-   * - 2 => "2 Weeks"
-   * - 4 => "1 Month"
+   * Final, already-adjusted week window passed from the parent:
+   * - 1 Week => 2 (current week + next week)
+   * - 2 Weeks => 3
+   * - 1 Month => 4
    *
-   * Late-week rule (Thu/Fri/Sat/Sun): we extend the selectable window by +1 week.
-   * 48-hour rule: today and tomorrow are always disabled.
+   * Do not add any extra week in this component.
    */
   allowedWeeks: number
   className?: string
 }
 
-function isLateWeek(d: Date) {
-  // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  const dow = d.getDay()
-  return dow === 0 || dow >= 4 // Thu, Fri, Sat, Sun
-}
-
 /**
  * DeliveryCalendar
- * - Monday-first (enGB)
  * - 48h rule: today and tomorrow are disabled
- * - Late-week (Thu–Sun) extends the window by +1 week to ensure enough days
+ * - Week window: starts at current week's Monday and spans `allowedWeeks` weeks (inclusive)
  * - Two months side-by-side on ≥640px to reduce empty space
- * - Solid green selection, no blue rings
- * - Selected date chips + Clear all action
+ * - Selected dates chips + Clear all
+ * - No blue rings, solid green selection
  */
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
 
-  // 48-hour rule: earliest selectable day is two days from now (start of that day)
+  // 48-hour rule: earliest selectable day is start-of-day, two days from now
   const minSelectable = startOfDay(addDays(today, 2))
 
-  // Base week window starts on the current week's Monday
+  // Window anchor: start of THIS week (Monday), with day boundaries normalized
   const weekStartsOn = 1 as const // Monday
-  const allowedStart = startOfWeek(today, { weekStartsOn })
+  const anchorStart = startOfDay(startOfWeek(today, { weekStartsOn }))
 
-  // Late-week logic: if Thu/Fri/Sat/Sun, extend the window by +1 week
-  const userDurationWeeks = Math.max(1, allowedWeeks || 1)
-  const extraWeek = isLateWeek(today) ? 1 : 0
-  const effectiveWeeks = userDurationWeeks + extraWeek
+  // Respect the parent-provided weeks exactly; do NOT add any extra week here.
+  const weeks = Math.max(1, allowedWeeks || 1)
+  const allowedEnd = endOfDay(addDays(anchorStart, weeks * 7 - 1))
 
-  // End of selectable window (inclusive)
-  const allowedEnd = addDays(allowedStart, effectiveWeeks * 7 - 1)
-
-  // Responsive: 2 months on ≥640px, 1 month otherwise
+  // Responsive: 2 months on ≥640px, 1 month on small screens
   const [months, setMonths] = useState(2)
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 640px)")
@@ -79,15 +60,8 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
   }, [])
 
   // Chips helpers
-  const selectedSorted = useMemo(
-    () => [...value].sort((a, b) => compareAsc(startOfDay(a), startOfDay(b))),
-    [value],
-  )
-
-  const removeDate = (d: Date) => {
-    onChange(value.filter((v) => !isSameDay(v, d)))
-  }
-
+  const selectedSorted = useMemo(() => [...value].sort((a, b) => compareAsc(startOfDay(a), startOfDay(b))), [value])
+  const removeDate = (d: Date) => onChange(value.filter((v) => !isSameDay(v, d)))
   const clearAll = () => onChange([])
 
   return (
@@ -97,9 +71,9 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
         mode="multiple"
         selected={value}
         onSelect={(days) => onChange(days || [])}
-        // Disable everything before 48h min OR after the effective window end
+        // Disable: everything before 48h-min OR after the computed window end
         disabled={[{ before: minSelectable }, { after: allowedEnd }]}
-        // Clamp navigation and start on the first selectable month
+        // Clamp navigation and start users on the first selectable month
         defaultMonth={minSelectable}
         fromDate={minSelectable}
         toDate={allowedEnd}
@@ -154,7 +128,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
             borderRadius: 9999,
           },
           day_selected: {
-            backgroundColor: "#015033",
+            backgroundColor: "#015033", // Fitnest green
             color: "#ffffff",
             border: "none",
             boxShadow: "none",
