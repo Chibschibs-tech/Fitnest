@@ -1,6 +1,6 @@
 "use client"
 
-import "react-day-picker/dist/style.css" // base styles (v8 path). Safe to keep and then override.
+import "react-day-picker/dist/style.css"
 import "./delivery-calendar.css"
 
 import { DayPicker } from "react-day-picker"
@@ -23,14 +23,6 @@ type Props = {
   className?: string
 }
 
-/**
- * DeliveryCalendar
- * - Monday-first (enGB)
- * - Past and out-of-range dates disabled + grey
- * - Selected dates filled Fitnest green (no blue rings)
- * - Uses onSelect (no custom click handler) and strict disabled matchers
- * - Visuals are guaranteed via a tiny scoped CSS file (delivery-calendar.css)
- */
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
   const weekStartsOn = 1 as const // Monday
@@ -45,9 +37,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
         mode="multiple"
         selected={value}
         onSelect={(days) => onChange(days || [])}
-        // Disable past dates and any date after the allowed window
         disabled={[{ before: todayStart }, { after: allowedEnd }]}
-        // Clamp navigation so users can’t leave the valid window
         defaultMonth={allowedStart}
         fromDate={todayStart}
         toDate={allowedEnd}
@@ -60,6 +50,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           month: "space-y-4",
           caption: "flex justify-center pt-1 relative items-center",
           caption_label: "text-base font-semibold",
+
           // navigation
           nav: "space-x-2 flex items-center",
           nav_button: cn(
@@ -68,18 +59,23 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           ),
           nav_button_previous: "absolute left-2",
           nav_button_next: "absolute right-2",
+
           // grid
           table: "w-full border-collapse space-y-1",
           head_row: "flex",
-          head_cell: "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none",
+          head_cell:
+            "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none tabular-nums",
           row: "flex w-full mt-1",
+
+          // cells (td)
           cell: "h-10 w-10 text-center text-sm p-0 relative",
-          // day buttons
-          day: cn(
-            buttonVariants({ variant: "ghost" }),
-            "h-10 w-10 p-0 font-medium rounded-full cursor-pointer focus-visible:ring-0 focus:ring-0 focus:outline-none",
-          ),
-          day_selected: "rounded-full text-white",
+
+          // day button (actual clickable element) — no buttonVariants here
+          day_button:
+            "h-10 w-10 p-0 rounded-full font-medium cursor-pointer " +
+            "focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 border-0",
+
+          // additional states (keep simple)
           day_outside: "text-muted-foreground opacity-40",
           day_disabled: "opacity-60 cursor-not-allowed",
           day_hidden: "invisible",
@@ -87,6 +83,32 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
         components={{
           IconLeft: () => <ChevronLeft className="h-4 w-4" />,
           IconRight: () => <ChevronRight className="h-4 w-4" />,
+        }}
+        // Extra safety: inline styles to ensure no browser/UA rings and solid green selection
+        styles={{
+          day_button: {
+            outline: "none",
+            boxShadow: "none",
+            border: "none",
+            WebkitTapHighlightColor: "transparent",
+            borderRadius: 9999,
+          },
+          day_selected: {
+            backgroundColor: "#015033",
+            color: "#ffffff",
+            border: "none",
+            boxShadow: "none",
+            outline: "none",
+          },
+          day_today: {
+            border: "1px solid #d1d5db",
+            borderRadius: 9999,
+          },
+          day_disabled: {
+            color: "#9ca3af",
+            backgroundColor: "#f3f4f6",
+            borderRadius: 9999,
+          },
         }}
       />
 
