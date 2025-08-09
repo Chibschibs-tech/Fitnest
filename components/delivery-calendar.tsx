@@ -27,6 +27,10 @@ type Props = {
  * - Selected dates are filled Fitnest green (#015033), no blue rings
  * - Styling is controlled via DayPicker "styles" to override any defaults
  */
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
   const weekStartsOn = 1 as const // Monday
@@ -39,19 +43,29 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
       <DayPicker
         locale={enGB}
         mode="multiple"
+        defaultMonth={allowedStart}
+        fromDate={todayStart}
+        toDate={allowedEnd}
         selected={value}
+        onDayClick={(day, modifiers) => {
+          if (modifiers.disabled) return
+          const alreadySelected = value.some((d) => isSameDay(d, day))
+          if (alreadySelected) {
+            onChange(value.filter((d) => !isSameDay(d, day)))
+          } else {
+            onChange([...value, day])
+          }
+        }}
         onSelect={(days) => onChange(days || [])}
         showOutsideDays
-        disabled={[{ before: todayStart }, { after: allowedEnd }]}
+        disabled={(date) => date < todayStart || date > allowedEnd}
         numberOfMonths={allowedWeeks >= 4 ? 2 : 1}
         className="rdp"
         classNames={{
-          // containers
           months: "flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0",
           month: "space-y-4",
           caption: "flex justify-center pt-1 relative items-center",
           caption_label: "text-base font-semibold",
-          // navigation
           nav: "space-x-2 flex items-center",
           nav_button: cn(
             buttonVariants({ variant: "outline" }),
@@ -59,17 +73,15 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           ),
           nav_button_previous: "absolute left-2",
           nav_button_next: "absolute right-2",
-          // grid
           table: "w-full border-collapse space-y-1",
           head_row: "flex",
           head_cell:
             "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none tabular-nums",
           row: "flex w-full mt-1",
           cell: "h-10 w-10 text-center text-sm p-0 relative",
-          // day buttons
           day: cn(
             buttonVariants({ variant: "ghost" }),
-            "h-10 w-10 p-0 font-medium rounded-full data-[selected]:opacity-100 focus-visible:ring-0 focus:outline-none",
+            "h-10 w-10 p-0 font-medium rounded-full focus-visible:ring-0 focus:ring-0 focus:outline-none",
           ),
           day_selected: "rounded-full text-white",
           day_outside: "text-muted-foreground opacity-40",
@@ -80,7 +92,6 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           IconLeft: () => <ChevronLeft className="h-4 w-4" />,
           IconRight: () => <ChevronRight className="h-4 w-4" />,
         }}
-        // Strong, inline overrides — no blue rings
         styles={{
           day: {
             borderRadius: 9999,
