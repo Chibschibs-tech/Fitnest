@@ -23,14 +23,10 @@ type Props = {
 /**
  * DeliveryCalendar
  * - Monday-first (enGB)
- * - Past and out-of-range dates are disabled
- * - Selected dates are filled Fitnest green (#015033), no blue rings
- * - Styling is controlled via DayPicker "styles" to override any defaults
+ * - Past and out-of-range dates disabled and grey
+ * - Selected dates filled Fitnest green (#015033), no blue rings
+ * - Uses DayPicker-controlled multiple selection via onSelect
  */
-function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-}
-
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
   const weekStartsOn = 1 as const // Monday
@@ -43,22 +39,15 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
       <DayPicker
         locale={enGB}
         mode="multiple"
+        selected={value}
+        onSelect={(days) => onChange(days || [])}
+        // Make out-of-range visibly disabled (grey) AND non-clickable
+        disabled={[{ before: todayStart }, { after: allowedEnd }]}
+        // Also clamp navigation so users can’t go outside the window
         defaultMonth={allowedStart}
         fromDate={todayStart}
         toDate={allowedEnd}
-        selected={value}
-        onDayClick={(day, modifiers) => {
-          if (modifiers.disabled) return
-          const alreadySelected = value.some((d) => isSameDay(d, day))
-          if (alreadySelected) {
-            onChange(value.filter((d) => !isSameDay(d, day)))
-          } else {
-            onChange([...value, day])
-          }
-        }}
-        onSelect={(days) => onChange(days || [])}
         showOutsideDays
-        disabled={(date) => date < todayStart || date > allowedEnd}
         numberOfMonths={allowedWeeks >= 4 ? 2 : 1}
         className="rdp"
         classNames={{
@@ -81,7 +70,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           cell: "h-10 w-10 text-center text-sm p-0 relative",
           day: cn(
             buttonVariants({ variant: "ghost" }),
-            "h-10 w-10 p-0 font-medium rounded-full focus-visible:ring-0 focus:ring-0 focus:outline-none",
+            "h-10 w-10 p-0 font-medium rounded-full cursor-pointer focus-visible:ring-0 focus:ring-0 focus:outline-none",
           ),
           day_selected: "rounded-full text-white",
           day_outside: "text-muted-foreground opacity-40",
@@ -92,6 +81,7 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           IconLeft: () => <ChevronLeft className="h-4 w-4" />,
           IconRight: () => <ChevronRight className="h-4 w-4" />,
         }}
+        // Inline style overrides — ensures no blue rings and proper greys
         styles={{
           day: {
             borderRadius: 9999,
