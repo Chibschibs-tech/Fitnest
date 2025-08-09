@@ -1,5 +1,8 @@
 "use client"
 
+import "react-day-picker/dist/style.css" // base styles (v8 path). Safe to keep and then override.
+import "./delivery-calendar.css"
+
 import { DayPicker } from "react-day-picker"
 import { enGB } from "date-fns/locale"
 import { startOfWeek, startOfDay, addDays } from "date-fns"
@@ -23,9 +26,10 @@ type Props = {
 /**
  * DeliveryCalendar
  * - Monday-first (enGB)
- * - Past and out-of-range dates disabled and grey
- * - Selected dates filled Fitnest green (#015033), no blue rings
- * - Uses DayPicker-controlled multiple selection via onSelect
+ * - Past and out-of-range dates disabled + grey
+ * - Selected dates filled Fitnest green (no blue rings)
+ * - Uses onSelect (no custom click handler) and strict disabled matchers
+ * - Visuals are guaranteed via a tiny scoped CSS file (delivery-calendar.css)
  */
 export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: Props) {
   const today = new Date()
@@ -41,20 +45,22 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
         mode="multiple"
         selected={value}
         onSelect={(days) => onChange(days || [])}
-        // Make out-of-range visibly disabled (grey) AND non-clickable
+        // Disable past dates and any date after the allowed window
         disabled={[{ before: todayStart }, { after: allowedEnd }]}
-        // Also clamp navigation so users can’t go outside the window
+        // Clamp navigation so users can’t leave the valid window
         defaultMonth={allowedStart}
         fromDate={todayStart}
         toDate={allowedEnd}
         showOutsideDays
         numberOfMonths={allowedWeeks >= 4 ? 2 : 1}
-        className="rdp"
+        className="rdp fitnest-calendar"
         classNames={{
+          // containers
           months: "flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0",
           month: "space-y-4",
           caption: "flex justify-center pt-1 relative items-center",
           caption_label: "text-base font-semibold",
+          // navigation
           nav: "space-x-2 flex items-center",
           nav_button: cn(
             buttonVariants({ variant: "outline" }),
@@ -62,12 +68,13 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           ),
           nav_button_previous: "absolute left-2",
           nav_button_next: "absolute right-2",
+          // grid
           table: "w-full border-collapse space-y-1",
           head_row: "flex",
-          head_cell:
-            "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none tabular-nums",
+          head_cell: "text-muted-foreground rounded-md w-10 font-medium text-[0.8rem] text-center select-none",
           row: "flex w-full mt-1",
           cell: "h-10 w-10 text-center text-sm p-0 relative",
+          // day buttons
           day: cn(
             buttonVariants({ variant: "ghost" }),
             "h-10 w-10 p-0 font-medium rounded-full cursor-pointer focus-visible:ring-0 focus:ring-0 focus:outline-none",
@@ -81,38 +88,12 @@ export function DeliveryCalendar({ value, onChange, allowedWeeks, className }: P
           IconLeft: () => <ChevronLeft className="h-4 w-4" />,
           IconRight: () => <ChevronRight className="h-4 w-4" />,
         }}
-        // Inline style overrides — ensures no blue rings and proper greys
-        styles={{
-          day: {
-            borderRadius: 9999,
-            outline: "none",
-            boxShadow: "none",
-            border: "none",
-            WebkitTapHighlightColor: "transparent",
-          },
-          day_selected: {
-            backgroundColor: "#015033",
-            color: "#ffffff",
-            border: "none",
-            boxShadow: "none",
-            outline: "none",
-          },
-          day_today: {
-            border: "1px solid #d1d5db",
-            borderRadius: 9999,
-          },
-          day_disabled: {
-            color: "#9ca3af",
-            backgroundColor: "#f3f4f6",
-            borderRadius: 9999,
-          },
-        }}
       />
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "#015033" }} />
+          <span className="inline-block h-3 w-3 rounded-full bg-fitnest-green" />
           Selected
         </span>
         <span className="inline-flex items-center gap-2">

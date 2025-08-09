@@ -1,0 +1,38 @@
+/* Scoped to DayPicker rendered with class "fitnest-calendar" */
+
+/* Remove any blue focus rings and outlines */
+.fitnest-calendar .rdp-day:focus,
+.fitnest-calendar .rdp-day:focus-visible,
+.fitnest-calendar .rdp-button_reset:focus,
+.fitnest-calendar .rdp-button_reset:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Selected day: solid Fitnest green fill */
+.fitnest-calendar .rdp-day[aria-selected="true"] {
+  background-color: #015033 !important; /* Fitnest green */
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Today: subtle grey border circle */
+.fitnest-calendar .rdp-day[aria-current="date"] {
+  border: 1px solid #d1d5db !important; /* gray-300 */
+  border-radius: 9999px;
+}
+
+/* Disabled days (past and out of allowed window) */
+.fitnest-calendar .rdp-day:disabled,
+.fitnest-calendar .rdp-day[aria-disabled="true"] {
+  color: #9ca3af !important; /* gray-400 */
+  background-color: #f3f4f6 !important; /* gray-100 */
+  border-radius: 9999px;
+  cursor: not-allowed !important;
+}
+
+/* Outside days: dimmed text */
+.fitnest-calendar .rdp-day_outside {
+  opacity: 0.4 !important;
+}
