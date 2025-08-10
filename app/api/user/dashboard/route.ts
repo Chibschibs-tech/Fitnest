@@ -1,17 +1,30 @@
 import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/simple-auth"
-import { neon } from "@neondatabase/serverless"
 import { cookies } from "next/headers"
+import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 export const dynamic = "force-dynamic"
 
 const sql = neon(process.env.DATABASE_URL!)
 
+type OrderRow = {
+  id: number
+  user_id: number
+  status: string | null
+  plan_id: number | null
+  total_amount: number | null
+  created_at: string | null
+}
+
+/**
+ * GET /api/user/dashboard
+ * Returns a flat payload so the dashboard UI can read fields directly.
+ * Also includes a legacy { status, data } envelope for backward compatibility.
+ */
 export async function GET() {
   try {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
-
     if (!sessionId) {
       return NextResponse.json({ error: "No session found" }, { status: 401 })
     }
@@ -21,55 +34,59 @@ export async function GET() {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
-    // Payload we want to expose to the dashboard UI
-    const payload: {
-      user: { name: string; email: string }
-      subscriptions: any[]
-      activeSubscription: any | null
-      orderHistory: any[]
-      upcomingDeliveries: any[]
-      stats: { totalOrders: number }
-    } = {
-      user: { name: user.name, email: user.email },
-      subscriptions: [],
-      activeSubscription: null,
-      orderHistory: [],
-      upcomingDeliveries: [],
-      stats: { totalOrders: 0 },
+    const payload = {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      // derived from orders table
+      subscriptions: [] as OrderRow[],
+      activeSubscription: null as OrderRow | null,
+      orderHistory: [] as OrderRow[],
+      upcomingDeliveries: [] as any[], // keep empty until deliveries table is wired
+      stats: {
+        totalOrders: 0,
+      },
     }
 
-    // Try to fetch subscriptions if the table exists
-    try {
-      const reg = await sql`SELECT to_regclass('public.subscriptions') AS regclass`
-      if (reg[0]?.regclass) {
-        // Avoid assuming column names beyond id/user_id/status; SELECT * for maximum compatibility.
-        // If you add/rename columns later, this will still work.
-        const subs = await sql`SELECT * FROM subscriptions WHERE user_id = ${user.id}`
-        payload.subscriptions = subs
-        // Consider first non-canceled row "active" (or adapt to your exact status semantics)
-        payload.activeSubscription = subs.find((s: any) => (s.status ?? "active") !== "canceled") ?? null
-      }
-    } catch (error: any) {
-      console.log("Subscriptions lookup skipped:", error?.message || error)
-    }
-
-    // Try to fetch orders if the table exists
-    try {
-      // First attempt with ORDER BY created_at; if it fails, fallback without ordering.
+    // Check if orders table exists
+    const ordersReg = await sql`SELECT to_regclass('public.orders') AS regclass`
+    if (ordersReg[0]?.regclass) {
+      // Prefer ordering by created_at; if column missing, fallback without ORDER BY.
+      let orders: OrderRow[] = []
       try {
-        const orders = await sql`SELECT * FROM orders WHERE user_id = ${user.id} ORDER BY created_at DESC`
-        payload.orderHistory = orders
-        payload.stats.totalOrders = orders.length
+        orders = await sql<OrderRow[]>`
+          SELECT id, user_id, status, plan_id, total_amount, created_at
+          FROM orders
+          WHERE user_id = ${user.id}
+          ORDER BY created_at DESC
+        `
       } catch {
-        const orders = await sql`SELECT * FROM orders WHERE user_id = ${user.id}`
-        payload.orderHistory = orders
-        payload.stats.totalOrders = orders.length
+        orders = await sql<OrderRow[]>`
+          SELECT id, user_id, status, plan_id, total_amount, created_at
+          FROM orders
+          WHERE user_id = ${user.id}
+        `
       }
-    } catch (error: any) {
-      console.log("Orders lookup skipped:", error?.message || error)
+
+      payload.orderHistory = orders
+      payload.stats.totalOrders = orders.length
+
+      // Treat any order with a plan_id as a subscription order
+      const subscriptionOrders = orders.filter((o) => o.plan_id !== null)
+
+      // Consider "active" anything not explicitly cancelled/failed.
+      const isActive = (status: string | null | undefined) => {
+        const s = (status ?? "").toLowerCase()
+        return s !== "cancelled" && s !== "canceled" && s !== "failed"
+      }
+
+      payload.subscriptions = subscriptionOrders
+      payload.activeSubscription = subscriptionOrders.find((o) => isActive(o.status)) ?? null
     }
 
-    // Return flat payload for the client, but also include legacy envelope for any older callers
+    // Return flat payload and also legacy envelope
     return NextResponse.json({ status: "success", data: payload, ...payload })
   } catch (error) {
     console.error("Error fetching user dashboard data:", error)

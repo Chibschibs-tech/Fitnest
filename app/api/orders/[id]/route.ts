@@ -1,81 +1,109 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { getSessionUser } from "@/lib/simple-auth"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export const dynamic = "force-dynamic"
+
+const sql = neon(process.env.DATABASE_URL!)
+
+type OrderRow = {
+  id: number
+  user_id: number
+  status: string | null
+  plan_id: number | null
+  total_amount: number | null
+  created_at: string | null
+}
+
+/**
+ * Normalizes "amount" that might be stored in MAD or cents.
+ * If >= 1000, assume cents and convert to MAD.
+ */
+function normalizeAmount(amount: number | null | undefined): number {
+  if (!amount) return 0
+  return amount >= 1000 ? Math.round(amount) / 100 : amount
+}
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
-
     if (!sessionId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "No session found" }, { status: 401 })
     }
 
     const user = await getSessionUser(sessionId)
-
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
-    const orderId = params.id
+    const id = Number(params.id)
+    if (!Number.isFinite(id)) {
+      return NextResponse.json({ error: "Invalid order id" }, { status: 400 })
+    }
 
-    // Get the order with user check
-    const orders = await sql`
-      SELECT o.*, mp.name as plan_name, mp.description as plan_description, mp.type as plan_type
-      FROM orders o
-      LEFT JOIN meal_plans mp ON o.plan_id = mp.id
-      WHERE o.id = ${orderId} AND o.user_id = ${user.id}
+    const reg = await sql`SELECT to_regclass('public.orders') AS regclass`
+    if (!reg[0]?.regclass) {
+      return NextResponse.json({ error: "Orders table not available" }, { status: 404 })
+    }
+
+    const rows = await sql<OrderRow[]>`
+      SELECT id, user_id, status, plan_id, total_amount, created_at
+      FROM orders
+      WHERE id = ${id} AND user_id = ${user.id}
+      LIMIT 1
     `
-
-    if (orders.length === 0) {
-      return NextResponse.json({ message: "Order not found" }, { status: 404 })
+    const row = rows[0]
+    if (!row) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
-    const order = orders[0]
+    const total = normalizeAmount(row.total_amount)
+    const isPlan = row.plan_id !== null
 
-    // Transform the order data to match what the frontend expects
-    const transformedOrder = {
-      id: order.id,
-      date: order.created_at,
-      status: order.status || "pending",
-      type: order.plan_id ? "meal_plan" : "mixed",
+    // Construct a simple, consistent object for the client UI.
+    const order = {
+      id: row.id,
+      date: row.created_at ?? new Date().toISOString(),
+      status: (row.status ?? "pending").toLowerCase(),
+      type: isPlan ? "meal_plan" : "order",
       customer: {
-        name: user.name || user.email,
-        email: user.email,
-        phone: user.phone || "+212 612345678",
+        // We don't query a users table here; use session user safely.
+        name: user.name ?? "Customer",
+        email: user.email ?? "",
+        phone: "",
       },
       shipping: {
-        address: order.delivery_address || "Address not provided",
-        city: "Casablanca",
-        postalCode: "20000",
-        deliveryDate: order.delivery_date || order.created_at,
+        address: "",
+        city: "",
+        postalCode: "",
+        deliveryDate: row.created_at ?? new Date().toISOString(),
       },
       payment: {
-        method: order.payment_method || "Cash on Delivery",
-        status: order.payment_status || "Pending",
+        method: "Cash on Delivery",
+        status: row.status && row.status.toLowerCase() === "completed" ? "Paid" : "Unpaid",
       },
-      items: order.plan_id
+      items: isPlan
         ? [
             {
-              id: order.plan_id,
+              id: row.plan_id!,
               type: "meal_plan",
-              name: order.plan_name || "Meal Plan",
-              details: order.plan_description || "Custom meal plan",
-              price: order.total_amount,
-              imageUrl: "/vibrant-meal-prep.png",
+              name: `Meal Plan`,
+              details: `Plan ${row.plan_id}`,
+              price: total,
+              imageUrl: "/vibrant-weight-loss-meal.png",
             },
           ]
         : [],
-      subtotal: order.total_amount,
+      subtotal: total,
       shipping: 0,
-      total: order.total_amount,
+      total,
     }
 
-    return NextResponse.json({ order: transformedOrder })
+    return NextResponse.json({ order })
   } catch (error) {
-    console.error("Error fetching order details:", error)
-    return NextResponse.json({ message: "Failed to load order details" }, { status: 500 })
+    console.error("Error in GET /api/orders/[id]:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
