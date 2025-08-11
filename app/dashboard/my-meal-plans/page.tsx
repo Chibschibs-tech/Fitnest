@@ -1,9 +1,12 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { Suspense } from "react"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, ExternalLink } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Package, ExternalLink, CalendarDays } from "lucide-react"
 
+// Types must match what the API returns
 type Subscription = {
   id: number
   status: string | null
@@ -13,35 +16,79 @@ type Subscription = {
   totalAmount: number | null
 }
 
-async function getSubscriptions(): Promise<Subscription[]> {
-  const res = await fetch("/api/user/subscriptions", { cache: "no-store" })
-  if (res.status === 401) {
-    // The dashboard wrapper already protects routes; just surface gracefully.
-    notFound()
+async function fetchSubscriptions(): Promise<Subscription[] | null> {
+  try {
+    // Relative URL automatically forwards cookies in App Router server components.
+    const res = await fetch("/api/user/subscriptions", {
+      cache: "no-store",
+      // Avoid any accidental ISR from upstream
+      next: { revalidate: 0 },
+    })
+    if (!res.ok) {
+      // Gracefully handle API issues, don't throw (keeps us off the error boundary).
+      return null
+    }
+    const json = await res.json()
+    const subs: Subscription[] = json?.subscriptions ?? json ?? []
+    return subs
+  } catch {
+    return null
   }
-  if (!res.ok) {
-    return []
-  }
-  const json = await res.json()
-  // The route returns { subscriptions }, but also support flat array just in case.
-  return json.subscriptions ?? json ?? []
 }
 
-export default async function MyMealPlansPage() {
-  const subscriptions = await getSubscriptions()
+function formatMAD(amount: number | null): string {
+  if (amount == null) return "0 MAD"
+  // Some rows might store cents; keep it simple and readable
+  const normalized = amount >= 1000 && amount % 100 === 0 ? amount / 100 : amount
+  return `${Number(normalized).toLocaleString(undefined, { maximumFractionDigits: 2 })} MAD`
+}
+
+function StatusPill({ status }: { status: string | null }) {
+  const s = (status ?? "").toLowerCase()
+  const isActive = s !== "cancelled" && s !== "canceled" && s !== "failed"
+  return (
+    <Badge
+      className={
+        isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-gray-100 text-gray-600 hover:bg-gray-100"
+      }
+    >
+      {isActive ? "Active" : status || "Inactive"}
+    </Badge>
+  )
+}
+
+async function Content() {
+  const subscriptions = await fetchSubscriptions()
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">My Meal Plans</h1>
-        <p className="text-gray-600">Manage your active meal plan subscriptions</p>
+        <p className="text-muted-foreground">View and manage your active meal plan subscriptions.</p>
       </div>
 
-      {subscriptions.length === 0 ? (
+      {!subscriptions ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>We couldn{"'"}t load your meal plans</CardTitle>
+            <CardDescription>Please try again in a moment.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
+              <Link href="/dashboard/my-meal-plans">
+                <Button>Try again</Button>
+              </Link>
+              <Link href="/meal-plans">
+                <Button variant="outline">Browse Meal Plans</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ) : subscriptions.length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>No Active Subscriptions</CardTitle>
-            <CardDescription>You don{"'"}t have any active meal plans yet.</CardDescription>
+            <CardDescription>You don{"'"}t have any active meal plan subscriptions yet.</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/meal-plans">
@@ -52,54 +99,40 @@ export default async function MyMealPlansPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {subscriptions.map((sub) => {
-            const amount =
-              typeof sub.totalAmount === "number"
-                ? sub.totalAmount >= 1000
-                  ? (sub.totalAmount / 100).toFixed(2)
-                  : (sub.totalAmount.toFixed?.(2) ?? `${sub.totalAmount}`)
-                : "0"
-            const created = sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : "Unknown date"
-            const isActive =
-              (sub.status ?? "").toLowerCase() !== "canceled" && (sub.status ?? "").toLowerCase() !== "cancelled"
-
+            const created = sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : "Unknown"
             return (
               <Card key={sub.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
+                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                  <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2">
                       <Package className="h-5 w-5 text-muted-foreground" />
-                      {sub.planName || "Meal Plan"}
+                      {sub.planName || (sub.planId ? `Plan ${sub.planId}` : "Meal Plan")}
                     </CardTitle>
-                    <CardDescription>Started on {created}</CardDescription>
+                    <CardDescription className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4" />
+                      Started on {created}
+                    </CardDescription>
                   </div>
-                  <div
-                    className={`text-xs px-2 py-1 rounded-full ${isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
-                  >
-                    {isActive ? "Active" : sub.status || "Inactive"}
-                  </div>
+                  <StatusPill status={sub.status} />
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">Order ID</div>
-                    <div className="font-medium">#{sub.id}</div>
+                <CardContent className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Order ID</span>
+                    <span className="font-medium">#{sub.id}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">Total</div>
-                    <div className="font-medium">{amount} MAD</div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total</span>
+                    <span className="font-medium">{formatMAD(sub.totalAmount)}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">Plan</div>
-                    <div className="font-medium">{sub.planName || `Plan ${sub.planId ?? ""}`}</div>
-                  </div>
-
-                  <div className="mt-2 flex flex-col sm:flex-row gap-3">
-                    <Link href={`/dashboard/orders/${sub.id}`} className="flex-1">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <Link href={`/dashboard/orders/${sub.id}`}>
                       <Button variant="outline" className="w-full bg-transparent">
-                        View Order Details <ExternalLink className="ml-2 h-4 w-4" />
+                        View order details
+                        <ExternalLink className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
-                    <Button className="flex-1" variant="secondary" disabled>
-                      Manage Deliveries (soon)
+                    <Button variant="secondary" className="w-full" disabled>
+                      Manage deliveries (coming soon)
                     </Button>
                   </div>
                 </CardContent>
@@ -109,5 +142,29 @@ export default async function MyMealPlansPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function MyMealPlansPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-6xl px-4 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Loading your meal plans…</CardTitle>
+              <CardDescription>This will only take a second.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-24 animate-pulse rounded-md bg-muted" />
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      {/* Async server component content */}
+      {/* @ts-expect-error Async Server Component */}
+      <Content />
+    </Suspense>
   )
 }
