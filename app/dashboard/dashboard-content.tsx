@@ -1,15 +1,16 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, Calendar, Settings, User } from "lucide-react"
 
 interface UserType {
-  id?: number
+  id: number
   name: string
   email: string
-  role?: string
+  role: string
 }
 
 type DashboardPayload = {
@@ -38,15 +39,11 @@ export function DashboardContent({ user }: DashboardContentProps) {
       const response = await fetch("/api/user/dashboard", { cache: "no-store" })
       if (response.ok) {
         const raw = await response.json()
-        // Accept both shapes: flat payload or { status, data }
-        const payload: DashboardPayload = raw?.data ?? raw
-        setDashboardData(payload)
-      } else {
-        setDashboardData(null)
+        const data: DashboardPayload = raw?.data ?? raw
+        setDashboardData(data)
       }
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error)
-      setDashboardData(null)
     } finally {
       setLoading(false)
     }
@@ -73,7 +70,6 @@ export function DashboardContent({ user }: DashboardContentProps) {
   }
 
   const hasActiveSubscription = !!dashboardData?.activeSubscription || (dashboardData?.subscriptions?.length ?? 0) > 0
-
   const totalOrders = dashboardData?.stats?.totalOrders ?? dashboardData?.orderHistory?.length ?? 0
 
   return (
@@ -94,6 +90,21 @@ export function DashboardContent({ user }: DashboardContentProps) {
             <p className="text-xs text-muted-foreground">
               {hasActiveSubscription ? "Your meal plan is active." : "Choose a meal plan"}
             </p>
+            <div className="mt-3">
+              {hasActiveSubscription ? (
+                <Link href="/dashboard/my-meal-plans">
+                  <Button variant="outline" size="sm">
+                    Manage My Meal Plans
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/meal-plans">
+                  <Button variant="outline" size="sm">
+                    Browse Meal Plans
+                  </Button>
+                </Link>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -134,18 +145,21 @@ export function DashboardContent({ user }: DashboardContentProps) {
                     <div>
                       <p className="font-medium">Order #{order.id}</p>
                       <p className="text-sm text-gray-600">
-                        {order.created_at ? new Date(order.created_at).toLocaleDateString() : "Unknown Date"}
+                        {order.created_at ? new Date(order.created_at).toLocaleDateString() : "Unknown"}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">
                         {(() => {
                           const amt = order.total_amount ?? 0
-                          const normalized = amt >= 1000 ? (amt / 100).toFixed(2) : (amt.toFixed?.(2) ?? `${amt}`)
+                          const normalized =
+                            Number(amt) >= 1000
+                              ? (Number(amt) / 100).toFixed(2)
+                              : (Number(amt).toFixed?.(2) ?? `${amt}`)
                           return `${normalized} MAD`
                         })()}
                       </p>
-                      <p className="text-sm text-gray-600 capitalize">{order.status ?? "unknown"}</p>
+                      <p className="text-sm text-gray-600 capitalize">{order.status ?? "pending"}</p>
                     </div>
                   </div>
                 ))}
@@ -162,10 +176,12 @@ export function DashboardContent({ user }: DashboardContentProps) {
             <CardDescription>Manage your account and orders</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button className="w-full bg-transparent" variant="outline">
-              <Package className="mr-2 h-4 w-4" />
-              Browse Meal Plans
-            </Button>
+            <Link href="/meal-plans" className="w-full">
+              <Button className="w-full bg-transparent" variant="outline">
+                <Package className="mr-2 h-4 w-4" />
+                Browse Meal Plans
+              </Button>
+            </Link>
             <Button className="w-full bg-transparent" variant="outline">
               <Calendar className="mr-2 h-4 w-4" />
               Schedule Delivery
