@@ -1,10 +1,16 @@
 import Link from "next/link"
 import { Suspense } from "react"
+import { cookies } from "next/headers"
+import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Package, ExternalLink, CalendarDays } from "lucide-react"
+
+const DATABASE_URL = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL
+const sql = DATABASE_URL ? neon(DATABASE_URL) : null
 
 // Types must match what the API returns
 type Subscription = {
@@ -18,20 +24,54 @@ type Subscription = {
 
 async function fetchSubscriptions(): Promise<Subscription[] | null> {
   try {
-    // Relative URL automatically forwards cookies in App Router server components.
-    const res = await fetch("/api/user/subscriptions", {
-      cache: "no-store",
-      // Avoid any accidental ISR from upstream
-      next: { revalidate: 0 },
-    })
-    if (!res.ok) {
-      // Gracefully handle API issues, don't throw (keeps us off the error boundary).
-      return null
+    if (!sql) return null
+
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session-id")?.value
+    if (!sessionId) return null
+
+    const user = await getSessionUser(sessionId)
+    if (!user) return null
+
+    // Check if orders table exists
+    const ordersReg = await sql`SELECT to_regclass('public.orders') AS regclass`
+    if (!ordersReg[0]?.regclass) return []
+
+    // Try with join to meal_plans for plan name; fallback without join
+    let rows: any[] = []
+    try {
+      const plansReg = await sql`SELECT to_regclass('public.meal_plans') AS regclass`
+      if (plansReg[0]?.regclass) {
+        rows = await sql`
+          SELECT o.id, o.user_id, o.status, o.plan_id, o.total_amount, o.created_at,
+                 mp.name AS plan_name
+          FROM orders o
+          LEFT JOIN meal_plans mp ON o.plan_id = mp.id
+          WHERE o.user_id = ${user.id} AND o.plan_id IS NOT NULL
+          ORDER BY o.created_at DESC
+        `
+      } else {
+        throw new Error("meal_plans table not found")
+      }
+    } catch {
+      rows = await sql`
+        SELECT id, user_id, status, plan_id, total_amount, created_at
+        FROM orders
+        WHERE user_id = ${user.id} AND plan_id IS NOT NULL
+        ORDER BY created_at DESC
+      `
     }
-    const json = await res.json()
-    const subs: Subscription[] = json?.subscriptions ?? json ?? []
-    return subs
-  } catch {
+
+    return rows.map((r) => ({
+      id: Number(r.id),
+      status: r.status ?? "pending",
+      planId: r.plan_id ?? null,
+      planName: r.plan_name ?? null,
+      totalAmount: r.total_amount ?? null,
+      createdAt: r.created_at ? String(r.created_at) : null,
+    }))
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error)
     return null
   }
 }
@@ -162,8 +202,6 @@ export default function MyMealPlansPage() {
         </div>
       }
     >
-      {/* Async server component content */}
-      {/* @ts-expect-error Async Server Component */}
       <Content />
     </Suspense>
   )

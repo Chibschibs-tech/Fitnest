@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Check, CreditCard, Pause, RefreshCw, Edit, AlertTriangle } from "lucide-react"
+import { Calendar, Check, CreditCard, Pause, RefreshCw, Edit, AlertTriangle, Clock, Package } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -18,21 +18,38 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { format, addDays } from "date-fns"
 import Link from "next/link"
+
+interface DeliverySchedule {
+  deliveries: Array<{
+    id: number
+    scheduledDate: string
+    status: string
+  }>
+  totalDeliveries: number
+  completedDeliveries: number
+  pendingDeliveries: number
+  nextDeliveryDate?: string
+  canPause: boolean
+  pauseEligibleDate?: string
+}
 
 export default function ActiveSubscription() {
   const [isPaused, setIsPaused] = useState(false)
   const [showPauseDialog, setShowPauseDialog] = useState(false)
-  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [showChangeDialog, setShowChangeDialog] = useState(false)
-  const [pauseDuration, setPauseDuration] = useState("1-week")
-  const [pauseUntilDate, setPauseUntilDate] = useState("")
+  const [pauseDuration, setPauseDuration] = useState("7")
+  const [customResumeDate, setCustomResumeDate] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [deliverySchedule, setDeliverySchedule] = useState<DeliverySchedule | null>(null)
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false)
 
   // Sample data - in a real app, this would come from an API
   const subscription = {
+    id: 1,
     plan: "Weight Loss",
     status: isPaused ? "Paused" : "Active",
     startDate: "April 15, 2023",
@@ -45,50 +62,100 @@ export default function ActiveSubscription() {
     deliveryTime: "Morning (8AM - 12PM)",
     deliveryAddress: "Apartment 3B, 123 Maarif Street, Casablanca",
     features: ["Customizable meals", "Nutritionist support", "Weekly menu rotation", "Pause or cancel anytime"],
+    pauseCount: 0,
   }
 
-  const handlePauseSubscription = () => {
-    setIsPaused(true)
-    setShowPauseDialog(false)
+  // Fetch delivery schedule
+  useEffect(() => {
+    fetchDeliverySchedule()
+  }, [])
 
-    // Calculate pause until date based on selection
-    const today = new Date()
-    let daysToAdd = 7
-
-    if (pauseDuration === "2-weeks") daysToAdd = 14
-    else if (pauseDuration === "1-month") daysToAdd = 30
-    else if (pauseDuration === "custom" && pauseUntilDate) {
-      // Use the custom date
-      setSuccessMessage(`Your subscription has been paused until ${pauseUntilDate}. You can resume anytime.`)
-      setTimeout(() => setSuccessMessage(""), 5000)
-      return
+  const fetchDeliverySchedule = async () => {
+    try {
+      const response = await fetch(`/api/subscriptions/${subscription.id}/deliveries`)
+      if (response.ok) {
+        const data = await response.json()
+        setDeliverySchedule(data)
+      }
+    } catch (error) {
+      console.error("Error fetching delivery schedule:", error)
     }
-
-    const resumeDate = addDays(today, daysToAdd)
-    setSuccessMessage(
-      `Your subscription has been paused until ${format(resumeDate, "MMMM d, yyyy")}. You can resume anytime.`,
-    )
-    setTimeout(() => setSuccessMessage(""), 5000)
   }
 
-  const handleResumeSubscription = () => {
-    setIsPaused(false)
-    setSuccessMessage("Your subscription has been resumed. Your next delivery is scheduled for tomorrow.")
-    setTimeout(() => setSuccessMessage(""), 5000)
+  const handlePauseSubscription = async () => {
+    setLoading(true)
+    setErrorMessage("")
+
+    try {
+      const response = await fetch(`/api/subscriptions/${subscription.id}/pause`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pauseDurationDays: Number.parseInt(pauseDuration),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setIsPaused(true)
+        setShowPauseDialog(false)
+        setSuccessMessage(result.message)
+        fetchDeliverySchedule() // Refresh delivery schedule
+        setTimeout(() => setSuccessMessage(""), 5000)
+      } else {
+        setErrorMessage(result.message)
+      }
+    } catch (error) {
+      setErrorMessage("Failed to pause subscription. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleCancelSubscription = () => {
-    setShowCancelDialog(false)
-    setSuccessMessage(
-      "Your subscription has been canceled. You'll continue to receive meals until the end of your current billing period.",
-    )
-    setTimeout(() => setSuccessMessage(""), 5000)
+  const handleResumeSubscription = async (resumeDate?: string) => {
+    setLoading(true)
+    setErrorMessage("")
+
+    try {
+      const response = await fetch(`/api/subscriptions/${subscription.id}/resume`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resumeDate: resumeDate,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setIsPaused(false)
+        setShowResumeDialog(false)
+        setSuccessMessage(result.message)
+        fetchDeliverySchedule() // Refresh delivery schedule
+        setTimeout(() => setSuccessMessage(""), 5000)
+      } else {
+        setErrorMessage(result.message)
+      }
+    } catch (error) {
+      setErrorMessage("Failed to resume subscription. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleUpdateDelivery = () => {
-    setShowDeliveryDialog(false)
-    setSuccessMessage("Your delivery preferences have been updated successfully.")
-    setTimeout(() => setSuccessMessage(""), 5000)
+  const getSmartResumeDate = () => {
+    if (!deliverySchedule?.nextDeliveryDate) return null
+
+    const nextDelivery = new Date(deliverySchedule.nextDeliveryDate)
+    const now = new Date()
+    const minResumeDate = new Date(now.getTime() + 48 * 60 * 60 * 1000) // 48 hours from now
+
+    return nextDelivery > minResumeDate ? nextDelivery : minResumeDate
   }
 
   return (
@@ -97,14 +164,76 @@ export default function ActiveSubscription() {
         <h2 className="text-2xl font-bold tracking-tight">My Subscription</h2>
         <div className="mt-2 flex space-x-2 md:mt-0">
           {isPaused ? (
-            <Button onClick={handleResumeSubscription} className="bg-green-600 hover:bg-green-700">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Resume Subscription
-            </Button>
+            <Dialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+              <DialogTrigger asChild>
+                <Button className="bg-green-600 hover:bg-green-700">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Resume Subscription
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Resume Your Subscription</DialogTitle>
+                  <DialogDescription>Choose when you'd like to resume your meal deliveries.</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <h4 className="font-medium text-green-800">Smart Resume (Recommended)</h4>
+                    <p className="text-sm text-green-600 mt-1">
+                      Resume on {getSmartResumeDate()?.toLocaleDateString()} based on your original schedule
+                    </p>
+                    <Button
+                      onClick={() => handleResumeSubscription()}
+                      className="mt-2 bg-green-600 hover:bg-green-700"
+                      disabled={loading}
+                    >
+                      {loading ? "Resuming..." : "Resume Now"}
+                    </Button>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium">Choose Custom Date</h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Select a specific date to resume (minimum 48 hours notice)
+                    </p>
+                    <div className="mt-2 space-y-2">
+                      <input
+                        type="date"
+                        value={customResumeDate}
+                        onChange={(e) => setCustomResumeDate(e.target.value)}
+                        min={new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                      />
+                      <Button
+                        onClick={() => handleResumeSubscription(customResumeDate)}
+                        variant="outline"
+                        disabled={!customResumeDate || loading}
+                      >
+                        {loading ? "Resuming..." : "Resume on Selected Date"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {errorMessage && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowResumeDialog(false)}>
+                    Cancel
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           ) : (
             <Dialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" disabled={subscription.pauseCount >= 1 || !deliverySchedule?.canPause}>
                   <Pause className="mr-2 h-4 w-4" />
                   Pause Subscription
                 </Button>
@@ -113,119 +242,86 @@ export default function ActiveSubscription() {
                 <DialogHeader>
                   <DialogTitle>Pause Your Subscription</DialogTitle>
                   <DialogDescription>
-                    You can pause your subscription and resume it at any time. How long would you like to pause?
+                    Pause your deliveries temporarily. You can only pause once per subscription.
                   </DialogDescription>
                 </DialogHeader>
-                <RadioGroup value={pauseDuration} onValueChange={setPauseDuration} className="mt-4">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="1-week" id="1-week" />
-                    <Label htmlFor="1-week">1 Week</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="2-weeks" id="2-weeks" />
-                    <Label htmlFor="2-weeks">2 Weeks</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="1-month" id="1-month" />
-                    <Label htmlFor="1-month">1 Month</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="custom" />
-                    <Label htmlFor="custom">Custom Date</Label>
-                  </div>
-                </RadioGroup>
 
-                {pauseDuration === "custom" && (
-                  <div className="mt-4">
-                    <Label htmlFor="pause-until">Pause Until</Label>
-                    <input
-                      type="date"
-                      id="pause-until"
-                      value={pauseUntilDate}
-                      onChange={(e) => setPauseUntilDate(e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
-                      min={new Date().toISOString().split("T")[0]}
-                    />
-                  </div>
+                {!deliverySchedule?.canPause && (
+                  <Alert variant="warning" className="bg-amber-50 text-amber-800 border-amber-200">
+                    <Clock className="h-4 w-4" />
+                    <AlertTitle>Cannot Pause</AlertTitle>
+                    <AlertDescription>
+                      Deliveries can only be paused if they are at least 72 hours away.
+                      {deliverySchedule?.pauseEligibleDate &&
+                        ` Next eligible pause date: ${new Date(deliverySchedule.pauseEligibleDate).toLocaleDateString()}`}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {deliverySchedule?.canPause && (
+                  <>
+                    <RadioGroup value={pauseDuration} onValueChange={setPauseDuration} className="mt-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="7" id="1-week" />
+                        <Label htmlFor="1-week">1 Week (7 days)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="14" id="2-weeks" />
+                        <Label htmlFor="2-weeks">2 Weeks (14 days)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="21" id="3-weeks" />
+                        <Label htmlFor="3-weeks">3 Weeks (21 days) - Maximum</Label>
+                      </div>
+                    </RadioGroup>
+
+                    <Alert className="bg-blue-50 text-blue-800 border-blue-200">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Important</AlertTitle>
+                      <AlertDescription>
+                        Your subscription will be extended to make up for the paused time. All remaining deliveries will
+                        be shifted by {pauseDuration} days.
+                      </AlertDescription>
+                    </Alert>
+
+                    {errorMessage && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>{errorMessage}</AlertDescription>
+                      </Alert>
+                    )}
+                  </>
                 )}
 
                 <DialogFooter className="mt-4">
                   <Button variant="outline" onClick={() => setShowPauseDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handlePauseSubscription} className="bg-green-600 hover:bg-green-700">
-                    Pause Subscription
-                  </Button>
+                  {deliverySchedule?.canPause && (
+                    <Button
+                      onClick={handlePauseSubscription}
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={loading}
+                    >
+                      {loading ? "Pausing..." : "Pause Subscription"}
+                    </Button>
+                  )}
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           )}
+
           <Button variant="outline">
             <CreditCard className="mr-2 h-4 w-4" />
             Manage Billing
           </Button>
 
-          <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
-                Cancel Plan
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cancel Your Subscription</DialogTitle>
-                <DialogDescription>
-                  We're sorry to see you go. Please let us know why you're canceling so we can improve our service.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="mt-4 space-y-4">
-                <RadioGroup defaultValue="too-expensive">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="too-expensive" id="too-expensive" />
-                    <Label htmlFor="too-expensive">Too expensive</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="dont-like-meals" id="dont-like-meals" />
-                    <Label htmlFor="dont-like-meals">Don't like the meals</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="delivery-issues" id="delivery-issues" />
-                    <Label htmlFor="delivery-issues">Delivery issues</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="temporary" id="temporary" />
-                    <Label htmlFor="temporary">Just taking a break</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="other" id="other" />
-                    <Label htmlFor="other">Other reason</Label>
-                  </div>
-                </RadioGroup>
-
-                <Alert variant="warning" className="bg-amber-50 text-amber-800 border-amber-200">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Important</AlertTitle>
-                  <AlertDescription>
-                    Canceling your subscription will stop future deliveries after your current billing period ends.
-                  </AlertDescription>
-                </Alert>
-              </div>
-
-              <DialogFooter className="mt-4">
-                <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
-                  Keep My Subscription
-                </Button>
-                <Button
-                  onClick={handleCancelSubscription}
-                  variant="destructive"
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Cancel Subscription
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/my-meal-plans">
+            <Button variant="outline">
+              <Package className="mr-2 h-4 w-4" />
+              View All Plans
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -278,6 +374,19 @@ export default function ActiveSubscription() {
                 <p className="text-sm font-medium text-gray-500">Meals</p>
                 <p>{subscription.mealCount}</p>
               </div>
+              {deliverySchedule && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Delivery Progress</p>
+                  <p>
+                    {deliverySchedule.completedDeliveries} of {deliverySchedule.totalDeliveries} delivered
+                  </p>
+                  {deliverySchedule.nextDeliveryDate && (
+                    <p className="text-sm text-gray-600">
+                      Next delivery: {new Date(deliverySchedule.nextDeliveryDate).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              )}
               <div>
                 <p className="text-sm font-medium text-gray-500">Features</p>
                 <ul className="mt-1 space-y-1">
@@ -363,7 +472,7 @@ export default function ActiveSubscription() {
                       <Button variant="outline" onClick={() => setShowDeliveryDialog(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handleUpdateDelivery} className="bg-green-600 hover:bg-green-700">
+                      <Button onClick={() => setShowDeliveryDialog(false)} className="bg-green-600 hover:bg-green-700">
                         Save Changes
                       </Button>
                     </DialogFooter>
