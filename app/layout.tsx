@@ -10,7 +10,7 @@ const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
-    generator: 'v0.dev'
+    generator: 'v0.app'
 }
 
 export { metadata }

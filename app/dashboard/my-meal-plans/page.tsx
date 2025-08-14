@@ -85,7 +85,13 @@ function formatMAD(amount: number | null): string {
 
 function StatusPill({ status }: { status: string | null }) {
   const s = (status ?? "").toLowerCase()
-  const isActive = s !== "cancelled" && s !== "canceled" && s !== "failed"
+  const isActive = s !== "cancelled" && s !== "canceled" && s !== "failed" && s !== "paused"
+  const isPaused = s === "paused"
+
+  if (isPaused) {
+    return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Paused</Badge>
+  }
+
   return (
     <Badge
       className={
@@ -171,9 +177,11 @@ async function Content() {
                         <ExternalLink className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
-                    <Button variant="secondary" className="w-full" disabled>
-                      Manage deliveries (coming soon)
-                    </Button>
+                    <Link href={`/dashboard/my-meal-plans/${sub.id}`}>
+                      <Button variant="secondary" className="w-full">
+                        Manage deliveries
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
