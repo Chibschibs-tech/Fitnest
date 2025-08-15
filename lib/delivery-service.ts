@@ -47,7 +47,6 @@ export class DeliveryService {
         deliveries.push({
           orderId,
           scheduledDate: scheduledDate.toISOString().split("T")[0],
-          status: "pending",
         })
       }
 
@@ -55,7 +54,7 @@ export class DeliveryService {
       for (const delivery of deliveries) {
         await sql`
           INSERT INTO deliveries (order_id, scheduled_date, status)
-          VALUES (${delivery.orderId}, ${delivery.scheduledDate}, ${delivery.status})
+          VALUES (${delivery.orderId}, ${delivery.scheduledDate}, 'pending')
         `
       }
 
@@ -146,4 +145,3 @@ export class DeliveryService {
     }
   }
 }
-</merged_code>
