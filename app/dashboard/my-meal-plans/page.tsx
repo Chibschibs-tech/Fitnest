@@ -1,216 +1,223 @@
-import Link from "next/link"
-import { Suspense } from "react"
-import { cookies } from "next/headers"
-import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
+"use client"
 
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Package, ExternalLink, CalendarDays } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ExternalLink, AlertTriangle, RefreshCw } from "lucide-react"
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL
-const sql = DATABASE_URL ? neon(DATABASE_URL) : null
-
-// Types must match what the API returns
-type Subscription = {
+interface MealPlan {
   id: number
-  status: string | null
-  planId: number | null
-  planName: string | null
-  createdAt: string | null
-  totalAmount: number | null
+  planId: number
+  planName: string
+  status: string
+  createdAt: string
+  totalAmount: number
 }
 
-async function fetchSubscriptions(): Promise<Subscription[] | null> {
-  try {
-    if (!sql) return null
+export default function MyMealPlansPage() {
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-    if (!sessionId) return null
+  const fetchMealPlans = async () => {
+    setLoading(true)
+    setError(null)
 
-    const user = await getSessionUser(sessionId)
-    if (!user) return null
-
-    // Check if orders table exists
-    const ordersReg = await sql`SELECT to_regclass('public.orders') AS regclass`
-    if (!ordersReg[0]?.regclass) return []
-
-    // Try with join to meal_plans for plan name; fallback without join
-    let rows: any[] = []
     try {
-      const plansReg = await sql`SELECT to_regclass('public.meal_plans') AS regclass`
-      if (plansReg[0]?.regclass) {
-        rows = await sql`
-          SELECT o.id, o.user_id, o.status, o.plan_id, o.total_amount, o.created_at,
-                 mp.name AS plan_name
-          FROM orders o
-          LEFT JOIN meal_plans mp ON o.plan_id = mp.id
-          WHERE o.user_id = ${user.id} AND o.plan_id IS NOT NULL
-          ORDER BY o.created_at DESC
-        `
+      const response = await fetch("/api/user/subscriptions")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch meal plans")
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        setMealPlans(data.subscriptions || [])
       } else {
-        throw new Error("meal_plans table not found")
+        setError(data.message || "Failed to load meal plans")
       }
-    } catch {
-      rows = await sql`
-        SELECT id, user_id, status, plan_id, total_amount, created_at
-        FROM orders
-        WHERE user_id = ${user.id} AND plan_id IS NOT NULL
-        ORDER BY created_at DESC
-      `
+    } catch (err) {
+      console.error("Error fetching meal plans:", err)
+      setError("We couldn't load your meal plans. Please try again.")
+    } finally {
+      setLoading(false)
     }
-
-    return rows.map((r) => ({
-      id: Number(r.id),
-      status: r.status ?? "pending",
-      planId: r.plan_id ?? null,
-      planName: r.plan_name ?? null,
-      totalAmount: r.total_amount ?? null,
-      createdAt: r.created_at ? String(r.created_at) : null,
-    }))
-  } catch (error) {
-    console.error("Error fetching subscriptions:", error)
-    return null
-  }
-}
-
-function formatMAD(amount: number | null): string {
-  if (amount == null) return "0 MAD"
-  // Some rows might store cents; keep it simple and readable
-  const normalized = amount >= 1000 && amount % 100 === 0 ? amount / 100 : amount
-  return `${Number(normalized).toLocaleString(undefined, { maximumFractionDigits: 2 })} MAD`
-}
-
-function StatusPill({ status }: { status: string | null }) {
-  const s = (status ?? "").toLowerCase()
-  const isActive = s !== "cancelled" && s !== "canceled" && s !== "failed" && s !== "paused"
-  const isPaused = s === "paused"
-
-  if (isPaused) {
-    return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Paused</Badge>
   }
 
-  return (
-    <Badge
-      className={
-        isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-gray-100 text-gray-600 hover:bg-gray-100"
-      }
-    >
-      {isActive ? "Active" : status || "Inactive"}
-    </Badge>
-  )
-}
+  useEffect(() => {
+    fetchMealPlans()
+  }, [])
 
-async function Content() {
-  const subscriptions = await fetchSubscriptions()
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+  }
 
-  return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">My Meal Plans</h1>
-        <p className="text-muted-foreground">View and manage your active meal plan subscriptions.</p>
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "active":
+        return "bg-green-100 text-green-800 hover:bg-green-100"
+      case "paused":
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+      case "completed":
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100"
+      case "cancelled":
+        return "bg-red-100 text-red-800 hover:bg-red-100"
+      default:
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100"
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto max-w-6xl py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">My Meal Plans</h1>
+          <p className="text-gray-600 mt-2">View and manage your active meal plan subscriptions.</p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
+    )
+  }
 
-      {!subscriptions ? (
+  if (error) {
+    return (
+      <div className="container mx-auto max-w-6xl py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">My Meal Plans</h1>
+          <p className="text-gray-600 mt-2">View and manage your active meal plan subscriptions.</p>
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>We couldn{"'"}t load your meal plans</CardTitle>
+            <CardTitle>We couldn't load your meal plans</CardTitle>
             <CardDescription>Please try again in a moment.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-3">
-              <Link href="/dashboard/my-meal-plans">
-                <Button>Try again</Button>
-              </Link>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <div className="mt-4 flex gap-4">
+              <Button onClick={fetchMealPlans} className="bg-green-600 hover:bg-green-700">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try again
+              </Button>
               <Link href="/meal-plans">
                 <Button variant="outline">Browse Meal Plans</Button>
               </Link>
             </div>
           </CardContent>
         </Card>
-      ) : subscriptions.length === 0 ? (
+      </div>
+    )
+  }
+
+  if (mealPlans.length === 0) {
+    return (
+      <div className="container mx-auto max-w-6xl py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">My Meal Plans</h1>
+          <p className="text-gray-600 mt-2">View and manage your active meal plan subscriptions.</p>
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>No Active Subscriptions</CardTitle>
-            <CardDescription>You don{"'"}t have any active meal plan subscriptions yet.</CardDescription>
+            <CardTitle>No meal plans found</CardTitle>
+            <CardDescription>You don't have any active meal plan subscriptions yet.</CardDescription>
           </CardHeader>
           <CardContent>
+            <p className="text-gray-600 mb-4">
+              Start your fitness journey by choosing a meal plan that fits your goals.
+            </p>
             <Link href="/meal-plans">
-              <Button>Browse Meal Plans</Button>
+              <Button className="bg-green-600 hover:bg-green-700">Browse Meal Plans</Button>
             </Link>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {subscriptions.map((sub) => {
-            const created = sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : "Unknown"
-            return (
-              <Card key={sub.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5 text-muted-foreground" />
-                      {sub.planName || (sub.planId ? `Plan ${sub.planId}` : "Meal Plan")}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
-                      Started on {created}
-                    </CardDescription>
-                  </div>
-                  <StatusPill status={sub.status} />
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Order ID</span>
-                    <span className="font-medium">#{sub.id}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="font-medium">{formatMAD(sub.totalAmount)}</span>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <Link href={`/dashboard/orders/${sub.id}`}>
-                      <Button variant="outline" className="w-full bg-transparent">
-                        View order details
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href={`/dashboard/my-meal-plans/${sub.id}`}>
-                      <Button variant="secondary" className="w-full">
-                        Manage deliveries
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
+      </div>
+    )
+  }
 
-export default function MyMealPlansPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto max-w-6xl px-4 py-8">
-          <Card>
+    <div className="container mx-auto max-w-6xl py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">My Meal Plans</h1>
+        <p className="text-gray-600 mt-2">View and manage your active meal plan subscriptions.</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {mealPlans.map((plan) => (
+          <Card key={plan.id}>
             <CardHeader>
-              <CardTitle>Loading your meal plans…</CardTitle>
-              <CardDescription>This will only take a second.</CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <span>🍽️</span>
+                    {plan.planName || `Plan ${plan.planId}`}
+                  </CardTitle>
+                  <CardDescription>📅 Started on {formatDate(plan.createdAt)}</CardDescription>
+                </div>
+                <Badge className={getStatusColor(plan.status)}>{plan.status || "Active"}</Badge>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="h-24 animate-pulse rounded-md bg-muted" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium text-gray-500">Order ID</p>
+                    <p>#{plan.id}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-500">Total</p>
+                    <p>{plan.totalAmount} MAD</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Link href={`/dashboard/orders/${plan.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full bg-transparent">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      View order details
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/my-meal-plans/${plan.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full bg-transparent">
+                      Manage deliveries
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </div>
-      }
-    >
-      <Content />
-    </Suspense>
+        ))}
+      </div>
+    </div>
   )
 }
