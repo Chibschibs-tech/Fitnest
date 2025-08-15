@@ -3,307 +3,335 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { calculatePrice, type MealSelection, pricingConfig } from "@/lib/pricing-model"
+import { calculatePrice, type MealSelection, type PriceBreakdown } from "@/lib/pricing-model"
 
 export default function PricingDemo() {
-  const [selectedDays, setSelectedDays] = useState(3)
-
-  // Fixed customer selection: Muscle Gain, 2 main + breakfast + 1 snack
-  const baseSelection: Omit<MealSelection, "selectedDays"> = {
+  const [selection, setSelection] = useState<MealSelection>({
     planId: "muscle-gain",
     mainMeals: 2,
     breakfast: true,
     snacks: 1,
-  }
-
-  const createSelection = (days: number): MealSelection => ({
-    ...baseSelection,
-    selectedDays: Array.from({ length: days }, (_, i) => new Date(`2024-01-0${i + 1}`)),
+    selectedDays: Array(3).fill(new Date()),
+    subscriptionWeeks: 1,
   })
 
-  const dayOptions = [3, 4, 5, 6, 7]
+  const [seasonalCode, setSeasonalCode] = useState<string>("")
+  const [breakdown, setBreakdown] = useState<PriceBreakdown | null>(null)
+  const [error, setError] = useState<string>("")
+
+  const calculatePricing = () => {
+    try {
+      const result = calculatePrice(selection, seasonalCode || undefined)
+      setBreakdown(result)
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Calculation error")
+      setBreakdown(null)
+    }
+  }
+
+  const updateSelection = (field: keyof MealSelection, value: any) => {
+    if (field === "selectedDays") {
+      setSelection((prev) => ({
+        ...prev,
+        selectedDays: Array(value).fill(new Date()),
+      }))
+    } else {
+      setSelection((prev) => ({
+        ...prev,
+        [field]: value,
+      }))
+    }
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Pricing Logic Demo</h1>
-          <p className="text-gray-600">Muscle Gain Plan: 2 Main Meals + Breakfast + 1 Snack per day</p>
-        </div>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold mb-2">Fitnest.ma Pricing Calculator</h1>
+        <p className="text-gray-600">Test the pricing model with different configurations</p>
+      </div>
 
-        {/* Base Pricing Breakdown */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Configuration Panel */}
         <Card>
           <CardHeader>
-            <CardTitle>Base Pricing Structure</CardTitle>
+            <CardTitle>Meal Selection</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-3">Standard Prices</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Main Meal (base):</span>
-                    <span>{pricingConfig.basePrices.mainMeal} MAD</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Breakfast (base):</span>
-                    <span>{pricingConfig.basePrices.breakfast} MAD</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Snack:</span>
-                    <span>{pricingConfig.basePrices.snack} MAD</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-3">Muscle Gain Prices (15% premium)</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Main Meal:</span>
-                    <span className="font-medium text-fitnest-orange">
-                      {pricingConfig.basePrices.mainMeal * pricingConfig.planMultipliers["muscle-gain"]} MAD
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Breakfast:</span>
-                    <span className="font-medium text-fitnest-orange">
-                      {pricingConfig.basePrices.breakfast * pricingConfig.planMultipliers["muscle-gain"]} MAD
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Snack:</span>
-                    <span>{pricingConfig.basePrices.snack} MAD</span>
-                  </div>
-                </div>
-              </div>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Meal Plan</label>
+              <Select value={selection.planId} onValueChange={(value) => updateSelection("planId", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stay-fit">Stay Fit (5% discount)</SelectItem>
+                  <SelectItem value="weight-loss">Weight Loss (base price)</SelectItem>
+                  <SelectItem value="keto">Keto (10% premium)</SelectItem>
+                  <SelectItem value="muscle-gain">Muscle Gain (15% premium)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Main Meals per Day</label>
+              <Select
+                value={selection.mainMeals.toString()}
+                onValueChange={(value) => updateSelection("mainMeals", Number.parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Main Meal</SelectItem>
+                  <SelectItem value="2">2 Main Meals</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Breakfast</label>
+              <Select
+                value={selection.breakfast.toString()}
+                onValueChange={(value) => updateSelection("breakfast", value === "true")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="false">No Breakfast</SelectItem>
+                  <SelectItem value="true">Include Breakfast</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Snacks per Day</label>
+              <Select
+                value={selection.snacks.toString()}
+                onValueChange={(value) => updateSelection("snacks", Number.parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">No Snacks</SelectItem>
+                  <SelectItem value="1">1 Snack</SelectItem>
+                  <SelectItem value="2">2 Snacks</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Days per Week</label>
+              <Select
+                value={selection.selectedDays.length.toString()}
+                onValueChange={(value) => updateSelection("selectedDays", Number.parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3 Days</SelectItem>
+                  <SelectItem value="4">4 Days</SelectItem>
+                  <SelectItem value="5">5 Days</SelectItem>
+                  <SelectItem value="6">6 Days</SelectItem>
+                  <SelectItem value="7">7 Days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Subscription Duration</label>
+              <Select
+                value={selection.subscriptionWeeks.toString()}
+                onValueChange={(value) => updateSelection("subscriptionWeeks", Number.parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Week</SelectItem>
+                  <SelectItem value="2">2 Weeks</SelectItem>
+                  <SelectItem value="4">1 Month (4 weeks)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Seasonal Code (Optional)</label>
+              <Select value={seasonalCode} onValueChange={setSeasonalCode}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No code" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-code">No Code</SelectItem>
+                  <SelectItem value="new-customer">NEW-CUSTOMER (20%)</SelectItem>
+                  <SelectItem value="ramadan">RAMADAN (15%)</SelectItem>
+                  <SelectItem value="summer">SUMMER (10%)</SelectItem>
+                  <SelectItem value="bulk-order">BULK-ORDER (25%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button onClick={calculatePricing} className="w-full">
+              Calculate Price
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Day Selection */}
+        {/* Results Panel */}
         <Card>
           <CardHeader>
-            <CardTitle>Select Number of Days</CardTitle>
+            <CardTitle>Price Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {dayOptions.map((days) => (
-                <Button
-                  key={days}
-                  variant={selectedDays === days ? "default" : "outline"}
-                  onClick={() => setSelectedDays(days)}
-                  className="relative"
-                >
-                  {days} Day{days > 1 ? "s" : ""}
-                  {days >= 5 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      {days === 5 || days === 6 ? "5%" : "10%"} OFF
-                    </Badge>
-                  )}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+            )}
 
-        {/* Pricing Calculation */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pricing Breakdown for {selectedDays} Days</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const selection = createSelection(selectedDays)
-              const pricing = calculatePrice(selection)
-
-              // Calculate daily breakdown
-              const mainMealPrice = pricingConfig.basePrices.mainMeal * pricingConfig.planMultipliers["muscle-gain"]
-              const breakfastPrice = pricingConfig.basePrices.breakfast * pricingConfig.planMultipliers["muscle-gain"]
-              const snackPrice = pricingConfig.basePrices.snack
-              const dailyTotal = mainMealPrice * 2 + breakfastPrice + snackPrice
-
-              // Determine which discount applies
-              const daysDiscount =
-                pricingConfig.volumeDiscounts.days.find((tier) => selectedDays >= tier.min && selectedDays <= tier.max)
-                  ?.discount || 0
-
-              const volumeDiscount =
-                pricingConfig.volumeDiscounts.totalItems.find(
-                  (tier) => pricing.totalItems >= tier.min && pricing.totalItems <= tier.max,
-                )?.discount || 0
-
-              const appliedDiscount = Math.max(daysDiscount, volumeDiscount)
-
-              return (
-                <div className="space-y-6">
-                  {/* Daily Breakdown */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Daily Meal Cost</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>2 Main Meals:</span>
-                        <span>
-                          2 × {mainMealPrice} = {(mainMealPrice * 2).toFixed(2)} MAD
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>1 Breakfast:</span>
-                        <span>
-                          1 × {breakfastPrice} = {breakfastPrice.toFixed(2)} MAD
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>1 Snack:</span>
-                        <span>
-                          1 × {snackPrice} = {snackPrice} MAD
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-medium border-t pt-2">
-                        <span>Daily Total:</span>
-                        <span>{dailyTotal.toFixed(2)} MAD</span>
-                      </div>
+            {breakdown && (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold">Final Total</span>
+                    <span className="text-2xl font-bold text-blue-600">{breakdown.finalTotal} MAD</span>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Per Week:</span>
+                      <span>{breakdown.pricePerWeek} MAD</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Per Day:</span>
+                      <span>{breakdown.pricePerDay} MAD</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Items:</span>
+                      <span>{breakdown.totalItems}</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Weekly Calculation */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Weekly Calculation</h3>
-                    <div className="space-y-2">
+                {/* Daily Breakdown */}
+                <div>
+                  <h4 className="font-semibold mb-2">Daily Breakdown</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Main Meals ({selection.mainMeals}×):</span>
+                      <span>{breakdown.dailyBreakdown.mainMeals} MAD</span>
+                    </div>
+                    {selection.breakfast && (
                       <div className="flex justify-between">
-                        <span>Subtotal ({selectedDays} days):</span>
-                        <span>
-                          {selectedDays} × {dailyTotal.toFixed(2)} = {pricing.weeklyTotals.subtotal} MAD
-                        </span>
+                        <span>Breakfast:</span>
+                        <span>{breakdown.dailyBreakdown.breakfast} MAD</span>
                       </div>
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Total items:</span>
-                        <span>
-                          {pricing.totalItems} items ({selectedDays} days × 4 items/day)
-                        </span>
+                    )}
+                    {selection.snacks > 0 && (
+                      <div className="flex justify-between">
+                        <span>Snacks ({selection.snacks}×):</span>
+                        <span>{breakdown.dailyBreakdown.snacks} MAD</span>
                       </div>
+                    )}
+                    <div className="flex justify-between font-semibold border-t pt-2">
+                      <span>Daily Total:</span>
+                      <span>{breakdown.dailyBreakdown.dailyTotal} MAD</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Discount Logic */}
+                {/* Discounts */}
+                {breakdown.discounts.totalDiscount > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-3">Discount Analysis</h3>
-                    <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Days-based discount ({selectedDays} days):</span>
-                        <span className={daysDiscount > 0 ? "text-green-600 font-medium" : "text-gray-500"}>
-                          {daysDiscount * 100}%
-                          {daysDiscount > 0 && ` (-${(pricing.weeklyTotals.subtotal * daysDiscount).toFixed(2)} MAD)`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Volume-based discount ({pricing.totalItems} items):</span>
-                        <span className={volumeDiscount > 0 ? "text-green-600 font-medium" : "text-gray-500"}>
-                          {volumeDiscount * 100}%
-                          {volumeDiscount > 0 &&
-                            ` (-${(pricing.weeklyTotals.subtotal * volumeDiscount).toFixed(2)} MAD)`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-medium border-t pt-2">
-                        <span>Applied discount (best one):</span>
-                        <span className="text-green-600">
-                          {appliedDiscount * 100}% (-{pricing.discounts.totalDiscount.toFixed(2)} MAD)
-                        </span>
+                    <h4 className="font-semibold mb-2">Discounts Applied</h4>
+                    <div className="space-y-2 text-sm">
+                      {breakdown.discounts.appliedWeeklyDiscount > 0 && (
+                        <div className="flex justify-between">
+                          <span>Weekly Discount:</span>
+                          <Badge variant="secondary">
+                            -{(breakdown.discounts.appliedWeeklyDiscount * breakdown.totalWeeks).toFixed(2)} MAD
+                          </Badge>
+                        </div>
+                      )}
+                      {breakdown.discounts.durationDiscount > 0 && (
+                        <div className="flex justify-between">
+                          <span>Duration Discount:</span>
+                          <Badge variant="secondary">-{breakdown.discounts.durationDiscount} MAD</Badge>
+                        </div>
+                      )}
+                      {breakdown.discounts.seasonalDiscount > 0 && (
+                        <div className="flex justify-between">
+                          <span>Seasonal Discount:</span>
+                          <Badge variant="secondary">-{breakdown.discounts.seasonalDiscount} MAD</Badge>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold border-t pt-2">
+                        <span>Total Savings:</span>
+                        <Badge variant="default">-{breakdown.discounts.totalDiscount} MAD</Badge>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Final Total */}
-                  <div className="bg-fitnest-green/10 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Final Total:</span>
-                      <span className="text-2xl font-bold text-fitnest-green">{pricing.finalTotal} MAD</span>
+                {/* Subscription Details */}
+                <div>
+                  <h4 className="font-semibold mb-2">Subscription Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Duration:</span>
+                      <span>
+                        {breakdown.totalWeeks} week{breakdown.totalWeeks > 1 ? "s" : ""}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-600 mt-1">
-                      <span>Price per day:</span>
-                      <span>{pricing.pricePerDay} MAD</span>
+                    <div className="flex justify-between">
+                      <span>Days per Week:</span>
+                      <span>{selection.selectedDays.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Subtotal (before discounts):</span>
+                      <span>{breakdown.subscriptionTotals.subscriptionSubtotal} MAD</span>
                     </div>
                   </div>
-
-                  {/* Savings Comparison */}
-                  {selectedDays > 3 && (
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                      <h4 className="font-medium text-yellow-800 mb-2">💰 Savings vs 3 Days</h4>
-                      {(() => {
-                        const threeDaySelection = createSelection(3)
-                        const threeDayPricing = calculatePrice(threeDaySelection)
-                        const threeDayPerDay = threeDayPricing.pricePerDay
-                        const currentPerDay = pricing.pricePerDay
-                        const savingsPerDay = threeDayPerDay - currentPerDay
-                        const totalSavings = savingsPerDay * selectedDays
-
-                        return (
-                          <div className="text-sm space-y-1">
-                            <div>3 days: {threeDayPerDay} MAD per day</div>
-                            <div>
-                              {selectedDays} days: {currentPerDay} MAD per day
-                            </div>
-                            <div className="font-medium text-green-600">
-                              You save {savingsPerDay.toFixed(2)} MAD per day = {totalSavings.toFixed(2)} MAD total!
-                            </div>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
-          </CardContent>
-        </Card>
-
-        {/* Discount Tiers Reference */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Discount Tiers Reference</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-3">Days-Based Discounts</h3>
-                <div className="space-y-2">
-                  {pricingConfig.volumeDiscounts.days.map((tier, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>
-                        {tier.min}-{tier.max} days:
-                      </span>
-                      <span className={tier.discount > 0 ? "text-green-600 font-medium" : "text-gray-500"}>
-                        {tier.discount * 100}% off
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-3">Volume-Based Discounts</h3>
-                <div className="space-y-2">
-                  {pricingConfig.volumeDiscounts.totalItems.map((tier, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>
-                        {tier.min}-{tier.max === 999 ? "∞" : tier.max} items:
-                      </span>
-                      <span className={tier.discount > 0 ? "text-green-600 font-medium" : "text-gray-500"}>
-                        {tier.discount * 100}% off
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Only the best discount is applied. The system automatically chooses between
-                days-based and volume-based discounts to give you the maximum savings.
-              </p>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Examples Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Examples</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="border rounded-lg p-4">
+              <h5 className="font-semibold mb-2">Budget Customer</h5>
+              <p className="text-sm text-gray-600 mb-2">Stay Fit • 1 Main + Breakfast • 3 days • 1 week</p>
+              <p className="font-bold">199.5 MAD</p>
+              <p className="text-xs text-gray-500">66.5 MAD per day</p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h5 className="font-semibold mb-2">Popular Customer</h5>
+              <p className="text-sm text-gray-600 mb-2">Weight Loss • 2 Main + 1 Snack • 5 days • 2 weeks</p>
+              <p className="font-bold">855 MAD</p>
+              <p className="text-xs text-gray-500">85.5 MAD per day</p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h5 className="font-semibold mb-2">Premium Customer</h5>
+              <p className="text-sm text-gray-600 mb-2">Muscle Gain • All Meals + 2 Snacks • 7 days • 1 month</p>
+              <p className="font-bold">3505.6 MAD</p>
+              <p className="text-xs text-gray-500">125.2 MAD per day</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
