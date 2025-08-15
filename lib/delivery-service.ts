@@ -2,146 +2,190 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export interface Delivery {
+export interface DeliverySchedule {
   id: number
-  orderId: number
-  scheduledDate: string
-  status: "pending" | "delivered" | "skipped" | "paused"
-  deliveredAt?: string
-  createdAt: string
-  updatedAt: string
+  subscription_id: number
+  delivery_date: string
+  status: "scheduled" | "delivered" | "skipped" | "paused"
+  created_at: string
 }
 
-export interface DeliverySchedule {
-  deliveries: Delivery[]
-  totalDeliveries: number
-  completedDeliveries: number
-  pendingDeliveries: number
-  nextDeliveryDate?: string
-  canPause: boolean
-  pauseEligibleDate?: string
+export interface PauseRequest {
+  subscription_id: number
+  pause_start_date: string
+  pause_end_date: string
+  reason?: string
 }
 
 export class DeliveryService {
-  // Generate delivery schedule for a new order
-  static async generateDeliverySchedule(orderId: number, startDate: Date, totalDeliveries = 8): Promise<void> {
-    try {
-      // Check if deliveries already exist for this order
-      const existingDeliveries = await sql`
-        SELECT COUNT(*) as count FROM deliveries WHERE order_id = ${orderId}
-      `
+  // Generate delivery schedule for a subscription
+  static async generateDeliverySchedule(
+    subscriptionId: number,
+    startDate: Date,
+    endDate: Date,
+    deliveryDays: number[], // 0=Sunday, 1=Monday, etc.
+  ): Promise<DeliverySchedule[]> {
+    const deliveries: DeliverySchedule[] = []
+    const current = new Date(startDate)
 
-      if (existingDeliveries[0]?.count > 0) {
-        console.log(`Deliveries already exist for order ${orderId}`)
-        return
-      }
-
-      const deliveries: Array<{ orderId: number; scheduledDate: string }> = []
-      const deliveryDate = new Date(startDate)
-
-      // Generate weekly deliveries (every 7 days)
-      for (let i = 0; i < totalDeliveries; i++) {
-        // Add 7 days for each delivery (weekly schedule)
-        const scheduledDate = new Date(deliveryDate.getTime() + i * 7 * 24 * 60 * 60 * 1000)
-
-        deliveries.push({
-          orderId,
-          scheduledDate: scheduledDate.toISOString().split("T")[0],
-        })
-      }
-
-      // Insert all deliveries
-      for (const delivery of deliveries) {
-        await sql`
-          INSERT INTO deliveries (order_id, scheduled_date, status)
-          VALUES (${delivery.orderId}, ${delivery.scheduledDate}, 'pending')
+    while (current <= endDate) {
+      if (deliveryDays.includes(current.getDay())) {
+        const delivery = await sql`
+          INSERT INTO delivery_schedule (subscription_id, delivery_date, status)
+          VALUES (${subscriptionId}, ${current.toISOString().split("T")[0]}, 'scheduled')
+          RETURNING *
         `
+        deliveries.push(delivery[0] as DeliverySchedule)
       }
-
-      console.log(`Generated ${deliveries.length} deliveries for order ${orderId}`)
-    } catch (error) {
-      console.error("Error generating delivery schedule:", error)
-      throw error
+      current.setDate(current.getDate() + 1)
     }
+
+    return deliveries
   }
 
-  // Get delivery schedule for an order
-  static async getDeliverySchedule(orderId: number): Promise<DeliverySchedule> {
+  // Pause subscription deliveries
+  static async pauseSubscription(pauseRequest: PauseRequest): Promise<boolean> {
     try {
-      const deliveries = await sql`
-        SELECT 
-          id,
-          order_id as "orderId",
-          scheduled_date as "scheduledDate",
-          status,
-          delivered_at as "deliveredAt",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM deliveries 
-        WHERE order_id = ${orderId}
-        ORDER BY scheduled_date ASC
-      `
-
-      const totalDeliveries = deliveries.length
-      const completedDeliveries = deliveries.filter((d) => d.status === "delivered").length
-      const pendingDeliveries = deliveries.filter((d) => d.status === "pending").length
-
-      // Find next pending delivery
-      const nextDelivery = deliveries.find((d) => d.status === "pending")
-      const nextDeliveryDate = nextDelivery?.scheduledDate
-
-      // Check if we can pause (next delivery is at least 72 hours away)
-      const now = new Date()
-      const minPauseTime = new Date(now.getTime() + 72 * 60 * 60 * 1000) // 72 hours from now
-
-      let canPause = false
-      let pauseEligibleDate: string | undefined
-
-      if (nextDelivery) {
-        const nextDeliveryDateTime = new Date(nextDelivery.scheduledDate)
-        canPause = nextDeliveryDateTime > minPauseTime
-
-        if (!canPause) {
-          // Find the first delivery that's eligible for pause
-          const eligibleDelivery = deliveries.find(
-            (d) => d.status === "pending" && new Date(d.scheduledDate) > minPauseTime,
-          )
-          pauseEligibleDate = eligibleDelivery?.scheduledDate
-        }
+      // Validate pause request
+      const validation = await this.validatePauseRequest(pauseRequest)
+      if (!validation.isValid) {
+        throw new Error(validation.error)
       }
 
-      return {
-        deliveries: deliveries as Delivery[],
-        totalDeliveries,
-        completedDeliveries,
-        pendingDeliveries,
-        nextDeliveryDate,
-        canPause,
-        pauseEligibleDate,
-      }
-    } catch (error) {
-      console.error("Error getting delivery schedule:", error)
-      throw error
-    }
-  }
-
-  // Pause subscription
-  static async pauseSubscription(orderId: number, pauseDurationDays: number): Promise<void> {
-    try {
-      const now = new Date()
-
-      // Update order status
+      // Update subscription status
       await sql`
-        UPDATE orders 
-        SET 
-          status = 'paused',
-          paused_at = ${now.toISOString()}
-        WHERE id = ${orderId}
+        UPDATE subscriptions 
+        SET status = 'paused', 
+            pause_start_date = ${pauseRequest.pause_start_date},
+            pause_end_date = ${pauseRequest.pause_end_date},
+            pause_reason = ${pauseRequest.reason || ""}
+        WHERE id = ${pauseRequest.subscription_id}
       `
-      console.log(`Order ${orderId} has been paused for ${pauseDurationDays} days`)
+
+      // Update delivery schedule to 'paused' for the pause period
+      await sql`
+        UPDATE delivery_schedule 
+        SET status = 'paused'
+        WHERE subscription_id = ${pauseRequest.subscription_id}
+          AND delivery_date >= ${pauseRequest.pause_start_date}
+          AND delivery_date <= ${pauseRequest.pause_end_date}
+          AND status = 'scheduled'
+      `
+
+      return true
     } catch (error) {
       console.error("Error pausing subscription:", error)
-      throw error
+      return false
     }
+  }
+
+  // Resume subscription deliveries
+  static async resumeSubscription(subscriptionId: number): Promise<boolean> {
+    try {
+      // Update subscription status
+      await sql`
+        UPDATE subscriptions 
+        SET status = 'active',
+            pause_start_date = NULL,
+            pause_end_date = NULL,
+            pause_reason = NULL
+        WHERE id = ${subscriptionId}
+      `
+
+      // Update future delivery schedule back to 'scheduled'
+      const today = new Date().toISOString().split("T")[0]
+      await sql`
+        UPDATE delivery_schedule 
+        SET status = 'scheduled'
+        WHERE subscription_id = ${subscriptionId}
+          AND delivery_date >= ${today}
+          AND status = 'paused'
+      `
+
+      return true
+    } catch (error) {
+      console.error("Error resuming subscription:", error)
+      return false
+    }
+  }
+
+  // Validate pause request
+  static async validatePauseRequest(pauseRequest: PauseRequest): Promise<{ isValid: boolean; error?: string }> {
+    const { subscription_id, pause_start_date, pause_end_date } = pauseRequest
+
+    // Check if subscription exists and is active
+    const subscription = await sql`
+      SELECT * FROM subscriptions WHERE id = ${subscription_id} AND status = 'active'
+    `
+
+    if (subscription.length === 0) {
+      return { isValid: false, error: "Subscription not found or not active" }
+    }
+
+    // Check if subscription has already been paused
+    const existingPause = await sql`
+      SELECT * FROM subscriptions 
+      WHERE id = ${subscription_id} 
+        AND (pause_start_date IS NOT NULL OR status = 'paused')
+    `
+
+    if (existingPause.length > 0) {
+      return {
+        isValid: false,
+        error: "Subscription has already been paused. Only one pause per subscription is allowed.",
+      }
+    }
+
+    // Validate pause dates
+    const startDate = new Date(pause_start_date)
+    const endDate = new Date(pause_end_date)
+    const today = new Date()
+    const minNoticeDate = new Date()
+    minNoticeDate.setHours(minNoticeDate.getHours() + 72) // 72 hours notice
+
+    if (startDate < minNoticeDate) {
+      return { isValid: false, error: "Pause must be requested at least 72 hours in advance" }
+    }
+
+    if (endDate <= startDate) {
+      return { isValid: false, error: "Pause end date must be after start date" }
+    }
+
+    // Check pause duration (max 3 weeks = 21 days)
+    const pauseDuration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    if (pauseDuration > 21) {
+      return { isValid: false, error: "Pause duration cannot exceed 3 weeks (21 days)" }
+    }
+
+    return { isValid: true }
+  }
+
+  // Get delivery schedule for a subscription
+  static async getDeliverySchedule(subscriptionId: number): Promise<DeliverySchedule[]> {
+    const deliveries = await sql`
+      SELECT * FROM delivery_schedule 
+      WHERE subscription_id = ${subscriptionId}
+      ORDER BY delivery_date ASC
+    `
+
+    return deliveries as DeliverySchedule[]
+  }
+
+  // Get upcoming deliveries (next 30 days)
+  static async getUpcomingDeliveries(subscriptionId: number): Promise<DeliverySchedule[]> {
+    const today = new Date().toISOString().split("T")[0]
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const future = futureDate.toISOString().split("T")[0]
+
+    const deliveries = await sql`
+      SELECT * FROM delivery_schedule 
+      WHERE subscription_id = ${subscriptionId}
+        AND delivery_date >= ${today}
+        AND delivery_date <= ${future}
+      ORDER BY delivery_date ASC
+    `
+
+    return deliveries as DeliverySchedule[]
   }
 }

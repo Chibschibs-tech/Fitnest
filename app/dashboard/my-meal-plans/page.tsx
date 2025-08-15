@@ -27,22 +27,39 @@ export default function MyMealPlansPage() {
     setError(null)
 
     try {
-      const response = await fetch("/api/user/subscriptions")
+      console.log("Fetching meal plans...")
+      const response = await fetch("/api/user/subscriptions", {
+        method: "GET",
+        credentials: "include", // Include cookies
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      console.log("Response status:", response.status)
 
       if (!response.ok) {
-        throw new Error("Failed to fetch meal plans")
+        if (response.status === 401) {
+          throw new Error("You need to log in to view your meal plans")
+        }
+        throw new Error(`HTTP ${response.status}: Failed to fetch meal plans`)
       }
 
       const data = await response.json()
+      console.log("Response data:", data)
 
       if (data.success) {
         setMealPlans(data.subscriptions || [])
       } else {
-        setError(data.message || "Failed to load meal plans")
+        setError(data.error || "Failed to load meal plans")
       }
     } catch (err) {
       console.error("Error fetching meal plans:", err)
-      setError("We couldn't load your meal plans. Please try again.")
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("We couldn't load your meal plans. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
@@ -132,6 +149,11 @@ export default function MyMealPlansPage() {
               <Link href="/meal-plans">
                 <Button variant="outline">Browse Meal Plans</Button>
               </Link>
+              {error.includes("log in") && (
+                <Link href="/login">
+                  <Button className="bg-blue-600 hover:bg-blue-700">Log In</Button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>

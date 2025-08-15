@@ -9,474 +9,470 @@
 6. [Practical Examples](#practical-examples)
 7. [Implementation Details](#implementation-details)
 8. [Edge Cases & Validation](#edge-cases--validation)
+9. [Business Impact & Metrics](#business-impact--metrics)
+10. [Future Considerations](#future-considerations)
 
 ---
 
-## 1. Business Model Overview
+## Business Model Overview
 
-Fitnest.ma operates a **subscription-based meal delivery service** with the following key characteristics:
-
-- **Meal Plans**: 4 different nutrition-focused plans (Weight Loss, Stay Fit, Muscle Gain, Keto)
-- **Flexible Selection**: Customers choose specific meals, days, and subscription duration
-- **Delivery Schedule**: Minimum 3 days per week, maximum 7 days per week
-- **Subscription Duration**: 1 week, 2 weeks, or 1 month (4 weeks)
+Fitnest.ma is a meal delivery service that provides customized meal plans for fitness goals. Customers select:
+- A meal plan type (Weight Loss, Stay Fit, Muscle Gain, Keto)
+- Meal combinations per day
+- Number of delivery days per week (minimum 3)
+- Subscription duration (1 week, 2 weeks, 1 month)
 
 ### Revenue Model
-- **Primary Revenue**: Subscription fees based on meal selections
+- **Primary**: Subscription-based meal delivery
+- **Secondary**: Express shop products (protein bars, supplements)
 - **Pricing Strategy**: Volume discounts to encourage larger orders and longer commitments
-- **Target Market**: Health-conscious individuals seeking convenient, nutritious meals
 
 ---
 
-## 2. Meal Structure & Constraints
+## Meal Structure & Constraints
 
-### 2.1 Meal Types
-The system recognizes three distinct meal types:
+### Meal Types
+1. **Main Meals**: What customers see as "lunch" and "dinner" (same preparation cost)
+2. **Breakfast**: Different preparation/cost from main meals
+3. **Snacks**: Optional add-ons
 
-1. **Main Meals**: What customers see as "lunch" and "dinner"
-   - Technically identical in preparation and cost
-   - Both classified as "main meals" in the system
-   - Higher complexity and cost than breakfast
+### Valid Meal Combinations (Minimum 2 meals required)
+1. **1 Main Meal + 1 Breakfast**
+2. **2 Main Meals** (lunch + dinner)
+3. **2 Main Meals + 1 Breakfast** (all three)
 
-2. **Breakfast**: 
-   - Simpler preparation than main meals
-   - Lower base cost
-   - Optional addition to main meals
+### Snack Options
+- 0 snacks per day
+- 1 snack per day
+- 2 snacks per day
 
-3. **Snacks**:
-   - Add-on items
-   - Fixed price regardless of plan
-   - Optional (0, 1, or 2 per day)
-
-### 2.2 Valid Meal Combinations
-Customers **must select minimum 2 meals per day**. Valid combinations are:
-
-| Combination ID | Description | Main Meals | Breakfast | Total Meals |
-|----------------|-------------|------------|-----------|-------------|
-| `1main-1breakfast` | 1 Main + Breakfast | 1 | ✓ | 2 |
-| `2main` | Lunch + Dinner | 2 | ✗ | 2 |
-| `2main-1breakfast` | All Meals | 2 | ✓ | 3 |
-
-### 2.3 Snack Options
-For each valid meal combination, customers can add:
-- **0 snacks**: No additional cost
-- **1 snack**: +15 MAD per day
-- **2 snacks**: +30 MAD per day (2 × 15 MAD)
-
-### 2.4 Total Possible Configurations
+### Total Daily Configurations
 \`\`\`
-3 meal combinations × 3 snack options = 9 possible daily configurations
+Meal Combinations × Snack Options = 9 possible daily configurations
 
 1. 1 Main + 1 Breakfast + 0 snacks
-2. 1 Main + 1 Breakfast + 1 snack  
+2. 1 Main + 1 Breakfast + 1 snack
 3. 1 Main + 1 Breakfast + 2 snacks
 4. 2 Main Meals + 0 snacks
 5. 2 Main Meals + 1 snack
-6. 2 Main Meals + 2 snacks  
+6. 2 Main Meals + 2 snacks
 7. 2 Main + 1 Breakfast + 0 snacks
 8. 2 Main + 1 Breakfast + 1 snack
 9. 2 Main + 1 Breakfast + 2 snacks
 \`\`\`
 
-### 2.5 Delivery Constraints
+### Delivery Constraints
 - **Minimum**: 3 days per week
 - **Maximum**: 7 days per week
-- **Selection**: Customer chooses specific days (Monday-Sunday)
+- Customer selects specific days (Monday-Sunday)
 
 ---
 
-## 3. Base Pricing Structure
+## Base Pricing Structure
 
-### 3.1 Standard Base Prices (MAD)
+### Base Meal Prices (in MAD)
+\`\`\`typescript
+const basePrices = {
+  mainMeal: 40,    // MAD per main meal (lunch or dinner)
+  breakfast: 30,   // MAD per breakfast
+  snack: 15        // MAD per snack (no plan multiplier)
+}
 \`\`\`
-Main Meal (lunch/dinner): 40 MAD
-Breakfast: 30 MAD
-Snack: 15 MAD
+
+### Plan Multipliers
+Different meal plans have different costs based on complexity and ingredients:
+
+\`\`\`typescript
+const planMultipliers = {
+  "stay-fit": 0.95,      // 5% discount (simpler preparation)
+  "weight-loss": 1.0,    // Base price (standard)
+  "muscle-gain": 1.15,   // 15% premium (more protein, larger portions)
+  "keto": 1.10          // 10% premium (specialized ingredients)
+}
 \`\`\`
 
-### 3.2 Plan-Based Multipliers
-Each meal plan has a different multiplier applied to main meals and breakfast (snacks remain fixed):
-
-| Plan | Multiplier | Reasoning | Main Meal Price | Breakfast Price |
-|------|------------|-----------|-----------------|-----------------|
-| **Stay Fit** | 0.95 (5% discount) | Easier preparation | 38 MAD | 28.5 MAD |
-| **Weight Loss** | 1.0 (base) | Standard complexity | 40 MAD | 30 MAD |
-| **Keto** | 1.1 (10% premium) | Specialized ingredients | 44 MAD | 33 MAD |
-| **Muscle Gain** | 1.15 (15% premium) | More protein, larger portions | 46 MAD | 34.5 MAD |
-
-### 3.3 Daily Cost Calculation Formula
+### Adjusted Meal Prices Formula
 \`\`\`
-Daily Cost = (Main Meals × Main Meal Price) + (Breakfast × Breakfast Price) + (Snacks × 15)
+Adjusted Price = Base Price × Plan Multiplier
 
-Where:
-- Main Meal Price = 40 × Plan Multiplier
-- Breakfast Price = 30 × Plan Multiplier (if selected)
-- Snacks = 0, 1, or 2
+Examples:
+- Stay Fit Main Meal: 40 × 0.95 = 38 MAD
+- Muscle Gain Breakfast: 30 × 1.15 = 34.5 MAD
+- Keto Main Meal: 40 × 1.10 = 44 MAD
 \`\`\`
 
 ---
 
-## 4. Discount System
+## Discount System
 
-The system applies **four types of discounts** with specific stacking rules:
+The system applies **4 types of discounts** but uses the **best discount only** (no stacking):
 
-### 4.1 Days-Based Discounts (Weekly)
+### 1. Days-Based Discounts
 Encourages customers to order more days per week:
+\`\`\`typescript
+const daysDiscounts = {
+  "3-4 days": 0%,     // No discount
+  "5-6 days": 5%,     // 5% off total
+  "7 days": 10%       // 10% off total
+}
+\`\`\`
 
-| Days per Week | Discount | Reasoning |
-|---------------|----------|-----------|
-| 3-4 days | 0% | Minimum viable order |
-| 5-6 days | 5% | Regular customer |
-| 7 days | 10% | Full week commitment |
-
-### 4.2 Volume-Based Discounts (Weekly)
+### 2. Volume-Based Discounts
 Based on total items per week (meals + snacks):
+\`\`\`typescript
+const volumeDiscounts = {
+  "6-13 items": 0%,    // No discount
+  "14-20 items": 5%,   // 5% off total
+  "21-35 items": 10%,  // 10% off total
+  "36+ items": 15%     // 15% off total
+}
+\`\`\`
 
-| Total Items per Week | Discount | Example |
-|---------------------|----------|---------|
-| 6-13 items | 0% | 3 days × 2 meals = 6 items |
-| 14-20 items | 5% | 5 days × 3 meals + 1 snack = 20 items |
-| 21-35 items | 10% | 7 days × 3 meals = 21 items |
-| 36+ items | 15% | 7 days × 4 meals + 2 snacks = 42 items |
-
-### 4.3 Duration-Based Discounts (Subscription)
+### 3. Duration-Based Discounts
 Rewards longer subscription commitments:
+\`\`\`typescript
+const durationDiscounts = {
+  "1 week": 0%,        // No discount
+  "2 weeks": 5%,       // 5% off total subscription
+  "1 month": 10%       // 10% off total subscription
+}
+\`\`\`
 
-| Subscription Duration | Discount | Target Customer |
-|----------------------|----------|-----------------|
-| 1 week | 0% | Trial customers |
-| 2 weeks | 5% | Habit building |
-| 1 month (4 weeks) | 10% | Committed customers |
+### 4. Promotional Discounts
+Flexible system for marketing campaigns:
+\`\`\`typescript
+const promotionalDiscounts = {
+  "RAMADAN2024": 15%,
+  "NEWCUSTOMER": 20%,
+  "SUMMER2024": 10%
+}
+\`\`\`
 
-### 4.4 Seasonal/Promotional Discounts
-Configurable promotional codes:
-
-| Code | Discount | Usage |
-|------|----------|-------|
-| `new-customer` | 20% | First-time customers |
-| `ramadan` | 15% | Religious holidays |
-| `summer` | 10% | Seasonal promotions |
-| `bulk-order` | 25% | Orders over 1000 MAD |
-
-### 4.5 Discount Stacking Rules
-
-**Rule 1: Weekly Discounts (Days vs Volume)**
-- Calculate both days-based and volume-based discounts
-- Apply the **higher** of the two (no stacking)
-- This ensures customers always get the best weekly deal
-
-**Rule 2: Duration Discounts**
-- Duration discounts **stack** with weekly discounts
-- Applied to the total subscription amount
-
-**Rule 3: Seasonal Discounts**
-- Seasonal discounts **stack** with all other discounts
-- Applied to the final subscription amount
-
-**Calculation Order:**
-1. Calculate weekly subtotal
-2. Apply best weekly discount (days OR volume)
-3. Multiply by number of weeks
-4. Apply duration discount
-5. Apply seasonal discount (if any)
+### Discount Priority Logic
+1. Calculate all applicable discounts
+2. Apply the **highest discount only**
+3. Duration discounts **stack** with other discounts (applied after)
 
 ---
 
-## 5. Calculation Logic
+## Calculation Logic
 
-### 5.1 Step-by-Step Calculation Process
+### Step-by-Step Price Calculation
 
-\`\`\`
-Step 1: Calculate Daily Base Cost
-- Main meals cost = Main meal count × (40 × Plan multiplier)
-- Breakfast cost = Breakfast selected × (30 × Plan multiplier)
-- Snacks cost = Snack count × 15
-- Daily total = Main meals cost + Breakfast cost + Snacks cost
-
-Step 2: Calculate Weekly Cost
-- Weekly subtotal = Daily total × Selected days count
-
-Step 3: Calculate Weekly Discounts
-- Days discount = Weekly subtotal × Days discount rate
-- Volume discount = Weekly subtotal × Volume discount rate
-- Applied weekly discount = MAX(Days discount, Volume discount)
-
-Step 4: Calculate Subscription Cost
-- Subscription subtotal = Weekly subtotal × Subscription weeks
-- Weekly discount total = Applied weekly discount × Subscription weeks
-
-Step 5: Calculate Duration Discount
-- Duration discount = Subscription subtotal × Duration discount rate
-
-Step 6: Calculate Seasonal Discount (if applicable)
-- Seasonal discount = Subscription subtotal × Seasonal discount rate
-
-Step 7: Calculate Final Total
-- Total discount = Weekly discount total + Duration discount + Seasonal discount
-- Final total = Subscription subtotal - Total discount
+#### Step 1: Calculate Adjusted Meal Prices
+\`\`\`typescript
+const adjustedMainMeal = basePrices.mainMeal * planMultipliers[planId]
+const adjustedBreakfast = basePrices.breakfast * planMultipliers[planId]
+const snackPrice = basePrices.snack // No multiplier for snacks
 \`\`\`
 
-### 5.2 Key Metrics Calculated
-- **Final Total**: Total amount customer pays
-- **Price per Week**: Final total ÷ Number of weeks
-- **Price per Day**: Final total ÷ (Days per week × Number of weeks)
-- **Total Items**: (Meals + Snacks) per day × Days per week × Number of weeks
+#### Step 2: Calculate Daily Cost
+\`\`\`typescript
+const dailyCost = 
+  (numberOfMainMeals * adjustedMainMeal) +
+  (numberOfBreakfasts * adjustedBreakfast) +
+  (numberOfSnacks * snackPrice)
+\`\`\`
+
+#### Step 3: Calculate Weekly Subtotal
+\`\`\`typescript
+const weeklySubtotal = dailyCost * numberOfDaysPerWeek
+\`\`\`
+
+#### Step 4: Calculate Total Items
+\`\`\`typescript
+const totalItemsPerWeek = 
+  (numberOfMainMeals + numberOfBreakfasts + numberOfSnacks) * numberOfDaysPerWeek
+\`\`\`
+
+#### Step 5: Determine Best Weekly Discount
+\`\`\`typescript
+const daysDiscount = getDaysDiscount(numberOfDaysPerWeek)
+const volumeDiscount = getVolumeDiscount(totalItemsPerWeek)
+const promoDiscount = getPromoDiscount(promoCode)
+
+const bestWeeklyDiscount = Math.max(daysDiscount, volumeDiscount, promoDiscount)
+\`\`\`
+
+#### Step 6: Apply Weekly Discount
+\`\`\`typescript
+const weeklyDiscountAmount = weeklySubtotal * bestWeeklyDiscount
+const weeklyTotal = weeklySubtotal - weeklyDiscountAmount
+\`\`\`
+
+#### Step 7: Calculate Subscription Total
+\`\`\`typescript
+const subscriptionSubtotal = weeklyTotal * numberOfWeeks
+\`\`\`
+
+#### Step 8: Apply Duration Discount
+\`\`\`typescript
+const durationDiscount = getDurationDiscount(subscriptionDuration)
+const durationDiscountAmount = subscriptionSubtotal * durationDiscount
+const finalTotal = subscriptionSubtotal - durationDiscountAmount
+\`\`\`
 
 ---
 
-## 6. Practical Examples
+## Practical Examples
 
-### 6.1 Example 1: Budget Customer
+### Example 1: Budget Customer
 **Selection:**
-- Plan: Stay Fit
-- Meals: 1 Main + 1 Breakfast
-- Snacks: 0
-- Days: 3 per week
+- Plan: Stay Fit (0.95 multiplier)
+- Meals: 1 main + 1 breakfast + 0 snacks
+- Days: 3 days per week
 - Duration: 1 week
 
 **Calculation:**
 \`\`\`
-Daily cost: (1 × 38) + (1 × 28.5) + (0 × 15) = 66.5 MAD
-Weekly subtotal: 66.5 × 3 = 199.5 MAD
-Weekly discount: 0% (3 days, 6 items)
-Duration discount: 0% (1 week)
-Final total: 199.5 MAD
-Price per day: 66.5 MAD
+Adjusted Prices:
+- Main Meal: 40 × 0.95 = 38 MAD
+- Breakfast: 30 × 0.95 = 28.5 MAD
+
+Daily Cost: 38 + 28.5 = 66.5 MAD
+Weekly Subtotal: 66.5 × 3 = 199.5 MAD
+Total Items: 2 × 3 = 6 items
+
+Discounts:
+- Days: 0% (3 days)
+- Volume: 0% (6 items)
+- Duration: 0% (1 week)
+
+Final Total: 199.5 MAD
+Cost per day: 66.5 MAD
 \`\`\`
 
-### 6.2 Example 2: Popular Customer
+### Example 2: Popular Customer
 **Selection:**
-- Plan: Weight Loss
-- Meals: 2 Main + 0 Breakfast
-- Snacks: 1
-- Days: 5 per week
+- Plan: Weight Loss (1.0 multiplier)
+- Meals: 2 main + 0 breakfast + 1 snack
+- Days: 5 days per week
 - Duration: 2 weeks
 
 **Calculation:**
 \`\`\`
-Daily cost: (2 × 40) + (0 × 30) + (1 × 15) = 95 MAD
-Weekly subtotal: 95 × 5 = 475 MAD
-Weekly discount: 5% (5 days OR 15 items) = 23.75 MAD
-Subscription subtotal: 475 × 2 = 950 MAD
-Weekly discount total: 23.75 × 2 = 47.5 MAD
-Duration discount: 950 × 5% = 47.5 MAD
-Total discount: 47.5 + 47.5 = 95 MAD
-Final total: 950 - 95 = 855 MAD
-Price per week: 427.5 MAD
-Price per day: 85.5 MAD
+Adjusted Prices:
+- Main Meal: 40 × 1.0 = 40 MAD
+- Snack: 15 MAD
+
+Daily Cost: (40 × 2) + 15 = 95 MAD
+Weekly Subtotal: 95 × 5 = 475 MAD
+Total Items: 3 × 5 = 15 items
+
+Weekly Discounts:
+- Days: 5% (5 days)
+- Volume: 5% (15 items)
+- Best: 5%
+
+Weekly Total: 475 - (475 × 0.05) = 451.25 MAD
+Subscription Subtotal: 451.25 × 2 = 902.5 MAD
+
+Duration Discount: 5% (2 weeks)
+Duration Discount Amount: 902.5 × 0.05 = 45.13 MAD
+
+Final Total: 902.5 - 45.13 = 857.37 MAD
+Cost per week: 428.69 MAD
+Cost per day: 85.74 MAD
 \`\`\`
 
-### 6.3 Example 3: Premium Customer
+### Example 3: Premium Customer
 **Selection:**
-- Plan: Muscle Gain
-- Meals: 2 Main + 1 Breakfast
-- Snacks: 2
-- Days: 7 per week
+- Plan: Muscle Gain (1.15 multiplier)
+- Meals: 2 main + 1 breakfast + 2 snacks
+- Days: 7 days per week
 - Duration: 1 month (4 weeks)
 
 **Calculation:**
 \`\`\`
-Daily cost: (2 × 46) + (1 × 34.5) + (2 × 15) = 156.5 MAD
-Weekly subtotal: 156.5 × 7 = 1,095.5 MAD
-Weekly discount: 10% (7 days AND 35 items both = 10%) = 109.55 MAD
-Subscription subtotal: 1,095.5 × 4 = 4,382 MAD
-Weekly discount total: 109.55 × 4 = 438.2 MAD
-Duration discount: 4,382 × 10% = 438.2 MAD
-Total discount: 438.2 + 438.2 = 876.4 MAD
-Final total: 4,382 - 876.4 = 3,505.6 MAD
-Price per week: 876.4 MAD
-Price per day: 125.2 MAD
+Adjusted Prices:
+- Main Meal: 40 × 1.15 = 46 MAD
+- Breakfast: 30 × 1.15 = 34.5 MAD
+- Snack: 15 MAD
+
+Daily Cost: (46 × 2) + 34.5 + (15 × 2) = 156.5 MAD
+Weekly Subtotal: 156.5 × 7 = 1,095.5 MAD
+Total Items: 5 × 7 = 35 items
+
+Weekly Discounts:
+- Days: 10% (7 days)
+- Volume: 10% (35 items)
+- Best: 10%
+
+Weekly Total: 1,095.5 - (1,095.5 × 0.10) = 985.95 MAD
+Subscription Subtotal: 985.95 × 4 = 3,943.8 MAD
+
+Duration Discount: 10% (1 month)
+Duration Discount Amount: 3,943.8 × 0.10 = 394.38 MAD
+
+Final Total: 3,943.8 - 394.38 = 3,549.42 MAD
+Cost per week: 887.36 MAD
+Cost per day: 126.77 MAD
 \`\`\`
 
 ---
 
-## 7. Implementation Details
+## Implementation Details
 
-### 7.1 Data Structures
+### Core Interfaces
 
-**MealSelection Interface:**
 \`\`\`typescript
-interface MealSelection {
-  planId: string              // "weight-loss", "stay-fit", "muscle-gain", "keto"
-  mainMeals: number          // 1 or 2
-  breakfast: boolean         // true/false
-  snacks: number            // 0, 1, or 2
-  selectedDays: Date[]      // Array of delivery dates
-  subscriptionWeeks: number // 1, 2, or 4
-}
-\`\`\`
-
-**PriceBreakdown Interface:**
-\`\`\`typescript
-interface PriceBreakdown {
-  dailyBreakdown: {
-    mainMeals: number
+interface PricingConfig {
+  basePrices: {
+    mainMeal: number
     breakfast: number
-    snacks: number
-    dailyTotal: number
+    snack: number
   }
-  weeklyTotals: {
-    mainMealsTotal: number
-    breakfastTotal: number
-    snacksTotal: number
-    subtotal: number
+  planMultipliers: Record<string, number>
+  daysDiscounts: Record<string, number>
+  volumeDiscounts: Record<string, number>
+  durationDiscounts: Record<string, number>
+}
+
+interface MealSelection {
+  planId: string
+  mainMeals: number
+  breakfasts: number
+  snacks: number
+  daysPerWeek: number
+  subscriptionDuration: string
+  promoCode?: string
+}
+
+interface PricingResult {
+  dailyCost: number
+  weeklyCost: number
+  subscriptionCost: number
+  appliedDiscounts: {
+    weekly: { type: string; rate: number; amount: number }
+    duration: { rate: number; amount: number }
   }
-  subscriptionTotals: {
-    weeklySubtotal: number
-    totalWeeks: number
-    subscriptionSubtotal: number
-  }
-  discounts: {
-    daysDiscount: number
-    volumeDiscount: number
-    durationDiscount: number
-    seasonalDiscount: number
-    totalDiscount: number
-  }
-  finalTotal: number
-  pricePerDay: number
-  pricePerWeek: number
-  totalItems: number
-  totalWeeks: number
+  totalSavings: number
 }
 \`\`\`
 
-### 7.2 Key Functions
+### Key Functions
 
-**calculatePrice(selection, seasonalCode?):**
-- Main pricing calculation function
-- Returns complete price breakdown
-- Handles all discount logic
-
-**validateMealSelection(selection):**
-- Validates customer selections
-- Returns array of error messages
-- Ensures business rules compliance
-
-### 7.3 Configuration Management
-
-All pricing parameters are centralized in `pricingConfig`:
-- Easy to update prices
-- Modify discount tiers
-- Add/remove seasonal promotions
-- Change plan multipliers
+\`\`\`typescript
+function calculateMealPrice(planId: string, mealType: string): number
+function calculateDailyCost(selection: MealSelection): number
+function getBestWeeklyDiscount(days: number, items: number, promoCode?: string): number
+function calculateFinalPrice(selection: MealSelection): PricingResult
+\`\`\`
 
 ---
 
-## 8. Edge Cases & Validation
+## Edge Cases & Validation
 
-### 8.1 Validation Rules
+### Input Validation
+1. **Minimum meal requirement**: Must select at least 2 meals
+2. **Minimum days**: Must select at least 3 days per week
+3. **Valid combinations**: Only allow valid meal combinations
+4. **Plan validation**: Ensure selected plan exists
+5. **Duration validation**: Only allow 1 week, 2 weeks, 1 month
 
-**Meal Selection Validation:**
-- Minimum 2 meals per day (main + breakfast OR 2 main meals)
-- Main meals: 1 or 2 only
-- Snacks: 0, 1, or 2 only
-- Days: 3-7 per week
-- Duration: 1, 2, or 4 weeks only
+### Error Handling
+1. **Invalid plan**: Default to "weight-loss" plan
+2. **Invalid meal combination**: Show error message
+3. **Calculation errors**: Return base price without discounts
+4. **Database errors**: Log error, continue with cached prices
 
-**Business Logic Validation:**
-- Prevent invalid meal combinations
-- Ensure minimum order values
-- Validate delivery day selections
-- Check subscription duration limits
-
-### 8.2 Edge Cases Handled
-
-**Rounding:**
-- All final prices rounded to 2 decimal places
-- Consistent rounding throughout calculations
-
-**Discount Conflicts:**
-- Days vs Volume: Always apply the better discount
-- Multiple seasonal codes: Only one can be applied
-- Zero discounts: Handle gracefully without errors
-
-**Boundary Conditions:**
-- Exactly 3 days (minimum)
-- Exactly 7 days (maximum)
-- Transition points between discount tiers
-- Single week vs multi-week subscriptions
-
-### 8.3 Error Handling
-
-**Invalid Selections:**
-- Return clear error messages
-- Prevent calculation with invalid data
-- Guide users to valid combinations
-
-**System Errors:**
-- Graceful fallback to base pricing
-- Log calculation errors for debugging
-- Maintain service availability
+### Business Rules
+1. **Snacks don't get plan multipliers**: Always base price
+2. **Discounts don't stack**: Best discount wins (except duration)
+3. **Minimum order value**: No minimum currently, but can be added
+4. **Maximum discount**: Cap at 25% total discount
 
 ---
 
-## 9. Business Impact & Metrics
+## Business Impact & Metrics
 
-### 9.1 Key Performance Indicators
+### Key Performance Indicators (KPIs)
 
-**Revenue Metrics:**
-- Average Order Value (AOV)
-- Customer Lifetime Value (CLV)
-- Subscription retention rates
-- Discount utilization rates
+#### Revenue Metrics
+- **Average Order Value (AOV)**: Target increase through volume discounts
+- **Customer Lifetime Value (CLV)**: Improved through duration discounts
+- **Monthly Recurring Revenue (MRR)**: Stabilized through subscriptions
 
-**Customer Behavior:**
-- Most popular meal combinations
-- Average subscription duration
-- Days per week distribution
-- Plan preference by customer segment
+#### Customer Behavior
+- **Days per week**: Track average to optimize discount thresholds
+- **Subscription duration**: Monitor to adjust duration discounts
+- **Plan distribution**: Understand which plans are most popular
 
-### 9.2 Pricing Strategy Benefits
+#### Discount Effectiveness
+- **Discount utilization rate**: % of orders using discounts
+- **Average discount amount**: Monitor discount impact on margins
+- **Conversion rate by discount**: Which discounts drive most conversions
 
-**Volume Incentives:**
-- Encourages larger orders (higher AOV)
-- Improves operational efficiency
-- Increases customer satisfaction
+### Expected Business Outcomes
 
-**Commitment Rewards:**
-- Longer subscriptions improve cash flow
-- Reduces customer acquisition costs
-- Builds customer loyalty
+#### Short-term (1-3 months)
+- Increase average order size by 20-30%
+- Improve customer retention through duration discounts
+- Reduce customer acquisition cost through referral incentives
 
-**Plan Differentiation:**
-- Premium plans generate higher margins
-- Specialized offerings command premium pricing
-- Clear value proposition for each segment
+#### Medium-term (3-6 months)
+- Establish predictable revenue through subscription model
+- Optimize discount thresholds based on customer behavior
+- Introduce seasonal and promotional campaigns
 
----
-
-## 10. Future Considerations
-
-### 10.1 Potential Enhancements
-
-**Dynamic Pricing:**
-- Demand-based pricing by day/time
-- Seasonal ingredient cost adjustments
-- Geographic pricing variations
-
-**Advanced Discounts:**
-- Loyalty program integration
-- Referral bonuses
-- Corporate/bulk discounts
-
-**Personalization:**
-- Individual customer pricing
-- Usage-based discounts
-- Predictive pricing models
-
-### 10.2 Scalability Considerations
-
-**Technical:**
-- Caching of price calculations
-- Database optimization for pricing queries
-- API rate limiting for pricing endpoints
-
-**Business:**
-- Multi-region pricing support
-- Currency conversion handling
-- Tax calculation integration
+#### Long-term (6+ months)
+- Achieve 70%+ subscription revenue vs one-time orders
+- Implement dynamic pricing based on demand
+- Expand to corporate and bulk order discounts
 
 ---
 
-This documentation provides a complete understanding of the Fitnest.ma pricing system. For technical implementation details, refer to the `lib/pricing-model.ts` file. For business questions, contact the product team.
+## Future Considerations
+
+### Potential Enhancements
+
+#### Dynamic Pricing
+- **Demand-based**: Higher prices during peak periods
+- **Inventory-based**: Discounts for overstocked ingredients
+- **Geographic**: Different pricing for different delivery zones
+
+#### Advanced Discounts
+- **Loyalty tiers**: Progressive discounts for long-term customers
+- **Referral bonuses**: Discounts for bringing new customers
+- **Corporate packages**: Bulk pricing for office orders
+
+#### Personalization
+- **AI-driven pricing**: Personalized discounts based on behavior
+- **Dietary preferences**: Premium pricing for specialized diets
+- **Seasonal adjustments**: Automatic price adjustments for seasonal ingredients
+
+#### Technical Improvements
+- **A/B testing**: Test different discount structures
+- **Real-time pricing**: Update prices based on costs and demand
+- **Advanced analytics**: Better insights into pricing effectiveness
+
+### Scalability Considerations
+
+#### Database Optimization
+- Index pricing tables for fast lookups
+- Cache frequently accessed pricing data
+- Implement pricing history for analytics
+
+#### API Design
+- Versioned pricing APIs for backward compatibility
+- Rate limiting for pricing calculations
+- Webhook notifications for price changes
+
+#### Integration Points
+- Payment gateway integration for subscription billing
+- Inventory system integration for cost-based pricing
+- CRM integration for personalized pricing
+
+---
+
+## Conclusion
+
+This pricing system provides a flexible, scalable foundation for Fitnest.ma's meal delivery business. The multi-tiered discount structure encourages larger orders and longer commitments while maintaining transparency for customers.
+
+The system is designed to:
+- **Maximize revenue** through volume and duration incentives
+- **Improve customer retention** through subscription benefits
+- **Maintain flexibility** for future enhancements and promotions
+- **Provide clear value** to customers at every tier
+
+Regular monitoring and optimization of discount thresholds will ensure the pricing remains competitive while supporting business growth objectives.

@@ -20,12 +20,20 @@ export async function GET() {
   try {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
+
+    console.log("[/api/user/subscriptions] Session ID:", sessionId ? "present" : "missing")
+
     if (!sessionId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+      console.log("[/api/user/subscriptions] No session ID found")
+      return NextResponse.json({ error: "Not authenticated", subscriptions: [] }, { status: 401 })
     }
+
     const user = await getSessionUser(sessionId)
+    console.log("[/api/user/subscriptions] User:", user ? `ID ${user.id}` : "not found")
+
     if (!user) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
+      console.log("[/api/user/subscriptions] Invalid session")
+      return NextResponse.json({ error: "Invalid session", subscriptions: [] }, { status: 401 })
     }
 
     // Verify orders table existence
@@ -33,11 +41,15 @@ export async function GET() {
     try {
       const r = await sql`SELECT to_regclass('public.orders') AS regclass`
       ordersExists = Boolean(r?.[0]?.regclass)
-    } catch {
+      console.log("[/api/user/subscriptions] Orders table exists:", ordersExists)
+    } catch (err) {
+      console.log("[/api/user/subscriptions] Error checking orders table:", err)
       ordersExists = false
     }
+
     if (!ordersExists) {
-      return NextResponse.json({ subscriptions: [] }, { status: 200 })
+      console.log("[/api/user/subscriptions] Orders table doesn't exist, returning empty array")
+      return NextResponse.json({ success: true, subscriptions: [] }, { status: 200 })
     }
 
     // Prefer join with meal_plans for name; fall back if table not present.
@@ -55,14 +67,22 @@ export async function GET() {
         WHERE o.user_id = ${user.id} AND o.plan_id IS NOT NULL
         ORDER BY o.created_at DESC
       `
-    } catch {
+      console.log("[/api/user/subscriptions] Found orders with meal plans:", rows.length)
+    } catch (err) {
+      console.log("[/api/user/subscriptions] Meal plans join failed, using orders only:", err)
       joined = false
-      rows = await sql`
-        SELECT id, user_id, status, plan_id, total_amount, created_at
-        FROM orders
-        WHERE user_id = ${user.id} AND plan_id IS NOT NULL
-        ORDER BY created_at DESC
-      `
+      try {
+        rows = await sql`
+          SELECT id, user_id, status, plan_id, total_amount, created_at
+          FROM orders
+          WHERE user_id = ${user.id} AND plan_id IS NOT NULL
+          ORDER BY created_at DESC
+        `
+        console.log("[/api/user/subscriptions] Found orders without meal plans:", rows.length)
+      } catch (orderErr) {
+        console.log("[/api/user/subscriptions] Error fetching orders:", orderErr)
+        return NextResponse.json({ success: true, subscriptions: [] }, { status: 200 })
+      }
     }
 
     const subscriptions = rows.map((r) => ({
@@ -74,10 +94,18 @@ export async function GET() {
       createdAt: r.created_at ? String(r.created_at) : null,
     }))
 
-    return NextResponse.json({ subscriptions })
+    console.log("[/api/user/subscriptions] Returning subscriptions:", subscriptions.length)
+    return NextResponse.json({ success: true, subscriptions })
   } catch (err) {
     console.error("GET /api/user/subscriptions error:", err)
     // Return empty list instead of throwing to keep client UI stable
-    return NextResponse.json({ subscriptions: [] }, { status: 200 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch subscriptions",
+        subscriptions: [],
+      },
+      { status: 200 },
+    )
   }
 }
