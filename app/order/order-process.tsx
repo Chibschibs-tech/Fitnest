@@ -321,7 +321,7 @@ export function OrderProcess() {
       if (!selectedPlanId) newErrors.mealPlan = "Please select a meal plan"
       if (selectedMealTypes.length < 2) newErrors.mealTypes = "Please select at least 2 meal types"
 
-      // Use the new validation logic
+      // Use ONLY the new validation logic - remove any old per-week limits
       const dayValidationErrors = validateDeliveryDays(selectedDays, duration)
       if (dayValidationErrors.length > 0) {
         newErrors.days = dayValidationErrors[0] // Show first error
@@ -646,6 +646,7 @@ export function OrderProcess() {
                                           menuSelections[day.toISOString()][mealType].image ||
                                           "/placeholder.svg?height=64&width=64&query=meal" ||
                                           "/placeholder.svg" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={menuSelections[day.toISOString()][mealType].name}
@@ -716,6 +717,7 @@ export function OrderProcess() {
                                           src={
                                             menuSelections[day.toISOString()][snackKey].image ||
                                             "/placeholder.svg?height=64&width=64&query=snack" ||
+                                            "/placeholder.svg" ||
                                             "/placeholder.svg" ||
                                             "/placeholder.svg"
                                           }
