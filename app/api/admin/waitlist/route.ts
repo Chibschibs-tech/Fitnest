@@ -1,79 +1,38 @@
-import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/simple-auth"
-import { sql } from "@/lib/db"
-import { cookies } from "next/headers"
+import { type NextRequest, NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 
-export const dynamic = "force-dynamic"
+const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get session ID from cookies
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-
-    if (!sessionId) {
-      return NextResponse.json({ error: "No session found" }, { status: 401 })
-    }
-
-    // Use the existing session authentication system
-    const user = await getSessionUser(sessionId)
-
-    if (!user) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
-    }
-
-    if (user.role !== "admin") {
-      return NextResponse.json(
-        {
-          error: "Admin access required",
-          userRole: user.role,
-          userEmail: user.email,
-        },
-        { status: 403 },
+    // First, ensure the waitlist table exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(50) DEFAULT 'active'
       )
-    }
+    `
 
-    let submissions = []
-
-    try {
-      // Ensure waitlist table exists
-      await sql`
-        CREATE TABLE IF NOT EXISTS waitlist (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) NOT NULL,
-          phone VARCHAR(20),
-          meal_plan_preference VARCHAR(100),
-          city VARCHAR(100),
-          notifications BOOLEAN DEFAULT true,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `
-
-      // Get all waitlist submissions
-      submissions = await sql`
-        SELECT * FROM waitlist 
-        ORDER BY created_at DESC
-      `
-    } catch (error) {
-      console.error("Error with waitlist table:", error)
-      // Return empty array if there's an issue
-      submissions = []
-    }
+    const waitlist = await sql`
+      SELECT 
+        id,
+        email,
+        name,
+        created_at,
+        status
+      FROM waitlist
+      ORDER BY created_at DESC
+    `
 
     return NextResponse.json({
       success: true,
-      submissions,
-      count: submissions.length,
+      waitlist: waitlist || [],
     })
   } catch (error) {
-    console.error("Error fetching waitlist submissions:", error)
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    console.error("Error fetching waitlist:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch waitlist" }, { status: 500 })
   }
 }

@@ -5,15 +5,15 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
-  ShoppingBag,
+  Package,
   Truck,
   PauseCircle,
   PlayCircle,
   Users,
   BarChart3,
+  Plus,
   Mail,
   Settings,
-  Plus,
 } from "lucide-react"
 
 const sidebarItems = [
@@ -25,7 +25,7 @@ const sidebarItems = [
   {
     title: "Orders",
     href: "/admin/orders",
-    icon: ShoppingBag,
+    icon: Package,
   },
   {
     title: "Deliveries",
@@ -73,30 +73,30 @@ export function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
+    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm">
       <div className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
+        <h2 className="text-xl font-bold text-gray-900">Admin Panel</h2>
       </div>
-      <nav className="px-3">
-        <ul className="space-y-1">
-          {sidebarItems.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    isActive ? "bg-green-100 text-green-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.title}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+
+      <nav className="px-4 space-y-2">
+        {sidebarItems.map((item) => {
+          const Icon = item.icon
+          const isActive = pathname === item.href
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                isActive ? "bg-green-100 text-green-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {item.title}
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )

@@ -1,200 +1,191 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Users, Download, Mail } from "lucide-react"
 
-interface WaitlistSubmission {
+interface WaitlistEntry {
   id: number
-  first_name: string
-  last_name: string
   email: string
-  phone: string
-  preferred_meal_plan: string | null
-  city: string
-  wants_notifications: boolean
-  position: number
-  status: string
+  name?: string
   created_at: string
-  contacted_at: string | null
-  joined_at: string | null
+  status: string
 }
 
-export default function WaitlistDataTable() {
-  const [submissions, setSubmissions] = useState<WaitlistSubmission[]>([])
+export function WaitlistDataTable() {
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
-  const fetchSubmissions = async () => {
-    setLoading(true)
-    setError(null)
+  useEffect(() => {
+    fetchWaitlist()
+  }, [])
+
+  const fetchWaitlist = async () => {
     try {
       const response = await fetch("/api/admin/waitlist")
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch waitlist submissions")
+      if (data.success) {
+        setWaitlist(data.waitlist || [])
       }
-
-      setSubmissions(data.submissions || [])
-    } catch (err) {
-      console.error("Error fetching waitlist data:", err)
-      setError(err.message || "An error occurred while fetching waitlist data")
+    } catch (error) {
+      console.error("Error fetching waitlist:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchSubmissions()
-  }, [])
-
-  const handleExport = () => {
-    window.location.href = "/api/admin/waitlist/export"
-  }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "-"
-    return new Date(dateString).toLocaleString()
-  }
-
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
-      waiting: "bg-yellow-100 text-yellow-800",
-      contacted: "bg-blue-100 text-blue-800",
-      joined: "bg-green-100 text-green-800",
-      declined: "bg-red-100 text-red-800",
+  const exportWaitlist = async () => {
+    setExporting(true)
+    try {
+      const response = await fetch("/api/admin/waitlist/export")
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error("Error exporting waitlist:", error)
+    } finally {
+      setExporting(false)
     }
-
-    return <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>{status}</Badge>
   }
 
-  const getMealPlanDisplay = (plan: string | null) => {
-    if (!plan) return "-"
-
-    const planNames = {
-      "weight-loss": "Weight Loss",
-      "muscle-gain": "Muscle Gain",
-      "balanced-nutrition": "Balanced Nutrition",
-      keto: "Keto",
-      vegan: "Vegan",
-    }
-
-    return planNames[plan] || plan
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading waitlist submissions...</div>
-  }
-
-  if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Button onClick={fetchSubmissions}>Try Again</Button>
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading waitlist...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-32 animate-pulse rounded-md bg-muted" />
+          </CardContent>
+        </Card>
       </div>
-    )
-  }
-
-  if (submissions.length === 0) {
-    return (
-      <Card className="p-8 text-center">
-        <p className="mb-4">No waitlist submissions found.</p>
-        <Button onClick={fetchSubmissions}>Refresh</Button>
-      </Card>
     )
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Waitlist Submissions</h2>
-          <p className="text-sm text-gray-500">{submissions.length} total submissions</p>
-        </div>
-        <div className="space-x-2">
-          <Button onClick={fetchSubmissions} variant="outline">
-            Refresh
-          </Button>
-          <Button onClick={handleExport}>Export CSV</Button>
-        </div>
+    <div className="container mx-auto py-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Waitlist Management</h1>
+        <p className="text-gray-600">Manage potential customers on the waitlist</p>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse bg-white rounded-lg shadow">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="border px-4 py-3 text-left font-medium">#</th>
-              <th className="border px-4 py-3 text-left font-medium">Name</th>
-              <th className="border px-4 py-3 text-left font-medium">Email</th>
-              <th className="border px-4 py-3 text-left font-medium">Phone</th>
-              <th className="border px-4 py-3 text-left font-medium">Meal Plan</th>
-              <th className="border px-4 py-3 text-left font-medium">City</th>
-              <th className="border px-4 py-3 text-center font-medium">Notifications</th>
-              <th className="border px-4 py-3 text-center font-medium">Status</th>
-              <th className="border px-4 py-3 text-left font-medium">Submitted</th>
-              <th className="border px-4 py-3 text-left font-medium">Contacted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {submissions.map((submission) => (
-              <tr key={submission.id} className="hover:bg-gray-50">
-                <td className="border px-4 py-3 font-mono text-sm">#{submission.position}</td>
-                <td className="border px-4 py-3">
-                  <div className="font-medium">
-                    {submission.first_name} {submission.last_name}
+      <div className="grid gap-6 md:grid-cols-3 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Signups</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{waitlist.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Week</CardTitle>
+            <Mail className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {
+                waitlist.filter((entry) => {
+                  const entryDate = new Date(entry.created_at)
+                  const weekAgo = new Date()
+                  weekAgo.setDate(weekAgo.getDate() - 7)
+                  return entryDate >= weekAgo
+                }).length
+              }
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{waitlist.filter((entry) => entry.status === "active").length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Waitlist Entries</CardTitle>
+              <CardDescription>All users who signed up for the waitlist</CardDescription>
+            </div>
+            <Button
+              onClick={exportWaitlist}
+              disabled={exporting || waitlist.length === 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {exporting ? "Exporting..." : "Export CSV"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {waitlist.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-lg font-medium">No waitlist entries</h3>
+                <p className="mt-1 text-sm text-gray-500">No users have signed up for the waitlist yet.</p>
+              </div>
+            ) : (
+              waitlist.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
+                  <div className="flex items-center gap-4">
+                    <Mail className="h-8 w-8 text-gray-500" />
+                    <div>
+                      <p className="font-medium">{entry.email}</p>
+                      {entry.name && <p className="text-sm text-gray-500">{entry.name}</p>}
+                    </div>
                   </div>
-                </td>
-                <td className="border px-4 py-3">
-                  <a href={`mailto:${submission.email}`} className="text-blue-600 hover:underline">
-                    {submission.email}
-                  </a>
-                </td>
-                <td className="border px-4 py-3">
-                  <a href={`tel:${submission.phone}`} className="text-blue-600 hover:underline">
-                    {submission.phone}
-                  </a>
-                </td>
-                <td className="border px-4 py-3">{getMealPlanDisplay(submission.preferred_meal_plan)}</td>
-                <td className="border px-4 py-3 capitalize">{submission.city}</td>
-                <td className="border px-4 py-3 text-center">
-                  {submission.wants_notifications ? (
-                    <span className="text-green-600">✓</span>
-                  ) : (
-                    <span className="text-gray-400">✗</span>
-                  )}
-                </td>
-                <td className="border px-4 py-3 text-center">{getStatusBadge(submission.status)}</td>
-                <td className="border px-4 py-3 text-sm">{formatDate(submission.created_at)}</td>
-                <td className="border px-4 py-3 text-sm">{formatDate(submission.contacted_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-medium mb-2">Summary</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Total Submissions:</span>
-            <span className="ml-2 font-medium">{submissions.length}</span>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">{formatDate(entry.created_at)}</p>
+                  </div>
+
+                  <div>
+                    <Badge
+                      className={
+                        entry.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      }
+                    >
+                      {entry.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-          <div>
-            <span className="text-gray-600">Waiting:</span>
-            <span className="ml-2 font-medium">{submissions.filter((s) => s.status === "waiting").length}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Contacted:</span>
-            <span className="ml-2 font-medium">{submissions.filter((s) => s.status === "contacted").length}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Joined:</span>
-            <span className="ml-2 font-medium">{submissions.filter((s) => s.status === "joined").length}</span>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
