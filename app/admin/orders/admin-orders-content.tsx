@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Package, User, DollarSign, Calendar } from "lucide-react"
+import { ArrowLeft, Package, User, DollarSign, Calendar, AlertTriangle } from "lucide-react"
 
 interface Order {
   id: number
@@ -18,11 +18,13 @@ interface Order {
   status: string
   created_at: string
   delivery_frequency: string
+  duration_weeks: number
 }
 
 export function AdminOrdersContent() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,12 +34,26 @@ export function AdminOrdersContent() {
   const fetchOrders = async () => {
     try {
       const response = await fetch("/api/admin/orders")
-      if (response.ok) {
-        const data = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = "/login"
+          return
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Orders data:", data)
+
+      if (data.success) {
         setOrders(data.orders || [])
+      } else {
+        setError(data.error || "Failed to fetch orders")
       }
     } catch (error) {
       console.error("Error fetching orders:", error)
+      setError("Failed to load orders. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -55,10 +71,12 @@ export function AdminOrdersContent() {
         setMessage("Order status updated successfully")
         fetchOrders()
         setTimeout(() => setMessage(null), 5000)
+      } else {
+        setError("Failed to update order status")
       }
     } catch (error) {
       console.error("Error updating order status:", error)
-      setMessage("Error updating order status")
+      setError("Error updating order status")
     }
   }
 
@@ -104,6 +122,12 @@ export function AdminOrdersContent() {
   if (loading) {
     return (
       <div className="container mx-auto py-8">
+        <div className="mb-6">
+          <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to Admin Dashboard
+          </Link>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Loading orders...</CardTitle>
@@ -112,6 +136,26 @@ export function AdminOrdersContent() {
             <div className="h-32 animate-pulse rounded-md bg-muted" />
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="mb-6">
+          <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to Admin Dashboard
+          </Link>
+        </div>
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={fetchOrders} className="mt-4">
+          Try Again
+        </Button>
       </div>
     )
   }
@@ -146,7 +190,7 @@ export function AdminOrdersContent() {
             <div className="text-center py-8">
               <Package className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No orders found</h3>
-              <p className="mt-1 text-sm text-gray-500">Customer orders will appear here.</p>
+              <p className="mt-1 text-sm text-gray-500">Customer orders will appear here when they place orders.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -170,7 +214,7 @@ export function AdminOrdersContent() {
 
                         <div>
                           <p className="font-medium">{order.plan_name || "Meal Plan"}</p>
-                          <p className="text-gray-500">{order.delivery_frequency || "Weekly"}</p>
+                          <p className="text-gray-500">{order.duration_weeks} weeks</p>
                         </div>
 
                         <div className="flex items-center gap-2">

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Package, Clock, CheckCircle, Truck } from "lucide-react"
+import { ArrowLeft, Package, Clock, CheckCircle, Truck, AlertTriangle } from "lucide-react"
 
 interface Delivery {
   id: number
@@ -24,6 +24,7 @@ export function DeliveryManagementContent() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
   const [selectedDeliveries, setSelectedDeliveries] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [stats, setStats] = useState({
     total: 0,
@@ -38,8 +39,19 @@ export function DeliveryManagementContent() {
   const fetchDeliveries = async () => {
     try {
       const response = await fetch("/api/admin/get-pending-deliveries")
-      if (response.ok) {
-        const data = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = "/login"
+          return
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Deliveries data:", data)
+
+      if (data.success) {
         setDeliveries(data.deliveries || [])
         setStats({
           total: data.deliveries?.length || 0,
@@ -51,9 +63,12 @@ export function DeliveryManagementContent() {
               return today === deliveryDate
             })?.length || 0,
         })
+      } else {
+        setError(data.error || "Failed to fetch deliveries")
       }
     } catch (error) {
       console.error("Error fetching deliveries:", error)
+      setError("Failed to load deliveries. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -74,10 +89,12 @@ export function DeliveryManagementContent() {
         setSelectedDeliveries([])
         fetchDeliveries()
         setTimeout(() => setMessage(null), 5000)
+      } else {
+        setError("Failed to update deliveries")
       }
     } catch (error) {
       console.error("Error marking deliveries as delivered:", error)
-      setMessage("Error updating deliveries")
+      setError("Error updating deliveries")
     }
   }
 
@@ -133,6 +150,12 @@ export function DeliveryManagementContent() {
   if (loading) {
     return (
       <div className="container mx-auto py-8">
+        <div className="mb-6">
+          <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to Admin Dashboard
+          </Link>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Loading deliveries...</CardTitle>
@@ -141,6 +164,26 @@ export function DeliveryManagementContent() {
             <div className="h-32 animate-pulse rounded-md bg-muted" />
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="mb-6">
+          <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to Admin Dashboard
+          </Link>
+        </div>
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={fetchDeliveries} className="mt-4">
+          Try Again
+        </Button>
       </div>
     )
   }
@@ -194,6 +237,7 @@ export function DeliveryManagementContent() {
 
       {message && (
         <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
+          <CheckCircle className="h-4 w-4" />
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}

@@ -1,74 +1,49 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { orderId, deliveryDates, status = "delivered" } = await request.json()
-
-    if (!orderId || !deliveryDates || !Array.isArray(deliveryDates)) {
-      return NextResponse.json({ error: "Invalid request data" }, { status: 400 })
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
+    if (!sessionId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    console.log(`Marking deliveries for order ${orderId}:`, deliveryDates)
+    const user = await getSessionUser(sessionId)
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
-    // Check if delivery_status table exists, create if not
-    try {
+    const { deliveryIds } = await request.json()
+
+    if (!deliveryIds || !Array.isArray(deliveryIds)) {
+      return NextResponse.json({ error: "Missing or invalid deliveryIds" }, { status: 400 })
+    }
+
+    // Update delivery status to delivered
+    for (const deliveryId of deliveryIds) {
       await sql`
-        CREATE TABLE IF NOT EXISTS delivery_status (
-          id SERIAL PRIMARY KEY,
-          order_id INTEGER,
-          delivery_date DATE,
-          status VARCHAR(50) DEFAULT 'pending',
-          delivered_at TIMESTAMP,
-          notes TEXT,
-          created_at TIMESTAMP DEFAULT NOW(),
-          UNIQUE(order_id, delivery_date)
-        )
+        UPDATE deliveries 
+        SET status = 'delivered'
+        WHERE id = ${deliveryId}
       `
-    } catch (error) {
-      console.log("Table creation error (may already exist):", error)
-    }
-
-    let updatedCount = 0
-
-    // Update or insert delivery status for each date
-    for (const deliveryDate of deliveryDates) {
-      try {
-        // Try to update existing record
-        const updateResult = await sql`
-          UPDATE delivery_status 
-          SET status = ${status}, 
-              delivered_at = ${status === "delivered" ? new Date().toISOString() : null}
-          WHERE order_id = ${orderId} AND delivery_date = ${deliveryDate}
-        `
-
-        // If no rows were updated, insert new record
-        if (updateResult.count === 0) {
-          await sql`
-            INSERT INTO delivery_status (order_id, delivery_date, status, delivered_at)
-            VALUES (${orderId}, ${deliveryDate}, ${status}, ${status === "delivered" ? new Date().toISOString() : null})
-            ON CONFLICT (order_id, delivery_date) 
-            DO UPDATE SET 
-              status = ${status},
-              delivered_at = ${status === "delivered" ? new Date().toISOString() : null}
-          `
-        }
-
-        updatedCount++
-      } catch (error) {
-        console.error(`Error updating delivery ${orderId}/${deliveryDate}:`, error)
-      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `${updatedCount} deliveries marked as ${status}`,
-      updatedDeliveries: updatedCount,
+      message: `${deliveryIds.length} deliveries marked as delivered`,
     })
   } catch (error) {
-    console.error("Error marking deliveries:", error)
-    return NextResponse.json({ error: "Failed to update delivery status" }, { status: 500 })
+    console.error("Error marking deliveries as delivered:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update deliveries",
+      },
+      { status: 500 },
+    )
   }
 }

@@ -132,10 +132,13 @@ export function OrderProcess() {
     menu?: string
   }>({})
 
-  // Calendar rules
+  // Calendar rules - FIXED: Proper calculation for 1 month = 4 weeks
   const today = new Date()
   const weekStartsOn = 1 as const // Monday
-  const allowedWeeks = duration === 1 ? 2 : duration === 2 ? 3 : 4
+
+  // Fixed calculation: 1 month should show 4 weeks, not 3
+  const allowedWeeks = duration === 1 ? 2 : duration === 2 ? 3 : duration === 4 ? 5 : 4
+
   const allowedStart = startOfWeek(today, { weekStartsOn })
   const allowedEnd = addDays(allowedStart, allowedWeeks * 7 - 1)
   const todayStart = startOfDay(today)
@@ -522,6 +525,7 @@ export function OrderProcess() {
                                         src={
                                           menuSelections[day.toISOString()][mealType].image ||
                                           "/placeholder.svg?height=64&width=64&query=meal" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={menuSelections[day.toISOString()][mealType].name}
@@ -592,6 +596,7 @@ export function OrderProcess() {
                                           src={
                                             menuSelections[day.toISOString()][snackKey].image ||
                                             "/placeholder.svg?height=64&width=64&query=snack" ||
+                                            "/placeholder.svg" ||
                                             "/placeholder.svg"
                                           }
                                           alt={menuSelections[day.toISOString()][snackKey].name}
