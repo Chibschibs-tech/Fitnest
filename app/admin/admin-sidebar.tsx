@@ -3,18 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import {
-  LayoutDashboard,
-  Package,
-  Truck,
-  PauseCircle,
-  PlayCircle,
-  Users,
-  BarChart3,
-  Plus,
-  Mail,
-  Settings,
-} from "lucide-react"
+import { LayoutDashboard, Package, Truck, PauseCircle, PlayCircle, Users, Apple, Mail, Settings } from "lucide-react"
 
 const sidebarItems = [
   {
@@ -50,12 +39,12 @@ const sidebarItems = [
   {
     title: "Nutrition Manager",
     href: "/admin/nutrition-manager",
-    icon: BarChart3,
+    icon: Apple,
   },
   {
     title: "Add Meals",
     href: "/admin/meals/add",
-    icon: Plus,
+    icon: Apple,
   },
   {
     title: "Email Diagnostic",
@@ -73,16 +62,14 @@ export function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm">
+    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40">
       <div className="p-6">
         <h2 className="text-xl font-bold text-gray-900">Admin Panel</h2>
       </div>
 
       <nav className="px-4 space-y-2">
         {sidebarItems.map((item) => {
-          const Icon = item.icon
           const isActive = pathname === item.href
-
           return (
             <Link
               key={item.href}
@@ -92,7 +79,7 @@ export function AdminSidebar() {
                 isActive ? "bg-green-100 text-green-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <item.icon className="h-4 w-4" />
               {item.title}
             </Link>
           )

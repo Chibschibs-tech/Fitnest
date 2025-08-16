@@ -1,21 +1,34 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
+    if (!sessionId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    // Fetch all orders with customer information
     const orders = await sql`
       SELECT 
         o.id,
-        o.customer_name as "customerName",
-        o.customer_email as "customerEmail", 
-        o.plan_name as "planName",
-        o.total_amount as "totalAmount",
+        o.customer_name,
+        o.customer_email,
+        o.plan_name,
+        o.total_amount,
         o.status,
-        o.created_at as "createdAt",
-        o.delivery_start_date as "deliveryStartDate",
-        o.duration
+        o.created_at,
+        o.delivery_frequency,
+        o.duration_weeks
       FROM orders o
       ORDER BY o.created_at DESC
     `
@@ -26,6 +39,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error fetching admin orders:", error)
-    return NextResponse.json({ success: false, error: "Failed to fetch orders" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
   }
 }

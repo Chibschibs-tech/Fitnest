@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Download, Mail } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ArrowLeft, Users, Download, Mail } from "lucide-react"
 
 interface WaitlistEntry {
   id: number
@@ -17,7 +19,7 @@ interface WaitlistEntry {
 export function WaitlistDataTable() {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [exporting, setExporting] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchWaitlist()
@@ -26,9 +28,8 @@ export function WaitlistDataTable() {
   const fetchWaitlist = async () => {
     try {
       const response = await fetch("/api/admin/waitlist")
-      const data = await response.json()
-
-      if (data.success) {
+      if (response.ok) {
+        const data = await response.json()
         setWaitlist(data.waitlist || [])
       }
     } catch (error) {
@@ -38,23 +39,25 @@ export function WaitlistDataTable() {
     }
   }
 
-  const exportWaitlist = async () => {
-    setExporting(true)
+  const handleExport = async () => {
     try {
       const response = await fetch("/api/admin/waitlist/export")
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = "waitlist-export.csv"
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        setMessage("Waitlist exported successfully")
+        setTimeout(() => setMessage(null), 5000)
+      }
     } catch (error) {
       console.error("Error exporting waitlist:", error)
-    } finally {
-      setExporting(false)
+      setMessage("Error exporting waitlist")
     }
   }
 
@@ -86,104 +89,73 @@ export function WaitlistDataTable() {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
+        <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Back to Admin Dashboard
+        </Link>
+      </div>
+
+      <div className="mb-6">
         <h1 className="text-3xl font-bold">Waitlist Management</h1>
-        <p className="text-gray-600">Manage potential customers on the waitlist</p>
+        <p className="text-gray-600">Manage customer waitlist and export data</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Signups</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{waitlist.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Week</CardTitle>
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {
-                waitlist.filter((entry) => {
-                  const entryDate = new Date(entry.created_at)
-                  const weekAgo = new Date()
-                  weekAgo.setDate(weekAgo.getDate() - 7)
-                  return entryDate >= weekAgo
-                }).length
-              }
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{waitlist.filter((entry) => entry.status === "active").length}</div>
-          </CardContent>
-        </Card>
-      </div>
+      {message && (
+        <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Waitlist Entries</CardTitle>
-              <CardDescription>All users who signed up for the waitlist</CardDescription>
+              <CardTitle>Waitlist Entries ({waitlist.length})</CardTitle>
+              <CardDescription>Customers waiting for meal plan availability</CardDescription>
             </div>
-            <Button
-              onClick={exportWaitlist}
-              disabled={exporting || waitlist.length === 0}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {exporting ? "Exporting..." : "Export CSV"}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleExport} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {waitlist.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium">No waitlist entries</h3>
-                <p className="mt-1 text-sm text-gray-500">No users have signed up for the waitlist yet.</p>
+          {waitlist.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-medium">No waitlist entries</h3>
+              <p className="mt-1 text-sm text-gray-500">Customer waitlist entries will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg text-sm font-medium text-gray-600">
+                <div>Email</div>
+                <div>Name</div>
+                <div>Joined Date</div>
+                <div>Status</div>
               </div>
-            ) : (
-              waitlist.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
-                  <div className="flex items-center gap-4">
-                    <Mail className="h-8 w-8 text-gray-500" />
-                    <div>
-                      <p className="font-medium">{entry.email}</p>
-                      {entry.name && <p className="text-sm text-gray-500">{entry.name}</p>}
-                    </div>
-                  </div>
 
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">{formatDate(entry.created_at)}</p>
+              {/* Waitlist entries */}
+              {waitlist.map((entry) => (
+                <div key={entry.id} className="grid grid-cols-4 gap-4 p-4 border rounded-lg text-sm">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">{entry.email}</span>
                   </div>
-
+                  <div>{entry.name || "N/A"}</div>
+                  <div>{formatDate(entry.created_at)}</div>
                   <div>
-                    <Badge
-                      className={
-                        entry.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                      }
-                    >
-                      {entry.status}
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      {entry.status || "Waiting"}
                     </Badge>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

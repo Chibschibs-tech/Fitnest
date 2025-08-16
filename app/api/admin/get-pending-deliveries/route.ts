@@ -1,201 +1,79 @@
-import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
+import { type NextRequest, NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 import { getSessionUser } from "@/lib/simple-auth"
-import { sql } from "@/lib/db"
 
-export const dynamic = "force-dynamic"
+const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const user = await getSessionUser(sessionId)
-
     if (!user || user.role !== "admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    console.log("Fetching pending deliveries for admin")
+    // Create deliveries table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS deliveries (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_email VARCHAR(255) NOT NULL,
+        delivery_date DATE NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        total_amount DECIMAL(10,2) DEFAULT 0,
+        week_number INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
 
-    const deliveries = []
+    // Check if we have any deliveries, if not create some sample data
+    const existingDeliveries = await sql`SELECT COUNT(*) as count FROM deliveries`
 
-    try {
-      // Get all orders with their delivery schedules
-      const orders = await sql`
+    if (existingDeliveries[0].count === 0) {
+      // Create sample deliveries from orders
+      await sql`
+        INSERT INTO deliveries (order_id, customer_name, customer_email, delivery_date, status, total_amount, week_number)
         SELECT 
-          o.id as order_id,
-          o.selected_days,
-          o.selected_weeks,
-          o.start_date,
-          o.plan_name,
+          o.id,
+          o.customer_name,
+          o.customer_email,
+          CURRENT_DATE + INTERVAL '1 day' * (RANDOM() * 7)::INTEGER,
+          'pending',
           o.total_amount,
-          o.status as order_status,
-          u.name as customer_name,
-          u.email as customer_email
+          1
         FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
         WHERE o.status = 'active'
-        ORDER BY o.created_at DESC
+        LIMIT 10
       `
-
-      // Generate delivery schedule for each order
-      for (const order of orders) {
-        if (!order.selected_days || !order.selected_weeks) continue
-
-        let selectedDays = []
-        try {
-          selectedDays = JSON.parse(order.selected_days)
-        } catch (e) {
-          console.log("Could not parse selected_days:", order.selected_days)
-          continue
-        }
-
-        const selectedWeeks = Number.parseInt(order.selected_weeks) || 1
-        const startDate = new Date(order.start_date || new Date())
-
-        const dayMapping = {
-          monday: 1,
-          tuesday: 2,
-          wednesday: 3,
-          thursday: 4,
-          friday: 5,
-          saturday: 6,
-          sunday: 0,
-        }
-
-        // Generate all delivery dates for this order
-        for (let week = 0; week < selectedWeeks; week++) {
-          for (const dayName of selectedDays) {
-            const dayOfWeek = dayMapping[dayName.toLowerCase() as keyof typeof dayMapping]
-            if (dayOfWeek === undefined) continue
-
-            const deliveryDate = new Date(startDate)
-
-            // Calculate the date for this specific day in this specific week
-            const daysFromStart = week * 7 + ((dayOfWeek - startDate.getDay() + 7) % 7)
-            deliveryDate.setDate(startDate.getDate() + daysFromStart)
-
-            // Check delivery status
-            let deliveryStatus = "pending"
-            try {
-              const statusResult = await sql`
-                SELECT status FROM delivery_status 
-                WHERE order_id = ${order.order_id} 
-                AND delivery_date = ${deliveryDate.toISOString().split("T")[0]}
-              `
-              if (statusResult.length > 0) {
-                deliveryStatus = statusResult[0].status
-              }
-            } catch (error) {
-              // delivery_status table might not exist yet
-              console.log("No delivery status found, using pending")
-            }
-
-            deliveries.push({
-              orderId: order.order_id,
-              customerName: order.customer_name || "Unknown Customer",
-              customerEmail: order.customer_email || "unknown@example.com",
-              planName: order.plan_name || "Meal Plan",
-              deliveryDate: deliveryDate.toISOString(),
-              dayName: dayName,
-              weekNumber: week + 1,
-              status: deliveryStatus,
-              totalAmount: order.total_amount || 0,
-            })
-          }
-        }
-      }
-    } catch (error) {
-      console.log("Could not fetch real orders, using mock data:", error)
-
-      // Fallback to mock data
-      const mockOrders = [
-        {
-          orderId: 28,
-          customerName: "Ahmed Hassan",
-          customerEmail: "ahmed@example.com",
-          planName: "Weight Loss Plan",
-          days: ["monday", "wednesday", "friday"],
-          weeks: 3,
-          totalAmount: 1047,
-        },
-        {
-          orderId: 27,
-          customerName: "Fatima Zahra",
-          customerEmail: "fatima@example.com",
-          planName: "Muscle Gain Plan",
-          days: ["tuesday", "thursday", "saturday"],
-          weeks: 2,
-          totalAmount: 798,
-        },
-      ]
-
-      const dayMapping = {
-        monday: 1,
-        tuesday: 2,
-        wednesday: 3,
-        thursday: 4,
-        friday: 5,
-        saturday: 6,
-        sunday: 0,
-      }
-
-      for (const order of mockOrders) {
-        const startDate = new Date()
-        startDate.setDate(startDate.getDate() + 1) // Start tomorrow
-
-        for (let week = 0; week < order.weeks; week++) {
-          for (const dayName of order.days) {
-            const dayOfWeek = dayMapping[dayName as keyof typeof dayMapping]
-            const deliveryDate = new Date(startDate)
-
-            const daysFromStart = week * 7 + ((dayOfWeek - startDate.getDay() + 7) % 7)
-            deliveryDate.setDate(startDate.getDate() + daysFromStart)
-
-            // Mock some delivered status for demo
-            const isPastDate = deliveryDate < new Date()
-            const isRecentPast =
-              deliveryDate < new Date() && deliveryDate > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-
-            deliveries.push({
-              orderId: order.orderId,
-              customerName: order.customerName,
-              customerEmail: order.customerEmail,
-              planName: order.planName,
-              deliveryDate: deliveryDate.toISOString(),
-              dayName: dayName,
-              weekNumber: week + 1,
-              status: isPastDate || isRecentPast ? "delivered" : "pending",
-              totalAmount: order.totalAmount,
-            })
-          }
-        }
-      }
     }
 
-    // Sort by delivery date
-    deliveries.sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime())
+    // Fetch all deliveries
+    const deliveries = await sql`
+      SELECT 
+        d.id,
+        d.order_id,
+        d.customer_name,
+        d.customer_email,
+        d.delivery_date,
+        d.status,
+        d.total_amount,
+        d.week_number
+      FROM deliveries d
+      ORDER BY d.delivery_date ASC
+    `
 
     return NextResponse.json({
       success: true,
-      deliveries,
-      totalDeliveries: deliveries.length,
-      pendingDeliveries: deliveries.filter((d) => d.status === "pending").length,
-      deliveredDeliveries: deliveries.filter((d) => d.status === "delivered").length,
+      deliveries: deliveries || [],
     })
   } catch (error) {
     console.error("Error fetching deliveries:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to fetch deliveries",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: "Failed to fetch deliveries" }, { status: 500 })
   }
 }

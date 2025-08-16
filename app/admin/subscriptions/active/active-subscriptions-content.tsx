@@ -1,28 +1,28 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { PlayCircle, PauseCircle, User, Calendar } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ArrowLeft, PauseCircle, Calendar, User, DollarSign } from "lucide-react"
 
 interface ActiveSubscription {
   id: number
-  customerName: string
-  customerEmail: string
-  planName: string
-  totalAmount: number
-  status: string
-  createdAt: string
-  deliveryStartDate: string
-  duration: number
-  remainingWeeks: number
+  customer_name: string
+  customer_email: string
+  plan_name: string
+  total_amount: number
+  created_at: string
+  delivery_frequency: string
+  next_delivery: string
 }
 
 export function ActiveSubscriptionsContent() {
   const [subscriptions, setSubscriptions] = useState<ActiveSubscription[]>([])
   const [loading, setLoading] = useState(true)
-  const [pausingId, setPausingId] = useState<number | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchActiveSubscriptions()
@@ -31,9 +31,8 @@ export function ActiveSubscriptionsContent() {
   const fetchActiveSubscriptions = async () => {
     try {
       const response = await fetch("/api/admin/subscriptions/active")
-      const data = await response.json()
-
-      if (data.success) {
+      if (response.ok) {
+        const data = await response.json()
         setSubscriptions(data.subscriptions || [])
       }
     } catch (error) {
@@ -43,20 +42,22 @@ export function ActiveSubscriptionsContent() {
     }
   }
 
-  const pauseSubscription = async (subscriptionId: number) => {
-    setPausingId(subscriptionId)
+  const handlePauseSubscription = async (subscriptionId: number) => {
     try {
       const response = await fetch(`/api/subscriptions/${subscriptionId}/pause`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duration: 7 }), // Default 7 days pause
       })
 
       if (response.ok) {
-        setSubscriptions(subscriptions.filter((sub) => sub.id !== subscriptionId))
+        setMessage("Subscription paused successfully")
+        fetchActiveSubscriptions() // Refresh the list
+        setTimeout(() => setMessage(null), 5000)
       }
     } catch (error) {
       console.error("Error pausing subscription:", error)
-    } finally {
-      setPausingId(null)
+      setMessage("Error pausing subscription")
     }
   }
 
@@ -83,105 +84,104 @@ export function ActiveSubscriptionsContent() {
     )
   }
 
-  const totalRevenue = subscriptions.reduce((sum, sub) => sum + sub.totalAmount, 0)
-
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
+        <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Back to Admin Dashboard
+        </Link>
+      </div>
+
+      <div className="mb-6">
         <h1 className="text-3xl font-bold">Active Subscriptions</h1>
-        <p className="text-gray-600">Manage currently active customer subscriptions</p>
+        <p className="text-gray-600">Manage active customer meal plan subscriptions</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <PlayCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{subscriptions.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalRevenue} MAD</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {subscriptions.length > 0
-                ? Math.round(subscriptions.reduce((sum, sub) => sum + sub.duration, 0) / subscriptions.length)
-                : 0}{" "}
-              weeks
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {message && (
+        <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Subscriptions</CardTitle>
-          <CardDescription>Currently active customer meal plans</CardDescription>
+          <CardTitle>Active Subscriptions ({subscriptions.length})</CardTitle>
+          <CardDescription>Currently active meal plan subscriptions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {subscriptions.length === 0 ? (
-              <div className="text-center py-8">
-                <PlayCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium">No active subscriptions</h3>
-                <p className="mt-1 text-sm text-gray-500">No customers have active subscriptions.</p>
-              </div>
-            ) : (
-              subscriptions.map((subscription) => (
-                <div key={subscription.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
-                  <div className="flex items-center gap-4">
-                    <PlayCircle className="h-8 w-8 text-green-500" />
-                    <div>
-                      <p className="font-medium">{subscription.customerName}</p>
-                      <p className="text-sm text-gray-500">{subscription.customerEmail}</p>
+          {subscriptions.length === 0 ? (
+            <div className="text-center py-8">
+              <PauseCircle className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-medium">No active subscriptions</h3>
+              <p className="mt-1 text-sm text-gray-500">Active subscriptions will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {subscriptions.map((subscription) => (
+                <div key={subscription.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-2">
+                        <h3 className="font-semibold">Order #{subscription.id}</h3>
+                        <Badge variant="default" className="bg-green-100 text-green-700">
+                          Active
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium">{subscription.customer_name}</p>
+                            <p className="text-gray-500">{subscription.customer_email}</p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="font-medium">{subscription.plan_name || "Meal Plan"}</p>
+                          <p className="text-gray-500">Plan</p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium">{subscription.total_amount} MAD</p>
+                            <p className="text-gray-500">Total Amount</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium">{formatDate(subscription.created_at)}</p>
+                            <p className="text-gray-500">Started</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Link href={`/admin/orders/${subscription.id}`}>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </Link>
+                      <Button
+                        onClick={() => handlePauseSubscription(subscription.id)}
+                        variant="outline"
+                        size="sm"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                      >
+                        <PauseCircle className="h-4 w-4 mr-2" />
+                        Pause
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="text-center">
-                    <p className="font-medium">{subscription.planName}</p>
-                    <p className="text-sm text-gray-500">
-                      {subscription.remainingWeeks} of {subscription.duration} weeks left
-                    </p>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="font-medium">{subscription.totalAmount} MAD</p>
-                    <p className="text-sm text-gray-500">Started: {formatDate(subscription.deliveryStartDate)}</p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Badge className="bg-green-100 text-green-800">Active</Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => pauseSubscription(subscription.id)}
-                      disabled={pausingId === subscription.id}
-                      className="text-yellow-600 border-yellow-600 hover:bg-yellow-50"
-                    >
-                      <PauseCircle className="h-4 w-4 mr-1" />
-                      {pausingId === subscription.id ? "Pausing..." : "Pause"}
-                    </Button>
-                  </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
