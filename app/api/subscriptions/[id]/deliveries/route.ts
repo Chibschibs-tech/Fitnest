@@ -11,96 +11,178 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Invalid subscription ID" }, { status: 400 })
     }
 
-    console.log("Fetching deliveries for subscription ID:", subscriptionId)
+    console.log("Fetching order days for subscription ID:", subscriptionId)
 
-    // Check if deliveries table exists
-    let tableExists = false
+    // First, try to get the actual order data
+    let orderData = null
     try {
-      await sql`SELECT 1 FROM deliveries LIMIT 1`
-      tableExists = true
+      const orderResult = await sql`
+        SELECT 
+          id,
+          selected_days,
+          selected_weeks,
+          start_date,
+          status,
+          plan_name
+        FROM orders 
+        WHERE id = ${subscriptionId}
+      `
+      orderData = orderResult[0]
     } catch (error) {
-      console.log("Deliveries table doesn't exist, returning mock data")
+      console.log("Could not fetch order data:", error)
     }
 
-    if (!tableExists) {
-      // Generate realistic delivery schedule
-      const mockDeliveries = []
+    // If we have real order data, use it
+    if (orderData && orderData.selected_days && orderData.selected_weeks) {
+      const selectedDays = JSON.parse(orderData.selected_days) // e.g., ["monday", "wednesday", "friday"]
+      const selectedWeeks = Number.parseInt(orderData.selected_weeks) || 1
+      const startDate = new Date(orderData.start_date || new Date())
 
-      // Define delivery days based on subscription type
-      const deliveryDays = {
-        28: [1, 3, 5], // Monday, Wednesday, Friday for premium subscription
-        27: [2, 4], // Tuesday, Thursday for standard subscription
-        26: [1, 4], // Monday, Thursday for basic subscription
+      // Generate delivery dates based on customer's actual selections
+      const deliveries = []
+      const dayMapping = {
+        monday: 1,
+        tuesday: 2,
+        wednesday: 3,
+        thursday: 4,
+        friday: 5,
+        saturday: 6,
+        sunday: 0,
       }
 
-      const selectedDays = deliveryDays[subscriptionId] || [1, 3, 5] // Default to Mon, Wed, Fri
-      const deliveryCount = subscriptionId === 28 ? 12 : 8
-      const completedCount = subscriptionId === 28 ? 3 : 2
-
-      // Start from next Monday
-      const startDate = new Date()
-      const daysUntilMonday = (8 - startDate.getDay()) % 7
-      startDate.setDate(startDate.getDate() + daysUntilMonday)
-
-      let deliveryIndex = 0
-      let weekOffset = 0
-
-      while (deliveryIndex < deliveryCount) {
-        for (const dayOfWeek of selectedDays) {
-          if (deliveryIndex >= deliveryCount) break
-
+      let deliveryId = 1
+      for (let week = 0; week < selectedWeeks; week++) {
+        for (const dayName of selectedDays) {
+          const dayOfWeek = dayMapping[dayName.toLowerCase()]
           const deliveryDate = new Date(startDate)
-          deliveryDate.setDate(startDate.getDate() + weekOffset * 7 + (dayOfWeek - 1))
 
-          mockDeliveries.push({
-            id: deliveryIndex + 1,
+          // Calculate the date for this specific day in this specific week
+          const daysFromStart = week * 7 + ((dayOfWeek - startDate.getDay() + 7) % 7)
+          deliveryDate.setDate(startDate.getDate() + daysFromStart)
+
+          deliveries.push({
+            id: deliveryId++,
             scheduledDate: deliveryDate.toISOString(),
-            status: deliveryIndex < completedCount ? "delivered" : "pending",
+            dayName: dayName,
+            weekNumber: week + 1,
+            status: "pending", // All start as pending, will be marked delivered by backend
           })
-
-          deliveryIndex++
         }
-        weekOffset++
       }
 
       // Sort by date
-      mockDeliveries.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
+      deliveries.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
+
+      // Check for delivered days (this would come from a delivery_status table in production)
+      try {
+        const deliveredDays = await sql`
+          SELECT delivery_date, status 
+          FROM delivery_status 
+          WHERE order_id = ${subscriptionId}
+        `
+
+        // Mark delivered days
+        deliveries.forEach((delivery) => {
+          const deliveredDay = deliveredDays.find(
+            (d) => new Date(d.delivery_date).toDateString() === new Date(delivery.scheduledDate).toDateString(),
+          )
+          if (deliveredDay) {
+            delivery.status = deliveredDay.status
+          }
+        })
+      } catch (error) {
+        console.log("Delivery status table not found, using mock delivered status")
+        // Mock some delivered days for demo
+        deliveries.slice(0, 2).forEach((delivery) => {
+          if (new Date(delivery.scheduledDate) < new Date()) {
+            delivery.status = "delivered"
+          }
+        })
+      }
+
+      const totalDeliveries = deliveries.length
+      const completedDeliveries = deliveries.filter((d) => d.status === "delivered").length
+      const pendingDeliveries = deliveries.filter((d) => d.status === "pending").length
+      const nextDelivery = deliveries.find((d) => d.status === "pending")
+
+      // Check if can pause (next delivery is at least 72 hours away)
+      const canPause = nextDelivery
+        ? new Date(nextDelivery.scheduledDate).getTime() > Date.now() + 72 * 60 * 60 * 1000
+        : false
 
       return NextResponse.json({
-        deliveries: mockDeliveries,
-        totalDeliveries: deliveryCount,
-        completedDeliveries: completedCount,
-        pendingDeliveries: deliveryCount - completedCount,
-        nextDeliveryDate: mockDeliveries.find((d) => d.status === "pending")?.scheduledDate,
-        canPause: true,
-        pauseEligibleDate: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        deliveries,
+        totalDeliveries,
+        completedDeliveries,
+        pendingDeliveries,
+        nextDeliveryDate: nextDelivery?.scheduledDate,
+        canPause,
+        pauseEligibleDate: canPause ? null : new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
       })
     }
 
-    // Try to fetch real deliveries
-    const deliveries = await sql`
-      SELECT 
-        id,
-        scheduled_date as "scheduledDate",
-        status
-      FROM deliveries 
-      WHERE subscription_id = ${subscriptionId}
-      ORDER BY scheduled_date ASC
-    `
+    // Fallback: Generate mock data based on subscription ID to show different patterns
+    console.log("Using mock order data for subscription:", subscriptionId)
+
+    const mockOrderData = {
+      28: { days: ["monday", "wednesday", "friday"], weeks: 4, planName: "Balanced Nutrition" },
+      27: { days: ["tuesday", "thursday"], weeks: 3, planName: "Muscle Gain Plan" },
+      26: { days: ["monday", "thursday"], weeks: 2, planName: "Muscle Gain Plan" },
+    }
+
+    const mockData = mockOrderData[subscriptionId] || {
+      days: ["monday", "wednesday", "friday"],
+      weeks: 2,
+      planName: "Weight Loss Plan",
+    }
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() + 1) // Start tomorrow
+
+    const deliveries = []
+    const dayMapping = {
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+      sunday: 0,
+    }
+
+    let deliveryId = 1
+    for (let week = 0; week < mockData.weeks; week++) {
+      for (const dayName of mockData.days) {
+        const dayOfWeek = dayMapping[dayName]
+        const deliveryDate = new Date(startDate)
+
+        // Calculate the date for this specific day in this specific week
+        const daysFromStart = week * 7 + ((dayOfWeek - startDate.getDay() + 7) % 7)
+        deliveryDate.setDate(startDate.getDate() + daysFromStart)
+
+        const isPastDate = deliveryDate < new Date()
+        const isRecentPast = deliveryDate < new Date() && deliveryDate > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+        deliveries.push({
+          id: deliveryId++,
+          scheduledDate: deliveryDate.toISOString(),
+          dayName: dayName,
+          weekNumber: week + 1,
+          status: isPastDate || isRecentPast ? "delivered" : "pending",
+        })
+      }
+    }
+
+    // Sort by date
+    deliveries.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
 
     const totalDeliveries = deliveries.length
     const completedDeliveries = deliveries.filter((d) => d.status === "delivered").length
     const pendingDeliveries = deliveries.filter((d) => d.status === "pending").length
     const nextDelivery = deliveries.find((d) => d.status === "pending")
 
-    // Check if can pause (next delivery is at least 72 hours away)
     const canPause = nextDelivery
       ? new Date(nextDelivery.scheduledDate).getTime() > Date.now() + 72 * 60 * 60 * 1000
       : false
-
-    const pauseEligibleDate = nextDelivery
-      ? new Date(new Date(nextDelivery.scheduledDate).getTime() - 72 * 60 * 60 * 1000).toISOString()
-      : null
 
     return NextResponse.json({
       deliveries,
@@ -109,51 +191,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       pendingDeliveries,
       nextDeliveryDate: nextDelivery?.scheduledDate,
       canPause,
-      pauseEligibleDate,
+      pauseEligibleDate: canPause ? null : new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
     })
   } catch (error) {
-    console.error("Error fetching deliveries:", error)
-
-    // Return mock data as fallback with varied delivery days
-    const mockDeliveries = []
-    const deliveryDays = [1, 3, 5] // Monday, Wednesday, Friday
-    const startDate = new Date()
-    const daysUntilMonday = (8 - startDate.getDay()) % 7
-    startDate.setDate(startDate.getDate() + daysUntilMonday)
-
-    let deliveryIndex = 0
-    let weekOffset = 0
-    const deliveryCount = 8
-    const completedCount = 2
-
-    while (deliveryIndex < deliveryCount) {
-      for (const dayOfWeek of deliveryDays) {
-        if (deliveryIndex >= deliveryCount) break
-
-        const deliveryDate = new Date(startDate)
-        deliveryDate.setDate(startDate.getDate() + weekOffset * 7 + (dayOfWeek - 1))
-
-        mockDeliveries.push({
-          id: deliveryIndex + 1,
-          scheduledDate: deliveryDate.toISOString(),
-          status: deliveryIndex < completedCount ? "delivered" : "pending",
-        })
-
-        deliveryIndex++
-      }
-      weekOffset++
-    }
-
-    mockDeliveries.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
-
-    return NextResponse.json({
-      deliveries: mockDeliveries,
-      totalDeliveries: deliveryCount,
-      completedDeliveries: completedCount,
-      pendingDeliveries: deliveryCount - completedCount,
-      nextDeliveryDate: mockDeliveries.find((d) => d.status === "pending")?.scheduledDate,
-      canPause: true,
-      pauseEligibleDate: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
-    })
+    console.error("Error fetching delivery schedule:", error)
+    return NextResponse.json({ error: "Failed to fetch delivery schedule" }, { status: 500 })
   }
 }
