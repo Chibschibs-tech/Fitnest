@@ -1,32 +1,10 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
 
 export const dynamic = "force-dynamic"
 
 const sql = neon(process.env.DATABASE_URL!)
-
-type OrderRow = {
-  id: number
-  user_id: number
-  status: string | null
-  plan_id: number | null
-  meal_plan_id: number | null
-  total_amount: number | null
-  created_at: string | null
-  plan_name?: string
-  price_per_week?: number
-}
-
-type ExpressShopOrderRow = {
-  id: number
-  user_id: number
-  total_amount: number | null
-  status: string | null
-  created_at: string | null
-  order_type: string
-}
 
 /**
  * GET /api/user/dashboard
@@ -34,16 +12,64 @@ type ExpressShopOrderRow = {
  */
 export async function GET() {
   try {
+    console.log("Dashboard API called")
+
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
+
+    console.log("Session ID from cookie:", sessionId)
+
     if (!sessionId) {
+      console.log("No session ID found")
       return NextResponse.json({ error: "No session found" }, { status: 401 })
     }
 
-    const user = await getSessionUser(sessionId)
+    // Get user from session - check what session system is actually being used
+    let user = null
+
+    // Try the sessions table approach
+    try {
+      const sessionResult = await sql`
+        SELECT u.id, u.name, u.email, u.role 
+        FROM users u
+        JOIN sessions s ON u.id = s.user_id
+        WHERE s.id = ${sessionId} AND s.expires_at > NOW()
+      `
+
+      console.log("Session query result:", sessionResult)
+
+      if (sessionResult.length > 0) {
+        user = sessionResult[0]
+      }
+    } catch (sessionError) {
+      console.log("Sessions table query failed:", sessionError)
+    }
+
+    // If sessions table doesn't work, try direct user lookup (fallback)
     if (!user) {
+      try {
+        const userResult = await sql`
+          SELECT id, name, email, role 
+          FROM users 
+          WHERE id = ${Number.parseInt(sessionId)}
+        `
+
+        console.log("Direct user query result:", userResult)
+
+        if (userResult.length > 0) {
+          user = userResult[0]
+        }
+      } catch (userError) {
+        console.log("Direct user query failed:", userError)
+      }
+    }
+
+    if (!user) {
+      console.log("No user found for session")
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
+
+    console.log("Found user:", user)
 
     const payload = {
       user: {
@@ -51,10 +77,10 @@ export async function GET() {
         name: user.name,
         email: user.email,
       },
-      activeSubscriptions: [] as OrderRow[],
-      orderHistory: [] as OrderRow[],
-      expressShopOrders: [] as ExpressShopOrderRow[],
-      upcomingDeliveries: [] as any[],
+      activeSubscriptions: [],
+      orderHistory: [],
+      expressShopOrders: [],
+      upcomingDeliveries: [],
       stats: {
         totalOrders: 0,
         totalExpressShopOrders: 0,
@@ -62,85 +88,113 @@ export async function GET() {
       },
     }
 
-    // Check if orders table exists and get meal plan orders
-    const ordersReg = await sql`SELECT to_regclass('public.orders') AS regclass`
-    if (ordersReg[0]?.regclass) {
+    // Check what tables exist
+    const tableCheck = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('orders', 'meal_plans', 'express_shop_orders', 'delivery_status')
+    `
+
+    console.log("Available tables:", tableCheck)
+
+    // Get meal plan orders if orders table exists
+    const hasOrdersTable = tableCheck.some((t) => t.table_name === "orders")
+    const hasMealPlansTable = tableCheck.some((t) => t.table_name === "meal_plans")
+
+    if (hasOrdersTable) {
       try {
-        // Get all meal plan orders
-        const mealPlanOrders = await sql<OrderRow[]>`
-          SELECT 
-            o.id, 
-            o.user_id, 
-            o.status, 
-            o.plan_id,
-            o.meal_plan_id,
-            o.total_amount, 
-            o.created_at,
-            mp.name as plan_name,
-            mp.price_per_week
-          FROM orders o
-          LEFT JOIN meal_plans mp ON (o.meal_plan_id = mp.id OR o.plan_id = mp.id)
-          WHERE o.user_id = ${user.id}
-          ORDER BY o.created_at DESC
-        `
+        let mealPlanOrders = []
+
+        if (hasMealPlansTable) {
+          // Try with meal_plans join
+          mealPlanOrders = await sql`
+            SELECT 
+              o.id, 
+              o.user_id, 
+              o.status, 
+              o.total as total_amount,
+              o.created_at,
+              mp.name as plan_name
+            FROM orders o
+            LEFT JOIN meal_plans mp ON o.plan_id = mp.id
+            WHERE o.user_id = ${user.id}
+            ORDER BY o.created_at DESC
+          `
+        } else {
+          // Try without meal_plans join
+          mealPlanOrders = await sql`
+            SELECT 
+              o.id, 
+              o.user_id, 
+              o.status, 
+              o.total as total_amount,
+              o.created_at
+            FROM orders o
+            WHERE o.user_id = ${user.id}
+            ORDER BY o.created_at DESC
+          `
+        }
+
+        console.log("Meal plan orders found:", mealPlanOrders)
 
         payload.orderHistory = mealPlanOrders
         payload.stats.totalOrders = mealPlanOrders.length
 
-        // Filter active subscriptions (orders with meal plans that are active/paused)
-        const isActive = (status: string | null | undefined) => {
+        // Filter active subscriptions
+        const isActive = (status) => {
           const s = (status ?? "").toLowerCase()
           return s === "active" || s === "paused" || s === "confirmed" || s === "pending"
         }
 
-        payload.activeSubscriptions = mealPlanOrders.filter(
-          (o) => (o.meal_plan_id !== null || o.plan_id !== null) && isActive(o.status),
-        )
+        payload.activeSubscriptions = mealPlanOrders.filter((o) => isActive(o.status))
+
+        console.log("Active subscriptions:", payload.activeSubscriptions)
       } catch (error) {
         console.error("Error fetching meal plan orders:", error)
       }
     }
 
-    // Check if express_shop_orders table exists
-    try {
-      const expressShopReg = await sql`SELECT to_regclass('public.express_shop_orders') AS regclass`
-      if (expressShopReg[0]?.regclass) {
-        const expressShopOrders = await sql<ExpressShopOrderRow[]>`
+    // Check for express shop orders
+    const hasExpressShopTable = tableCheck.some((t) => t.table_name === "express_shop_orders")
+
+    if (hasExpressShopTable) {
+      try {
+        const expressShopOrders = await sql`
           SELECT 
             id, 
             user_id,
             total_amount, 
             status, 
-            created_at,
-            'express_shop' as order_type
+            created_at
           FROM express_shop_orders
           WHERE user_id = ${user.id}
           ORDER BY created_at DESC
           LIMIT 10
         `
 
-        payload.expressShopOrders = expressShopOrders
+        console.log("Express shop orders found:", expressShopOrders)
 
-        // Calculate express shop stats
-        const totalExpressShopOrders = expressShopOrders.length
-        const totalExpressShopSpent = expressShopOrders.reduce((sum, order) => {
+        payload.expressShopOrders = expressShopOrders.map((order) => ({
+          ...order,
+          order_type: "express_shop",
+        }))
+
+        payload.stats.totalExpressShopOrders = expressShopOrders.length
+        payload.stats.totalExpressShopSpent = expressShopOrders.reduce((sum, order) => {
           const amount = Number(order.total_amount || 0)
-          // Convert from cents if amount is large (>= 1000)
-          const normalizedAmount = amount >= 1000 ? amount / 100 : amount
-          return sum + normalizedAmount
+          return sum + (amount >= 1000 ? amount / 100 : amount)
         }, 0)
-
-        payload.stats.totalExpressShopOrders = totalExpressShopOrders
-        payload.stats.totalExpressShopSpent = totalExpressShopSpent
+      } catch (error) {
+        console.error("Error fetching express shop orders:", error)
       }
-    } catch (error) {
-      console.error("Error fetching express shop orders:", error)
     }
 
     // Check for upcoming deliveries
-    try {
-      const deliveryReg = await sql`SELECT to_regclass('public.delivery_status') AS regclass`
-      if (deliveryReg[0]?.regclass) {
+    const hasDeliveryTable = tableCheck.some((t) => t.table_name === "delivery_status")
+
+    if (hasDeliveryTable) {
+      try {
         const upcomingDeliveries = await sql`
           SELECT 
             ds.delivery_date,
@@ -155,20 +209,28 @@ export async function GET() {
           LIMIT 5
         `
 
+        console.log("Upcoming deliveries found:", upcomingDeliveries)
         payload.upcomingDeliveries = upcomingDeliveries
+      } catch (error) {
+        console.error("Error fetching upcoming deliveries:", error)
       }
-    } catch (error) {
-      console.error("Error fetching upcoming deliveries:", error)
     }
 
-    // Return both flat payload and legacy envelope for backward compatibility
+    console.log("Final payload:", payload)
+
     return NextResponse.json({
       status: "success",
       data: payload,
       ...payload,
     })
   } catch (error) {
-    console.error("Error fetching user dashboard data:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Dashboard API error:", error)
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error.message,
+      },
+      { status: 500 },
+    )
   }
 }
