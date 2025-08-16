@@ -23,24 +23,48 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     if (!tableExists) {
-      // Return mock delivery schedule based on subscription ID
+      // Generate realistic delivery schedule
       const mockDeliveries = []
-      const startDate = new Date()
 
-      // Different delivery patterns based on subscription
-      const deliveryCount = subscriptionId === 28 ? 12 : 8 // More deliveries for higher value subscription
+      // Define delivery days based on subscription type
+      const deliveryDays = {
+        28: [1, 3, 5], // Monday, Wednesday, Friday for premium subscription
+        27: [2, 4], // Tuesday, Thursday for standard subscription
+        26: [1, 4], // Monday, Thursday for basic subscription
+      }
+
+      const selectedDays = deliveryDays[subscriptionId] || [1, 3, 5] // Default to Mon, Wed, Fri
+      const deliveryCount = subscriptionId === 28 ? 12 : 8
       const completedCount = subscriptionId === 28 ? 3 : 2
 
-      for (let i = 0; i < deliveryCount; i++) {
-        const deliveryDate = new Date(startDate)
-        deliveryDate.setDate(startDate.getDate() + i * 7) // Weekly deliveries
+      // Start from next Monday
+      const startDate = new Date()
+      const daysUntilMonday = (8 - startDate.getDay()) % 7
+      startDate.setDate(startDate.getDate() + daysUntilMonday)
 
-        mockDeliveries.push({
-          id: i + 1,
-          scheduledDate: deliveryDate.toISOString(),
-          status: i < completedCount ? "delivered" : "pending",
-        })
+      let deliveryIndex = 0
+      let weekOffset = 0
+
+      while (deliveryIndex < deliveryCount) {
+        for (const dayOfWeek of selectedDays) {
+          if (deliveryIndex >= deliveryCount) break
+
+          const deliveryDate = new Date(startDate)
+          deliveryDate.setDate(startDate.getDate() + weekOffset * 7 + (dayOfWeek - 1))
+
+          mockDeliveries.push({
+            id: deliveryIndex + 1,
+            scheduledDate: deliveryDate.toISOString(),
+            status: deliveryIndex < completedCount ? "delivered" : "pending",
+          })
+
+          deliveryIndex++
+        }
+        weekOffset++
       }
+
+      // Sort by date
+      mockDeliveries.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
 
       return NextResponse.json({
         deliveries: mockDeliveries,
@@ -90,22 +114,37 @@ export async function GET(request: Request, { params }: { params: { id: string }
   } catch (error) {
     console.error("Error fetching deliveries:", error)
 
-    // Return mock data as fallback
+    // Return mock data as fallback with varied delivery days
     const mockDeliveries = []
+    const deliveryDays = [1, 3, 5] // Monday, Wednesday, Friday
     const startDate = new Date()
-    const deliveryCount = 8 // Default delivery count
-    const completedCount = 2 // Default completed count
+    const daysUntilMonday = (8 - startDate.getDay()) % 7
+    startDate.setDate(startDate.getDate() + daysUntilMonday)
 
-    for (let i = 0; i < deliveryCount; i++) {
-      const deliveryDate = new Date(startDate)
-      deliveryDate.setDate(startDate.getDate() + i * 7)
+    let deliveryIndex = 0
+    let weekOffset = 0
+    const deliveryCount = 8
+    const completedCount = 2
 
-      mockDeliveries.push({
-        id: i + 1,
-        scheduledDate: deliveryDate.toISOString(),
-        status: i < completedCount ? "delivered" : "pending",
-      })
+    while (deliveryIndex < deliveryCount) {
+      for (const dayOfWeek of deliveryDays) {
+        if (deliveryIndex >= deliveryCount) break
+
+        const deliveryDate = new Date(startDate)
+        deliveryDate.setDate(startDate.getDate() + weekOffset * 7 + (dayOfWeek - 1))
+
+        mockDeliveries.push({
+          id: deliveryIndex + 1,
+          scheduledDate: deliveryDate.toISOString(),
+          status: deliveryIndex < completedCount ? "delivered" : "pending",
+        })
+
+        deliveryIndex++
+      }
+      weekOffset++
     }
+
+    mockDeliveries.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
 
     return NextResponse.json({
       deliveries: mockDeliveries,
