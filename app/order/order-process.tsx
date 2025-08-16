@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { format, addDays, isBefore, isAfter, startOfWeek, startOfDay } from "date-fns"
+import { format, addDays, isBefore, isAfter, startOfWeek, startOfDay, getWeek, getYear } from "date-fns"
 import { ChevronLeft, Info, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -106,6 +106,77 @@ const sampleMeals = {
     { id: "s3", name: "Mixed Nuts and Dried Fruits", image: "/placeholder.svg?height=160&width=160", calories: 180 },
     { id: "s4", name: "Vegetable Sticks with Hummus", image: "/placeholder.svg?height=160&width=160", calories: 130 },
   ],
+}
+
+// Helper function to group dates by week
+function groupDatesByWeek(dates: Date[]): Record<string, Date[]> {
+  const weeks: Record<string, Date[]> = {}
+
+  dates.forEach((date) => {
+    const year = getYear(date)
+    const week = getWeek(date, { weekStartsOn: 1 }) // Monday start
+    const weekKey = `${year}-W${week}`
+
+    if (!weeks[weekKey]) {
+      weeks[weekKey] = []
+    }
+    weeks[weekKey].push(date)
+  })
+
+  return weeks
+}
+
+// Validation function for delivery days based on duration
+function validateDeliveryDays(selectedDays: Date[], duration: number): string[] {
+  const errors: string[] = []
+  const totalDays = selectedDays.length
+
+  if (duration === 1) {
+    // 1 week: at least 3 days
+    if (totalDays < 3) {
+      errors.push("Please select at least 3 delivery days for a 1-week subscription")
+    }
+  } else if (duration === 2) {
+    // 2 weeks: at least 6 days total with at least 2 days in the second week
+    if (totalDays < 6) {
+      errors.push("Please select at least 6 delivery days for a 2-week subscription")
+    } else {
+      const weekGroups = groupDatesByWeek(selectedDays)
+      const weeks = Object.keys(weekGroups).sort()
+
+      if (weeks.length < 2) {
+        errors.push("Please select delivery days across both weeks")
+      } else {
+        const secondWeekDays = weekGroups[weeks[1]]?.length || 0
+        if (secondWeekDays < 2) {
+          errors.push("Please select at least 2 delivery days in the second week")
+        }
+      }
+    }
+  } else if (duration === 4) {
+    // 1 month: at least 10 days total with at least 2 days in the second, third, and fourth weeks
+    if (totalDays < 10) {
+      errors.push("Please select at least 10 delivery days for a 1-month subscription")
+    } else {
+      const weekGroups = groupDatesByWeek(selectedDays)
+      const weeks = Object.keys(weekGroups).sort()
+
+      if (weeks.length < 4) {
+        errors.push("Please select delivery days across all 4 weeks")
+      } else {
+        // Check weeks 2, 3, and 4 have at least 2 days each
+        for (let i = 1; i < 4; i++) {
+          const weekDays = weekGroups[weeks[i]]?.length || 0
+          if (weekDays < 2) {
+            errors.push(`Please select at least 2 delivery days in week ${i + 1}`)
+            break
+          }
+        }
+      }
+    }
+  }
+
+  return errors
 }
 
 export function OrderProcess() {
@@ -249,7 +320,12 @@ export function OrderProcess() {
     if (step === 1) {
       if (!selectedPlanId) newErrors.mealPlan = "Please select a meal plan"
       if (selectedMealTypes.length < 2) newErrors.mealTypes = "Please select at least 2 meal types"
-      if (selectedDays.length < 3) newErrors.days = "Please select at least 3 delivery days"
+
+      // Use the new validation logic
+      const dayValidationErrors = validateDeliveryDays(selectedDays, duration)
+      if (dayValidationErrors.length > 0) {
+        newErrors.days = dayValidationErrors[0] // Show first error
+      }
     } else if (step === 2) {
       if (!isMenuComplete()) newErrors.menu = "Please select all meals for your plan"
     }
@@ -296,6 +372,12 @@ export function OrderProcess() {
     } else {
       router.push(selectedPlanId ? `/meal-plans/${selectedPlanId}` : "/meal-plans")
     }
+  }
+
+  // Check if current selection meets minimum requirements
+  const meetsMinimumRequirements = () => {
+    const dayValidationErrors = validateDeliveryDays(selectedDays, duration)
+    return selectedPlanId && selectedMealTypes.length >= 2 && dayValidationErrors.length === 0
   }
 
   return (
@@ -492,7 +574,10 @@ export function OrderProcess() {
                 <div>
                   <Label className="text-base font-medium mb-3 block">Select your delivery days</Label>
                   <p className="text-sm text-gray-500 mb-4">
-                    Click on the dates you'd like to receive your meals. Select at least 3 days.
+                    Click on the dates you'd like to receive your meals.
+                    {duration === 1 && " Select at least 3 days."}
+                    {duration === 2 && " Select at least 6 days with minimum 2 days in the second week."}
+                    {duration === 4 && " Select at least 10 days with minimum 2 days in weeks 2, 3, and 4."}
                   </p>
                   <DeliveryCalendar
                     allowedWeeks={allowedWeeks}
@@ -507,7 +592,7 @@ export function OrderProcess() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button onClick={handleNext} disabled={!selectedPlanId || selectedDays.length < 3}>
+                <Button onClick={handleNext} disabled={!meetsMinimumRequirements()}>
                   Continue to Menu Building
                 </Button>
               </CardFooter>
@@ -560,6 +645,7 @@ export function OrderProcess() {
                                         src={
                                           menuSelections[day.toISOString()][mealType].image ||
                                           "/placeholder.svg?height=64&width=64&query=meal" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={menuSelections[day.toISOString()][mealType].name}
@@ -630,6 +716,7 @@ export function OrderProcess() {
                                           src={
                                             menuSelections[day.toISOString()][snackKey].image ||
                                             "/placeholder.svg?height=64&width=64&query=snack" ||
+                                            "/placeholder.svg" ||
                                             "/placeholder.svg"
                                           }
                                           alt={menuSelections[day.toISOString()][snackKey].name}
@@ -858,8 +945,8 @@ export function OrderProcess() {
                   <div className="flex">
                     <Info className="h-5 w-5 text-fitnest-orange mr-2" />
                     <div className="text-sm text-gray-600">
-                      <p className="font-medium">Smart Pricing</p>
-                      <p>Automatic discounts based on volume and duration. No days-based discounts.</p>
+                      <p className="font-medium">Flexible Subscription</p>
+                      <p>You can pause, modify, or cancel your subscription anytime.</p>
                     </div>
                   </div>
                 </div>
@@ -874,7 +961,7 @@ export function OrderProcess() {
                     Proceed to Checkout
                   </Button>
                 ) : (
-                  <Button className="w-full" onClick={handleNext} disabled={!selectedPlanId || selectedDays.length < 3}>
+                  <Button className="w-full" onClick={handleNext} disabled={!meetsMinimumRequirements()}>
                     Continue to Menu Building
                   </Button>
                 )}
