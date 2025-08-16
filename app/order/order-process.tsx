@@ -14,6 +14,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import { DeliveryCalendar } from "@/components/delivery-calendar"
+import { calculatePrice, type MealSelection, type PriceBreakdown, formatPrice } from "@/lib/pricing-model"
 
 // Define meal plan data
 const mealPlans = {
@@ -54,9 +55,9 @@ const mealTypes = [
 ]
 
 const snackOptions = [
-  { id: "0-snacks", label: "No Snacks", description: "No additional snacks", multiplier: 0 },
-  { id: "1-snack", label: "1 Snack / Day", description: "One healthy snack per day", multiplier: 0.2 },
-  { id: "2-snacks", label: "2 Snacks / Day", description: "Two healthy snacks per day", multiplier: 0.35 },
+  { id: "0-snacks", label: "No Snacks", description: "No additional snacks", value: 0 },
+  { id: "1-snack", label: "1 Snack / Day", description: "One healthy snack per day", value: 1 },
+  { id: "2-snacks", label: "2 Snacks / Day", description: "Two healthy snacks per day", value: 2 },
 ]
 
 const allergies = [
@@ -69,9 +70,9 @@ const allergies = [
 ]
 
 const durationOptions = [
-  { value: 1, label: "1 Week" },
-  { value: 2, label: "2 Weeks" },
-  { value: 4, label: "1 Month" },
+  { value: 1, label: "1 Week", weeks: 1 },
+  { value: 2, label: "2 Weeks", weeks: 2 },
+  { value: 4, label: "1 Month", weeks: 4 },
 ]
 
 // Sample meals for menu building
@@ -122,6 +123,7 @@ export function OrderProcess() {
   const [duration, setDuration] = useState(1) // Default to 1 week
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([])
   const [selectedDays, setSelectedDays] = useState<Date[]>([])
+  const [promoCode, setPromoCode] = useState("")
 
   const [step, setStep] = useState(1)
   const [menuSelections, setMenuSelections] = useState<Record<string, Record<string, any>>>({})
@@ -132,11 +134,15 @@ export function OrderProcess() {
     menu?: string
   }>({})
 
-  // Calendar rules - FIXED: Proper calculation for 1 month = 4 weeks
+  // Pricing calculation state
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null)
+  const [pricingError, setPricingError] = useState<string>("")
+
+  // Calendar rules - Fixed: Proper calculation for 1 month = 4 weeks
   const today = new Date()
   const weekStartsOn = 1 as const // Monday
 
-  // Fixed calculation: 1 month should show 4 weeks, not 3
+  // Fixed calculation: 1 month should show 5 weeks (current + 4 weeks)
   const allowedWeeks = duration === 1 ? 2 : duration === 2 ? 3 : duration === 4 ? 5 : 4
 
   const allowedStart = startOfWeek(today, { weekStartsOn })
@@ -145,6 +151,30 @@ export function OrderProcess() {
 
   const sortedSelectedDays = [...selectedDays].sort((a, b) => a.getTime() - b.getTime())
   const startDate = sortedSelectedDays.length > 0 ? sortedSelectedDays[0] : undefined
+
+  // Calculate pricing whenever selection changes
+  useEffect(() => {
+    if (selectedPlanId && selectedDays.length >= 3) {
+      try {
+        const selection: MealSelection = {
+          planId: selectedPlanId,
+          mainMeals: selectedMealTypes.includes("lunch") && selectedMealTypes.includes("dinner") ? 2 : 1,
+          breakfast: selectedMealTypes.includes("breakfast"),
+          snacks: snackOptions.find((opt) => opt.id === selectedSnacks)?.value || 0,
+          selectedDays: selectedDays,
+          subscriptionWeeks: durationOptions.find((opt) => opt.value === duration)?.weeks || 1,
+          promoCode: promoCode || undefined,
+        }
+
+        const breakdown = calculatePrice(selection, promoCode || undefined)
+        setPriceBreakdown(breakdown)
+        setPricingError("")
+      } catch (error) {
+        setPricingError(error instanceof Error ? error.message : "Pricing calculation error")
+        setPriceBreakdown(null)
+      }
+    }
+  }, [selectedPlanId, selectedMealTypes, selectedSnacks, selectedDays, duration, promoCode])
 
   // Reset selected days if duration changes and selected days fall outside the new range
   useEffect(() => {
@@ -157,24 +187,6 @@ export function OrderProcess() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration, allowedEnd, todayStart])
-
-  // Calculate base price per day
-  const calculateDailyPrice = () => {
-    if (!selectedPlan) return 0
-    const basePrice = selectedPlan.basePrice / 7
-    let mealTypeMultiplier = 0
-    if (selectedMealTypes.includes("breakfast")) mealTypeMultiplier += 0.3
-    if (selectedMealTypes.includes("lunch")) mealTypeMultiplier += 0.35
-    if (selectedMealTypes.includes("dinner")) mealTypeMultiplier += 0.35
-    const snackMultiplier = snackOptions.find((option) => option.id === selectedSnacks)?.multiplier || 0
-    return Math.round(basePrice * (mealTypeMultiplier + snackMultiplier) * 10) / 10
-  }
-
-  // Calculate total price based on number of selected days
-  const calculateTotalPrice = () => {
-    const dailyPrice = calculateDailyPrice()
-    return Math.round(dailyPrice * selectedDays.length)
-  }
 
   // Initialize menu selections when days change
   useEffect(() => {
@@ -254,9 +266,9 @@ export function OrderProcess() {
         const mealPlanData = {
           planId: selectedPlanId,
           planName: selectedPlan?.title,
-          planPrice: calculateTotalPrice(),
+          planPrice: priceBreakdown?.finalTotal || 0,
           duration: `${selectedDays.length} days`,
-          mealsPerWeek: null, // Obsolete
+          subscriptionWeeks: durationOptions.find((opt) => opt.value === duration)?.weeks || 1,
           customizations: {
             dietaryRestrictions: selectedAllergies
               .map((id) => allergies.find((a) => a.id === id)?.label)
@@ -269,6 +281,7 @@ export function OrderProcess() {
             selectedDays: sortedSelectedDays.map((d) => d.toISOString()),
             startDate: startDate?.toISOString(),
           },
+          priceBreakdown: priceBreakdown,
         }
         localStorage.setItem("selectedMealPlan", JSON.stringify(mealPlanData))
         router.push("/checkout")
@@ -453,6 +466,28 @@ export function OrderProcess() {
                   </RadioGroup>
                 </div>
 
+                {/* Promo Code */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Promo Code (Optional)</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Enter promo code"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-fitnest-green focus:border-transparent"
+                    />
+                    <Button type="button" variant="outline" onClick={() => setPromoCode("")} disabled={!promoCode}>
+                      Clear
+                    </Button>
+                  </div>
+                  {promoCode && priceBreakdown?.discounts.seasonalDiscount > 0 && (
+                    <p className="text-green-600 text-sm mt-2">
+                      ✓ Promo code applied! Save {formatPrice(priceBreakdown.discounts.seasonalDiscount)}
+                    </p>
+                  )}
+                </div>
+
                 {/* Calendar Day Selection */}
                 <div>
                   <Label className="text-base font-medium mb-3 block">Select your delivery days</Label>
@@ -525,7 +560,6 @@ export function OrderProcess() {
                                         src={
                                           menuSelections[day.toISOString()][mealType].image ||
                                           "/placeholder.svg?height=64&width=64&query=meal" ||
-                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={menuSelections[day.toISOString()][mealType].name}
@@ -596,7 +630,6 @@ export function OrderProcess() {
                                           src={
                                             menuSelections[day.toISOString()][snackKey].image ||
                                             "/placeholder.svg?height=64&width=64&query=snack" ||
-                                            "/placeholder.svg" ||
                                             "/placeholder.svg"
                                           }
                                           alt={menuSelections[day.toISOString()][snackKey].name}
@@ -726,16 +759,12 @@ export function OrderProcess() {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Allergies:</span>
-                    <span>
-                      {selectedAllergies.length > 0
-                        ? selectedAllergies.map((id) => allergies.find((a) => a.id === id)?.label).join(", ")
-                        : "None"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
                     <span>Total Delivery Days:</span>
                     <span>{selectedDays.length} days</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Duration:</span>
+                    <span>{durationOptions.find((opt) => opt.value === duration)?.label}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Start Date:</span>
@@ -745,23 +774,92 @@ export function OrderProcess() {
 
                 <Separator />
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Price per day:</span>
-                    <span>{calculateDailyPrice()} MAD</span>
+                {/* Pricing Breakdown */}
+                {priceBreakdown && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Daily Cost:</span>
+                      <span>{formatPrice(priceBreakdown.pricePerDay)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Weekly Cost:</span>
+                      <span>{formatPrice(priceBreakdown.pricePerWeek)}</span>
+                    </div>
+
+                    {priceBreakdown.discounts.totalDiscount > 0 && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>
+                            {formatPrice(
+                              priceBreakdown.subscriptionTotals.subscriptionSubtotal +
+                                priceBreakdown.discounts.totalDiscount,
+                            )}
+                          </span>
+                        </div>
+
+                        {priceBreakdown.discounts.appliedWeeklyDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Volume Discount ({priceBreakdown.discounts.appliedWeeklyDiscount}%):</span>
+                            <span>
+                              -
+                              {formatPrice(
+                                priceBreakdown.discounts.totalDiscount -
+                                  priceBreakdown.discounts.durationDiscount -
+                                  priceBreakdown.discounts.seasonalDiscount,
+                              )}
+                            </span>
+                          </div>
+                        )}
+
+                        {priceBreakdown.discounts.durationDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Duration Discount:</span>
+                            <span>-{formatPrice(priceBreakdown.discounts.durationDiscount)}</span>
+                          </div>
+                        )}
+
+                        {priceBreakdown.discounts.seasonalDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Promo Discount:</span>
+                            <span>-{formatPrice(priceBreakdown.discounts.seasonalDiscount)}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-sm font-medium text-green-600">
+                          <span>Total Savings:</span>
+                          <span>-{formatPrice(priceBreakdown.discounts.totalDiscount)}</span>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+                      <span>Final Total:</span>
+                      <span>{formatPrice(priceBreakdown.finalTotal)}</span>
+                    </div>
+
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>Total Items: {priceBreakdown.totalItems}</div>
+                      <div>
+                        Duration: {priceBreakdown.totalWeeks} week{priceBreakdown.totalWeeks > 1 ? "s" : ""}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>Total price:</span>
-                    <span>{calculateTotalPrice()} MAD</span>
-                  </div>
-                </div>
+                )}
+
+                {pricingError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{pricingError}</AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="rounded-md bg-gray-50 p-3">
                   <div className="flex">
                     <Info className="h-5 w-5 text-fitnest-orange mr-2" />
                     <div className="text-sm text-gray-600">
-                      <p className="font-medium">Flexible Subscription</p>
-                      <p>You can pause, modify, or cancel your subscription anytime.</p>
+                      <p className="font-medium">Smart Pricing</p>
+                      <p>Automatic discounts based on volume and duration. No days-based discounts.</p>
                     </div>
                   </div>
                 </div>

@@ -50,7 +50,7 @@ export default function PricingDemo() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Fitnest.ma Pricing Calculator</h1>
-        <p className="text-gray-600">Test the pricing model with different configurations</p>
+        <p className="text-gray-600">Test the updated pricing model (Volume + Duration discounts only)</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -146,7 +146,7 @@ export default function PricingDemo() {
             <div>
               <label className="block text-sm font-medium mb-2">Subscription Duration</label>
               <Select
-                value={selection.subscriptionWeeks.toString()}
+                value={selection.subscriptionWeeks?.toString() || "1"}
                 onValueChange={(value) => updateSelection("subscriptionWeeks", Number.parseInt(value))}
               >
                 <SelectTrigger>
@@ -167,11 +167,11 @@ export default function PricingDemo() {
                   <SelectValue placeholder="No code" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no-code">No Code</SelectItem>
-                  <SelectItem value="new-customer">NEW-CUSTOMER (20%)</SelectItem>
-                  <SelectItem value="ramadan">RAMADAN (15%)</SelectItem>
-                  <SelectItem value="summer">SUMMER (10%)</SelectItem>
-                  <SelectItem value="bulk-order">BULK-ORDER (25%)</SelectItem>
+                  <SelectItem value="none">No Code</SelectItem>
+                  <SelectItem value="NEW-CUSTOMER">NEW-CUSTOMER (20%)</SelectItem>
+                  <SelectItem value="RAMADAN">RAMADAN (15%)</SelectItem>
+                  <SelectItem value="SUMMER">SUMMER (10%)</SelectItem>
+                  <SelectItem value="BULK-ORDER">BULK-ORDER (25%)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -252,9 +252,15 @@ export default function PricingDemo() {
                     <div className="space-y-2 text-sm">
                       {breakdown.discounts.appliedWeeklyDiscount > 0 && (
                         <div className="flex justify-between">
-                          <span>Weekly Discount:</span>
+                          <span>Volume Discount ({breakdown.discounts.appliedWeeklyDiscount}%):</span>
                           <Badge variant="secondary">
-                            -{(breakdown.discounts.appliedWeeklyDiscount * breakdown.totalWeeks).toFixed(2)} MAD
+                            -
+                            {(
+                              breakdown.weeklyTotals.subtotal *
+                              (breakdown.discounts.appliedWeeklyDiscount / 100) *
+                              breakdown.totalWeeks
+                            ).toFixed(2)}{" "}
+                            MAD
                           </Badge>
                         </div>
                       )}
@@ -294,7 +300,9 @@ export default function PricingDemo() {
                     </div>
                     <div className="flex justify-between">
                       <span>Subtotal (before discounts):</span>
-                      <span>{breakdown.subscriptionTotals.subscriptionSubtotal} MAD</span>
+                      <span>
+                        {breakdown.subscriptionTotals.subscriptionSubtotal + breakdown.discounts.totalDiscount} MAD
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -307,28 +315,52 @@ export default function PricingDemo() {
       {/* Examples Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Examples</CardTitle>
+          <CardTitle>Quick Examples (Updated Pricing Model)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="border rounded-lg p-4">
               <h5 className="font-semibold mb-2">Budget Customer</h5>
               <p className="text-sm text-gray-600 mb-2">Stay Fit • 1 Main + Breakfast • 3 days • 1 week</p>
-              <p className="font-bold">199.5 MAD</p>
-              <p className="text-xs text-gray-500">66.5 MAD per day</p>
+              <p className="font-bold">189.75 MAD</p>
+              <p className="text-xs text-gray-500">63.25 MAD per day</p>
+              <p className="text-xs text-green-600">No discounts (6 items)</p>
             </div>
             <div className="border rounded-lg p-4">
               <h5 className="font-semibold mb-2">Popular Customer</h5>
               <p className="text-sm text-gray-600 mb-2">Weight Loss • 2 Main + 1 Snack • 5 days • 2 weeks</p>
               <p className="font-bold">855 MAD</p>
               <p className="text-xs text-gray-500">85.5 MAD per day</p>
+              <p className="text-xs text-green-600">5% volume + 5% duration discount</p>
             </div>
             <div className="border rounded-lg p-4">
               <h5 className="font-semibold mb-2">Premium Customer</h5>
               <p className="text-sm text-gray-600 mb-2">Muscle Gain • All Meals + 2 Snacks • 7 days • 1 month</p>
-              <p className="font-bold">3505.6 MAD</p>
-              <p className="text-xs text-gray-500">125.2 MAD per day</p>
+              <p className="font-bold">3,549.42 MAD</p>
+              <p className="text-xs text-gray-500">126.77 MAD per day</p>
+              <p className="text-xs text-green-600">15% volume + 10% duration discount</p>
             </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h6 className="font-semibold text-yellow-800 mb-2">Updated Pricing Model</h6>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              <li>
+                • <strong>Removed:</strong> Days-based discounts
+              </li>
+              <li>
+                • <strong>Kept:</strong> Volume discounts (6-13: 0%, 14-20: 5%, 21-35: 10%, 36+: 15%)
+              </li>
+              <li>
+                • <strong>Kept:</strong> Duration discounts (1 week: 0%, 2 weeks: 5%, 1 month: 10%)
+              </li>
+              <li>
+                • <strong>Kept:</strong> Seasonal/promo code discounts
+              </li>
+              <li>
+                • <strong>Logic:</strong> Best weekly discount (volume vs seasonal) + duration discount
+              </li>
+            </ul>
           </div>
         </CardContent>
       </Card>
