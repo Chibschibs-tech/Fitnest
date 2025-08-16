@@ -1,95 +1,99 @@
-import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
+import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
-
-export const dynamic = "force-dynamic"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-type OrderRow = {
-  id: number
-  user_id: number
-  status: string | null
-  plan_id: number | null
-  total_amount: number | null
-  created_at: string | null
-}
-
-/**
- * GET /api/user/dashboard
- * Returns a flat payload so the dashboard UI can read fields directly.
- * Also includes a legacy { status, data } envelope for backward compatibility.
- */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-    if (!sessionId) {
-      return NextResponse.json({ error: "No session found" }, { status: 401 })
+    const authHeader = request.headers.get("authorization")
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getSessionUser(sessionId)
-    if (!user) {
+    const token = authHeader.split(" ")[1]
+
+    // Get user from session
+    const sessionResult = await sql`
+      SELECT u.id, u.name, u.email, u.role 
+      FROM users u
+      JOIN sessions s ON u.id = s.user_id
+      WHERE s.token = ${token} AND s.expires_at > NOW()
+    `
+
+    if (sessionResult.length === 0) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
-    const payload = {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-      // derived from orders table
-      subscriptions: [] as OrderRow[],
-      activeSubscription: null as OrderRow | null,
-      orderHistory: [] as OrderRow[],
-      upcomingDeliveries: [] as any[], // keep empty until deliveries table is wired
-      stats: {
-        totalOrders: 0,
-      },
+    const user = sessionResult[0]
+
+    // Get active subscriptions
+    const activeSubscriptions = await sql`
+      SELECT o.*, mp.name as plan_name, mp.price_per_week
+      FROM orders o
+      JOIN meal_plans mp ON o.meal_plan_id = mp.id
+      WHERE o.user_id = ${user.id} 
+      AND o.status IN ('active', 'paused')
+      ORDER BY o.created_at DESC
+    `
+
+    // Get meal plan order history
+    const mealPlanOrders = await sql`
+      SELECT o.*, mp.name as plan_name
+      FROM orders o
+      JOIN meal_plans mp ON o.meal_plan_id = mp.id
+      WHERE o.user_id = ${user.id}
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    `
+
+    // Get express shop orders
+    const expressShopOrders = await sql`
+      SELECT id, total_amount, status, created_at, 'express_shop' as order_type
+      FROM express_shop_orders
+      WHERE user_id = ${user.id}
+      ORDER BY created_at DESC
+      LIMIT 10
+    `
+
+    // Get upcoming deliveries
+    const upcomingDeliveries = await sql`
+      SELECT ds.*, o.id as order_id
+      FROM delivery_status ds
+      JOIN orders o ON ds.order_id = o.id
+      WHERE o.user_id = ${user.id}
+      AND ds.status = 'pending'
+      AND ds.delivery_date >= CURRENT_DATE
+      ORDER BY ds.delivery_date ASC
+      LIMIT 5
+    `
+
+    // Calculate express shop stats
+    const expressShopStats = await sql`
+      SELECT 
+        COUNT(*) as total_orders,
+        COALESCE(SUM(total_amount), 0) as total_spent
+      FROM express_shop_orders
+      WHERE user_id = ${user.id}
+    `
+
+    const stats = {
+      totalOrders: mealPlanOrders.length,
+      totalExpressShopOrders: Number(expressShopStats[0]?.total_orders || 0),
+      totalExpressShopSpent: Number(expressShopStats[0]?.total_spent || 0) / 100, // Convert from cents
     }
 
-    // Check if orders table exists
-    const ordersReg = await sql`SELECT to_regclass('public.orders') AS regclass`
-    if (ordersReg[0]?.regclass) {
-      // Prefer ordering by created_at; if column missing, fallback without ORDER BY.
-      let orders: OrderRow[] = []
-      try {
-        orders = await sql<OrderRow[]>`
-          SELECT id, user_id, status, plan_id, total_amount, created_at
-          FROM orders
-          WHERE user_id = ${user.id}
-          ORDER BY created_at DESC
-        `
-      } catch {
-        orders = await sql<OrderRow[]>`
-          SELECT id, user_id, status, plan_id, total_amount, created_at
-          FROM orders
-          WHERE user_id = ${user.id}
-        `
-      }
-
-      payload.orderHistory = orders
-      payload.stats.totalOrders = orders.length
-
-      // Treat any order with a plan_id as a subscription order
-      const subscriptionOrders = orders.filter((o) => o.plan_id !== null)
-
-      // Consider "active" anything not explicitly cancelled/failed.
-      const isActive = (status: string | null | undefined) => {
-        const s = (status ?? "").toLowerCase()
-        return s !== "cancelled" && s !== "canceled" && s !== "failed"
-      }
-
-      payload.subscriptions = subscriptionOrders
-      payload.activeSubscription = subscriptionOrders.find((o) => isActive(o.status)) ?? null
-    }
-
-    // Return flat payload and also legacy envelope
-    return NextResponse.json({ status: "success", data: payload, ...payload })
+    return NextResponse.json({
+      data: {
+        user,
+        activeSubscriptions,
+        orderHistory: mealPlanOrders,
+        expressShopOrders,
+        upcomingDeliveries,
+        stats,
+      },
+    })
   } catch (error) {
-    console.error("Error fetching user dashboard data:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Dashboard API error:", error)
+    return NextResponse.json({ error: "Failed to fetch dashboard data" }, { status: 500 })
   }
 }

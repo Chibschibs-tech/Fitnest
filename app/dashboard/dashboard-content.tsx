@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, Calendar, Settings, User } from "lucide-react"
+import { Package, ShoppingCart, Settings, User, Calendar, ArrowRight } from "lucide-react"
 
 interface UserType {
   id: number
@@ -16,10 +16,15 @@ interface UserType {
 type DashboardPayload = {
   user: UserType
   subscriptions?: any[]
-  activeSubscription?: any | null
+  activeSubscriptions?: any[]
   orderHistory?: any[]
+  expressShopOrders?: any[]
   upcomingDeliveries?: any[]
-  stats?: { totalOrders: number }
+  stats?: {
+    totalOrders: number
+    totalExpressShopOrders: number
+    totalExpressShopSpent: number
+  }
 }
 
 interface DashboardContentProps {
@@ -69,8 +74,26 @@ export function DashboardContent({ user }: DashboardContentProps) {
     )
   }
 
-  const hasActiveSubscription = !!dashboardData?.activeSubscription || (dashboardData?.subscriptions?.length ?? 0) > 0
-  const totalOrders = dashboardData?.stats?.totalOrders ?? dashboardData?.orderHistory?.length ?? 0
+  const activeSubscriptionsCount = dashboardData?.activeSubscriptions?.length ?? 0
+  const totalExpressShopOrders =
+    dashboardData?.stats?.totalExpressShopOrders ?? dashboardData?.expressShopOrders?.length ?? 0
+  const totalExpressShopSpent = dashboardData?.stats?.totalExpressShopSpent ?? 0
+
+  // Combine and sort all orders by date
+  const allOrders = [
+    ...(dashboardData?.orderHistory?.map((order) => ({
+      ...order,
+      type: "meal_plan",
+      displayId: `Subscription #${order.id}`,
+      displayName: order.plan_name || "Meal Plan Subscription",
+    })) ?? []),
+    ...(dashboardData?.expressShopOrders?.map((order) => ({
+      ...order,
+      type: "express_shop",
+      displayId: `Order #${order.id}`,
+      displayName: "Express Shop Order",
+    })) ?? []),
+  ].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
 
   return (
     <div className="container mx-auto p-6">
@@ -82,19 +105,21 @@ export function DashboardContent({ user }: DashboardContentProps) {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscription</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{hasActiveSubscription ? "Active" : "No Plan"}</div>
+            <div className="text-2xl font-bold">{activeSubscriptionsCount}</div>
             <p className="text-xs text-muted-foreground">
-              {hasActiveSubscription ? "Your meal plan is active." : "Choose a meal plan"}
+              {activeSubscriptionsCount === 0
+                ? "No active meal plan subscriptions"
+                : `You have ${activeSubscriptionsCount} active subscription${activeSubscriptionsCount > 1 ? "s" : ""}`}
             </p>
             <div className="mt-3">
-              {hasActiveSubscription ? (
+              {activeSubscriptionsCount > 0 ? (
                 <Link href="/dashboard/my-meal-plans">
                   <Button variant="outline" size="sm">
-                    Manage My Meal Plans
+                    Manage My Subscriptions
                   </Button>
                 </Link>
               ) : (
@@ -110,23 +135,45 @@ export function DashboardContent({ user }: DashboardContentProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Deliveries</CardTitle>
+            <CardTitle className="text-sm font-medium">Next Delivery</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData?.upcomingDeliveries?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Next 5 days</p>
+            <div className="text-2xl font-bold">
+              {dashboardData?.upcomingDeliveries?.length
+                ? new Date(dashboardData.upcomingDeliveries[0].delivery_date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                : "None"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {dashboardData?.upcomingDeliveries?.length
+                ? "Your next scheduled delivery"
+                : "No upcoming deliveries scheduled"}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Express Shop Orders</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalOrders}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <div className="text-2xl font-bold">{totalExpressShopOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalExpressShopSpent > 0
+                ? `${totalExpressShopSpent.toFixed(2)} MAD total spent`
+                : "No express shop orders yet"}
+            </p>
+            <div className="mt-3">
+              <Link href="/express-shop">
+                <Button variant="outline" size="sm">
+                  Browse Express Shop
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -135,34 +182,62 @@ export function DashboardContent({ user }: DashboardContentProps) {
         <Card>
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Your latest meal plan orders</CardDescription>
+            <CardDescription>Your latest meal plan subscriptions and express shop orders</CardDescription>
           </CardHeader>
           <CardContent>
-            {dashboardData?.orderHistory?.length ? (
+            {allOrders.length ? (
               <div className="space-y-4">
-                {dashboardData.orderHistory.slice(0, 3).map((order: any) => (
-                  <div key={order.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Order #{order.id}</p>
-                      <p className="text-sm text-gray-600">
+                {allOrders.slice(0, 5).map((order: any) => (
+                  <div key={`${order.type}-${order.id}`} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{order.displayId}</p>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          {order.type === "meal_plan" ? "Subscription" : "Express Shop"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">{order.displayName}</p>
+                      <p className="text-sm text-gray-500">
                         {order.created_at ? new Date(order.created_at).toLocaleDateString() : "Unknown"}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">
-                        {(() => {
-                          const amt = order.total_amount ?? 0
-                          const normalized =
-                            Number(amt) >= 1000
-                              ? (Number(amt) / 100).toFixed(2)
-                              : (Number(amt).toFixed?.(2) ?? `${amt}`)
-                          return `${normalized} MAD`
-                        })()}
-                      </p>
-                      <p className="text-sm text-gray-600 capitalize">{order.status ?? "pending"}</p>
+                    <div className="text-right flex items-center gap-3">
+                      <div>
+                        <p className="font-medium">
+                          {(() => {
+                            const amt = order.total_amount ?? 0
+                            const normalized =
+                              Number(amt) >= 1000
+                                ? (Number(amt) / 100).toFixed(2)
+                                : (Number(amt).toFixed?.(2) ?? `${amt}`)
+                            return `${normalized} MAD`
+                          })()}
+                        </p>
+                        <p className="text-sm text-gray-600 capitalize">{order.status ?? "pending"}</p>
+                      </div>
+                      <Link
+                        href={
+                          order.type === "meal_plan"
+                            ? `/dashboard/my-meal-plans/${order.id}`
+                            : `/dashboard/orders/${order.id}`
+                        }
+                      >
+                        <Button variant="ghost" size="sm">
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}
+                {allOrders.length > 5 && (
+                  <div className="pt-4 border-t">
+                    <Link href="/dashboard/orders">
+                      <Button variant="outline" size="sm" className="w-full bg-transparent">
+                        View All Orders
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-gray-600">No orders yet</p>
@@ -182,10 +257,18 @@ export function DashboardContent({ user }: DashboardContentProps) {
                 Browse Meal Plans
               </Button>
             </Link>
-            <Button className="w-full bg-transparent" variant="outline">
-              <Calendar className="mr-2 h-4 w-4" />
-              Schedule Delivery
-            </Button>
+            <Link href="/express-shop" className="w-full">
+              <Button className="w-full bg-transparent" variant="outline">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Express Shop
+              </Button>
+            </Link>
+            <Link href="/dashboard/orders" className="w-full">
+              <Button className="w-full bg-transparent" variant="outline">
+                <User className="mr-2 h-4 w-4" />
+                Order History
+              </Button>
+            </Link>
             <Button className="w-full bg-transparent" variant="outline">
               <Settings className="mr-2 h-4 w-4" />
               Account Settings
