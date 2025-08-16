@@ -23,26 +23,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     if (!tableExists) {
-      // Return mock delivery schedule
+      // Return mock delivery schedule based on subscription ID
       const mockDeliveries = []
       const startDate = new Date()
 
-      for (let i = 0; i < 8; i++) {
+      // Different delivery patterns based on subscription
+      const deliveryCount = subscriptionId === 28 ? 12 : 8 // More deliveries for higher value subscription
+      const completedCount = subscriptionId === 28 ? 3 : 2
+
+      for (let i = 0; i < deliveryCount; i++) {
         const deliveryDate = new Date(startDate)
         deliveryDate.setDate(startDate.getDate() + i * 7) // Weekly deliveries
 
         mockDeliveries.push({
           id: i + 1,
           scheduledDate: deliveryDate.toISOString(),
-          status: i < 2 ? "delivered" : "pending",
+          status: i < completedCount ? "delivered" : "pending",
         })
       }
 
       return NextResponse.json({
         deliveries: mockDeliveries,
-        totalDeliveries: 8,
-        completedDeliveries: 2,
-        pendingDeliveries: 6,
+        totalDeliveries: deliveryCount,
+        completedDeliveries: completedCount,
+        pendingDeliveries: deliveryCount - completedCount,
         nextDeliveryDate: mockDeliveries.find((d) => d.status === "pending")?.scheduledDate,
         canPause: true,
         pauseEligibleDate: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
@@ -89,23 +93,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Return mock data as fallback
     const mockDeliveries = []
     const startDate = new Date()
+    const deliveryCount = 8 // Default delivery count
+    const completedCount = 2 // Default completed count
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < deliveryCount; i++) {
       const deliveryDate = new Date(startDate)
       deliveryDate.setDate(startDate.getDate() + i * 7)
 
       mockDeliveries.push({
         id: i + 1,
         scheduledDate: deliveryDate.toISOString(),
-        status: i < 2 ? "delivered" : "pending",
+        status: i < completedCount ? "delivered" : "pending",
       })
     }
 
     return NextResponse.json({
       deliveries: mockDeliveries,
-      totalDeliveries: 8,
-      completedDeliveries: 2,
-      pendingDeliveries: 6,
+      totalDeliveries: deliveryCount,
+      completedDeliveries: completedCount,
+      pendingDeliveries: deliveryCount - completedCount,
       nextDeliveryDate: mockDeliveries.find((d) => d.status === "pending")?.scheduledDate,
       canPause: true,
       pauseEligibleDate: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),

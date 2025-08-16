@@ -3,6 +3,40 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
+// Mock data that matches the subscriptions list
+const mockOrders = {
+  28: {
+    id: 28,
+    plan_id: 1,
+    plan_name: "Balanced Nutrition",
+    status: "active",
+    total_amount: 28000,
+    created_at: "2025-08-16T00:00:00.000Z",
+    user_email: "user@example.com",
+    pause_count: 0,
+  },
+  27: {
+    id: 27,
+    plan_id: 2,
+    plan_name: "Muscle Gain Plan",
+    status: "active",
+    total_amount: 9600,
+    created_at: "2025-08-11T00:00:00.000Z",
+    user_email: "user@example.com",
+    pause_count: 0,
+  },
+  26: {
+    id: 26,
+    plan_id: 2,
+    plan_name: "Muscle Gain Plan",
+    status: "active",
+    total_amount: 9600,
+    created_at: "2025-08-10T00:00:00.000Z",
+    user_email: "user@example.com",
+    pause_count: 0,
+  },
+}
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const orderId = Number.parseInt(params.id)
@@ -20,21 +54,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
       await sql`SELECT 1 FROM orders LIMIT 1`
       tableExists = true
     } catch (error) {
-      console.log("Orders table doesn't exist, creating mock data")
+      console.log("Orders table doesn't exist, using mock data")
     }
 
     if (!tableExists) {
-      // Return mock data if table doesn't exist
-      return NextResponse.json({
-        id: orderId,
-        plan_id: 1,
-        plan_name: "Weight Loss Plan",
-        status: "active",
-        total_amount: 350,
-        created_at: new Date().toISOString(),
-        user_email: "user@example.com",
-        pause_count: 0,
-      })
+      // Return consistent mock data
+      const mockOrder = mockOrders[orderId as keyof typeof mockOrders]
+      if (mockOrder) {
+        return NextResponse.json(mockOrder)
+      } else {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 })
+      }
     }
 
     // Try to fetch from orders table
@@ -53,18 +83,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
     `
 
     if (orders.length === 0) {
-      console.log("Order not found, returning mock data")
-      // Return mock data if order not found
-      return NextResponse.json({
-        id: orderId,
-        plan_id: 1,
-        plan_name: "Weight Loss Plan",
-        status: "active",
-        total_amount: 350,
-        created_at: new Date().toISOString(),
-        user_email: "user@example.com",
-        pause_count: 0,
-      })
+      console.log("Order not found in database, using mock data")
+      // Return consistent mock data if order not found
+      const mockOrder = mockOrders[orderId as keyof typeof mockOrders]
+      if (mockOrder) {
+        return NextResponse.json(mockOrder)
+      } else {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 })
+      }
     }
 
     const order = orders[0]
@@ -82,16 +108,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
   } catch (error) {
     console.error("Error fetching order:", error)
 
-    // Return mock data as fallback
-    return NextResponse.json({
-      id: Number.parseInt(params.id),
-      plan_id: 1,
-      plan_name: "Weight Loss Plan",
-      status: "active",
-      total_amount: 350,
-      created_at: new Date().toISOString(),
-      user_email: "user@example.com",
-      pause_count: 0,
-    })
+    // Return consistent mock data as fallback
+    const mockOrder = mockOrders[Number.parseInt(params.id) as keyof typeof mockOrders]
+    if (mockOrder) {
+      return NextResponse.json(mockOrder)
+    } else {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 })
+    }
   }
 }
