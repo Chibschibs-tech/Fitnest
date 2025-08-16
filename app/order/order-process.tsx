@@ -645,8 +645,6 @@ export function OrderProcess() {
                                         src={
                                           menuSelections[day.toISOString()][mealType].image ||
                                           "/placeholder.svg?height=64&width=64&query=meal" ||
-                                          "/placeholder.svg" ||
-                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={menuSelections[day.toISOString()][mealType].name}
@@ -717,8 +715,6 @@ export function OrderProcess() {
                                           src={
                                             menuSelections[day.toISOString()][snackKey].image ||
                                             "/placeholder.svg?height=64&width=64&query=snack" ||
-                                            "/placeholder.svg" ||
-                                            "/placeholder.svg" ||
                                             "/placeholder.svg"
                                           }
                                           alt={menuSelections[day.toISOString()][snackKey].name}
@@ -863,17 +859,21 @@ export function OrderProcess() {
 
                 <Separator />
 
-                {/* Pricing Breakdown */}
+                {/* Pricing Breakdown - UPDATED: Better display for multi-week subscriptions */}
                 {priceBreakdown && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Daily Cost:</span>
+                      <span>Cost Per Day:</span>
                       <span>{formatPrice(priceBreakdown.pricePerDay)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Weekly Cost:</span>
-                      <span>{formatPrice(priceBreakdown.pricePerWeek)}</span>
-                    </div>
+
+                    {/* Only show weekly cost for 1-week subscriptions */}
+                    {duration === 1 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Weekly Cost:</span>
+                        <span>{formatPrice(priceBreakdown.pricePerWeek)}</span>
+                      </div>
+                    )}
 
                     {priceBreakdown.discounts.totalDiscount > 0 && (
                       <>

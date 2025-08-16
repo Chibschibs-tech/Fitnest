@@ -88,7 +88,7 @@ export const pricingConfig = {
   },
 }
 
-// Validation function
+// Validation function - UPDATED: Removed old per-week limits
 export function validateMealSelection(selection: MealSelection): string[] {
   const errors: string[] = []
 
@@ -113,13 +113,22 @@ export function validateMealSelection(selection: MealSelection): string[] {
     errors.push("Invalid meal combination")
   }
 
-  // Check minimum days
-  if (selection.selectedDays.length < 3) {
-    errors.push("Must select at least 3 days per week")
-  }
+  // Check minimum days - UPDATED: Use business logic instead of per-week limits
+  const subscriptionWeeks = selection.subscriptionWeeks || 1
+  const totalDays = selection.selectedDays.length
 
-  if (selection.selectedDays.length > 7) {
-    errors.push("Cannot select more than 7 days per week")
+  if (subscriptionWeeks === 1) {
+    if (totalDays < 3) {
+      errors.push("Must select at least 3 days for a 1-week subscription")
+    }
+  } else if (subscriptionWeeks === 2) {
+    if (totalDays < 6) {
+      errors.push("Must select at least 6 days for a 2-week subscription")
+    }
+  } else if (subscriptionWeeks === 4) {
+    if (totalDays < 10) {
+      errors.push("Must select at least 10 days for a 1-month subscription")
+    }
   }
 
   // Check valid plan
@@ -175,37 +184,36 @@ export function calculatePrice(selection: MealSelection, seasonalCode?: string):
   const dailySnacks = selection.snacks * adjustedPrices.snack
   const dailyTotal = dailyMainMeals + dailyBreakfast + dailySnacks
 
-  // Calculate weekly totals
-  const daysPerWeek = selection.selectedDays.length
-  const weeklySubtotal = dailyTotal * daysPerWeek
+  // Calculate total for all selected days (not weekly averages)
+  const totalDays = selection.selectedDays.length
+  const totalSubtotal = dailyTotal * totalDays
 
-  // Calculate total items per week
+  // Calculate total items for the entire subscription
   const itemsPerDay = selection.mainMeals + (selection.breakfast ? 1 : 0) + selection.snacks
-  const totalItems = itemsPerDay * daysPerWeek
+  const totalItems = itemsPerDay * totalDays
 
   // Calculate discounts
   const volumeDiscount = getVolumeDiscount(totalItems)
   const seasonalDiscount = getSeasonalDiscount(seasonalCode)
 
-  // Apply best weekly discount (volume vs seasonal)
-  const bestWeeklyDiscount = Math.max(volumeDiscount, seasonalDiscount)
-  const appliedWeeklyDiscount = bestWeeklyDiscount
-  const weeklyDiscountAmount = weeklySubtotal * appliedWeeklyDiscount
-  const weeklyTotal = weeklySubtotal - weeklyDiscountAmount
+  // Apply best discount (volume vs seasonal)
+  const bestDiscount = Math.max(volumeDiscount, seasonalDiscount)
+  const appliedWeeklyDiscount = bestDiscount
+  const discountAmount = totalSubtotal * appliedWeeklyDiscount
+  const subtotalAfterDiscount = totalSubtotal - discountAmount
 
   // Calculate subscription totals
   const subscriptionWeeks = selection.subscriptionWeeks || 1
-  const subscriptionSubtotal = weeklyTotal * subscriptionWeeks
 
   // Apply duration discount
   const durationDiscountRate = getDurationDiscount(subscriptionWeeks)
-  const durationDiscountAmount = subscriptionSubtotal * durationDiscountRate
+  const durationDiscountAmount = subtotalAfterDiscount * durationDiscountRate
 
   // Calculate final total
-  const finalTotal = subscriptionSubtotal - durationDiscountAmount
+  const finalTotal = subtotalAfterDiscount - durationDiscountAmount
 
   // Calculate total discount amount
-  const totalDiscountAmount = weeklyDiscountAmount * subscriptionWeeks + durationDiscountAmount
+  const totalDiscountAmount = discountAmount + durationDiscountAmount
 
   return {
     dailyBreakdown: {
@@ -216,19 +224,18 @@ export function calculatePrice(selection: MealSelection, seasonalCode?: string):
     },
 
     weeklyTotals: {
-      subtotal: Math.round(weeklySubtotal * 100) / 100,
-      weeklyTotal: Math.round(weeklyTotal * 100) / 100,
+      subtotal: Math.round(totalSubtotal * 100) / 100,
+      weeklyTotal: Math.round(subtotalAfterDiscount * 100) / 100,
     },
 
     subscriptionTotals: {
-      subscriptionSubtotal: Math.round(subscriptionSubtotal * 100) / 100,
+      subscriptionSubtotal: Math.round(subtotalAfterDiscount * 100) / 100,
     },
 
     discounts: {
       appliedWeeklyDiscount: Math.round(appliedWeeklyDiscount * 10000) / 100, // Convert to percentage
       durationDiscount: Math.round(durationDiscountAmount * 100) / 100,
-      seasonalDiscount:
-        seasonalDiscount > 0 ? Math.round(weeklySubtotal * seasonalDiscount * subscriptionWeeks * 100) / 100 : 0,
+      seasonalDiscount: seasonalDiscount > 0 ? Math.round(discountAmount * 100) / 100 : 0,
       totalDiscount: Math.round(totalDiscountAmount * 100) / 100,
     },
 
@@ -236,7 +243,7 @@ export function calculatePrice(selection: MealSelection, seasonalCode?: string):
     totalWeeks: subscriptionWeeks,
     totalItems: totalItems,
     pricePerWeek: Math.round((finalTotal / subscriptionWeeks) * 100) / 100,
-    pricePerDay: Math.round((finalTotal / (subscriptionWeeks * daysPerWeek)) * 100) / 100,
+    pricePerDay: Math.round((finalTotal / totalDays) * 100) / 100,
   }
 }
 
