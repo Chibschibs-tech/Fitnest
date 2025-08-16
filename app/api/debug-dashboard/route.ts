@@ -11,58 +11,93 @@ export async function GET() {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
 
-    // Check all cookies
-    const allCookies = {}
-    cookieStore.getAll().forEach((cookie) => {
-      allCookies[cookie.name] = cookie.value
-    })
-
-    // Check database structure
-    const tables = await sql`
-      SELECT table_name, column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_schema = 'public' 
-      AND table_name IN ('users', 'sessions', 'orders', 'meal_plans')
-      ORDER BY table_name, ordinal_position
+    // Get session info
+    const sessionResult = await sql`
+      SELECT u.id, u.name, u.email, u.role 
+      FROM users u
+      JOIN sessions s ON u.id = s.user_id
+      WHERE s.id = ${sessionId} AND s.expires_at > NOW()
     `
 
-    // Check if we have any users
-    const userCount = await sql`SELECT COUNT(*) as count FROM users`
+    // Get table structures
+    const tables = {}
+    const tableNames = ["users", "orders", "meal_plans", "sessions", "express_shop_orders", "delivery_status"]
 
-    // Check if we have any orders
-    let orderCount = []
-    try {
-      orderCount = await sql`SELECT COUNT(*) as count FROM orders`
-    } catch (e) {
-      orderCount = [{ count: "table does not exist" }]
+    for (const tableName of tableNames) {
+      try {
+        const columns = await sql`
+          SELECT column_name as column, data_type as type
+          FROM information_schema.columns 
+          WHERE table_name = ${tableName} AND table_schema = 'public'
+          ORDER BY ordinal_position
+        `
+        if (columns.length > 0) {
+          tables[tableName] = columns
+        }
+      } catch (error) {
+        // Table doesn't exist
+      }
     }
 
-    // Check sessions table
-    let sessionCount = []
-    try {
-      sessionCount = await sql`SELECT COUNT(*) as count FROM sessions`
-    } catch (e) {
-      sessionCount = [{ count: "table does not exist" }]
+    // Get counts
+    const counts = {}
+    for (const tableName of Object.keys(tables)) {
+      try {
+        const result = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
+        counts[tableName] = result[0].count
+      } catch (error) {
+        counts[tableName] = "error"
+      }
+    }
+
+    // Get specific user data
+    let userData = null
+    if (sessionResult.length > 0) {
+      const userId = sessionResult[0].id
+
+      // Get ALL orders for this specific user
+      const userOrders = await sql`
+        SELECT o.*, mp.name as plan_name
+        FROM orders o
+        LEFT JOIN meal_plans mp ON o.plan_id = mp.id
+        WHERE o.user_id = ${userId}
+        ORDER BY o.created_at DESC
+      `
+
+      // Get all orders to see what users they belong to
+      const allOrders = await sql`
+        SELECT user_id, COUNT(*) as count
+        FROM orders
+        GROUP BY user_id
+        ORDER BY count DESC
+      `
+
+      // Get sample orders from other users to see the structure
+      const sampleOrders = await sql`
+        SELECT o.*, u.name as user_name, mp.name as plan_name
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN meal_plans mp ON o.plan_id = mp.id
+        LIMIT 5
+      `
+
+      userData = {
+        userId,
+        userOrders,
+        allOrdersByUser: allOrders,
+        sampleOrders,
+      }
     }
 
     return NextResponse.json({
-      cookies: allCookies,
+      cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])),
       sessionId,
-      tables: tables.reduce((acc, row) => {
-        if (!acc[row.table_name]) acc[row.table_name] = []
-        acc[row.table_name].push({ column: row.column_name, type: row.data_type })
-        return acc
-      }, {}),
-      counts: {
-        users: userCount[0]?.count,
-        orders: orderCount[0]?.count,
-        sessions: sessionCount[0]?.count,
-      },
+      sessionResult,
+      tables,
+      counts,
+      userData,
     })
   } catch (error) {
-    return NextResponse.json({
-      error: error.message,
-      stack: error.stack,
-    })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
