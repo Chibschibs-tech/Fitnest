@@ -1,6 +1,33 @@
 import type React from "react"
-import AdminLayout from "./admin-layout"
+import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
+import { AdminSidebar } from "./admin-sidebar"
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return <AdminLayout>{children}</AdminLayout>
+export const dynamic = "force-dynamic"
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const cookieStore = cookies()
+  const sessionId = cookieStore.get("session-id")?.value
+
+  if (!sessionId) {
+    redirect("/login?redirect=/admin")
+  }
+
+  const user = await getSessionUser(sessionId)
+
+  if (!user || user.role !== "admin") {
+    redirect("/login?redirect=/admin")
+  }
+
+  return (
+    <div className="flex min-h-screen">
+      <AdminSidebar />
+      <main className="flex-1 bg-gray-50">{children}</main>
+    </div>
+  )
 }

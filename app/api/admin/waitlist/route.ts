@@ -33,25 +33,33 @@ export async function GET() {
       )
     }
 
-    // Ensure waitlist table exists
-    await sql`
-      CREATE TABLE IF NOT EXISTS waitlist (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(20),
-        meal_plan_preference VARCHAR(100),
-        city VARCHAR(100),
-        notifications BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
+    let submissions = []
 
-    // Get all waitlist submissions
-    const submissions = await sql`
-      SELECT * FROM waitlist 
-      ORDER BY created_at DESC
-    `
+    try {
+      // Ensure waitlist table exists
+      await sql`
+        CREATE TABLE IF NOT EXISTS waitlist (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          phone VARCHAR(20),
+          meal_plan_preference VARCHAR(100),
+          city VARCHAR(100),
+          notifications BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `
+
+      // Get all waitlist submissions
+      submissions = await sql`
+        SELECT * FROM waitlist 
+        ORDER BY created_at DESC
+      `
+    } catch (error) {
+      console.error("Error with waitlist table:", error)
+      // Return empty array if there's an issue
+      submissions = []
+    }
 
     return NextResponse.json({
       success: true,
@@ -60,6 +68,12 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Error fetching waitlist submissions:", error)
-    return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }

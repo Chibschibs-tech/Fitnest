@@ -20,33 +20,31 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    let pausedSubscriptions = []
+    let orders = []
 
     try {
-      // Get paused subscriptions with customer details
-      pausedSubscriptions = await sql`
+      // Get all orders with customer details
+      orders = await sql`
         SELECT 
           o.*,
           u.name as customer_name,
           u.email as customer_email
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.id
-        WHERE o.status = 'paused'
         ORDER BY o.created_at DESC
       `
     } catch (error) {
-      console.error("Error fetching paused subscriptions:", error)
-      // Return empty array if query fails
-      pausedSubscriptions = []
+      console.error("Error fetching orders:", error)
+      orders = []
     }
 
     return NextResponse.json({
       success: true,
-      subscriptions: pausedSubscriptions,
-      count: pausedSubscriptions.length,
+      orders,
+      count: orders.length,
     })
   } catch (error) {
-    console.error("Error in paused subscriptions API:", error)
+    console.error("Error in admin orders API:", error)
     return NextResponse.json(
       {
         message: "Something went wrong",

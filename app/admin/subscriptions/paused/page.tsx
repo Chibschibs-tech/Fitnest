@@ -14,9 +14,8 @@ interface PausedSubscription {
   customer_email: string
   plan_name: string
   total_amount: number
-  paused_at: string
-  pause_duration_days: number
   created_at: string
+  paused_until: string
 }
 
 export default function PausedSubscriptionsPage() {
@@ -47,7 +46,6 @@ export default function PausedSubscriptionsPage() {
       const response = await fetch(`/api/subscriptions/${subscriptionId}/resume`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
       })
 
       if (response.ok) {
@@ -95,7 +93,7 @@ export default function PausedSubscriptionsPage() {
 
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Paused Subscriptions</h1>
-        <p className="text-gray-600">Manage and resume paused customer subscriptions</p>
+        <p className="text-gray-600">Manage paused customer meal plan subscriptions</p>
       </div>
 
       {message && (
@@ -107,14 +105,14 @@ export default function PausedSubscriptionsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Paused Subscriptions ({subscriptions.length})</CardTitle>
-          <CardDescription>Subscriptions that have been temporarily paused by customers</CardDescription>
+          <CardDescription>Currently paused meal plan subscriptions</CardDescription>
         </CardHeader>
         <CardContent>
           {subscriptions.length === 0 ? (
             <div className="text-center py-8">
               <PlayCircle className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No paused subscriptions</h3>
-              <p className="mt-1 text-sm text-gray-500">All subscriptions are currently active.</p>
+              <p className="mt-1 text-sm text-gray-500">Paused subscriptions will appear here.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -124,7 +122,7 @@ export default function PausedSubscriptionsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-4 mb-2">
                         <h3 className="font-semibold">Order #{subscription.id}</h3>
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+                        <Badge variant="outline" className="bg-orange-50 text-orange-700">
                           Paused
                         </Badge>
                       </div>
@@ -154,8 +152,8 @@ export default function PausedSubscriptionsPage() {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
                           <div>
-                            <p className="font-medium">{formatDate(subscription.paused_at)}</p>
-                            <p className="text-gray-500">Paused for {subscription.pause_duration_days} days</p>
+                            <p className="font-medium">{formatDate(subscription.created_at)}</p>
+                            <p className="text-gray-500">Started</p>
                           </div>
                         </div>
                       </div>
@@ -169,8 +167,9 @@ export default function PausedSubscriptionsPage() {
                       </Link>
                       <Button
                         onClick={() => handleResumeSubscription(subscription.id)}
+                        variant="outline"
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700"
+                        className="text-green-600 border-green-200 hover:bg-green-50"
                       >
                         <PlayCircle className="h-4 w-4 mr-2" />
                         Resume
