@@ -10,15 +10,35 @@ interface UserType {
   id: number
   name: string
   email: string
-  role: string
+  role?: string
+}
+
+type OrderType = {
+  id: number
+  user_id: number
+  status: string | null
+  plan_id: number | null
+  meal_plan_id: number | null
+  total_amount: number | null
+  created_at: string | null
+  plan_name?: string
+  price_per_week?: number
+}
+
+type ExpressShopOrderType = {
+  id: number
+  user_id: number
+  total_amount: number | null
+  status: string | null
+  created_at: string | null
+  order_type: string
 }
 
 type DashboardPayload = {
   user: UserType
-  subscriptions?: any[]
-  activeSubscriptions?: any[]
-  orderHistory?: any[]
-  expressShopOrders?: any[]
+  activeSubscriptions?: OrderType[]
+  orderHistory?: OrderType[]
+  expressShopOrders?: ExpressShopOrderType[]
   upcomingDeliveries?: any[]
   stats?: {
     totalOrders: number
@@ -34,6 +54,7 @@ interface DashboardContentProps {
 export function DashboardContent({ user }: DashboardContentProps) {
   const [dashboardData, setDashboardData] = useState<DashboardPayload | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -41,14 +62,24 @@ export function DashboardContent({ user }: DashboardContentProps) {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch("/api/user/dashboard", { cache: "no-store" })
+      setError(null)
+      const response = await fetch("/api/user/dashboard", {
+        cache: "no-store",
+        credentials: "include",
+      })
+
       if (response.ok) {
         const raw = await response.json()
+        console.log("Dashboard data received:", raw)
         const data: DashboardPayload = raw?.data ?? raw
         setDashboardData(data)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || "Failed to fetch dashboard data")
       }
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error)
+      setError("Network error occurred")
     } finally {
       setLoading(false)
     }
@@ -57,6 +88,10 @@ export function DashboardContent({ user }: DashboardContentProps) {
   if (loading) {
     return (
       <div className="container mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Welcome back, {user.name}!</h1>
+          <p className="text-gray-600">Loading your fitness journey overview...</p>
+        </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -74,9 +109,20 @@ export function DashboardContent({ user }: DashboardContentProps) {
     )
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Welcome back, {user.name}!</h1>
+          <p className="text-red-600">Error loading dashboard: {error}</p>
+        </div>
+        <Button onClick={fetchDashboardData}>Retry</Button>
+      </div>
+    )
+  }
+
   const activeSubscriptionsCount = dashboardData?.activeSubscriptions?.length ?? 0
-  const totalExpressShopOrders =
-    dashboardData?.stats?.totalExpressShopOrders ?? dashboardData?.expressShopOrders?.length ?? 0
+  const totalExpressShopOrders = dashboardData?.stats?.totalExpressShopOrders ?? 0
   const totalExpressShopSpent = dashboardData?.stats?.totalExpressShopSpent ?? 0
 
   // Combine and sort all orders by date
@@ -240,7 +286,14 @@ export function DashboardContent({ user }: DashboardContentProps) {
                 )}
               </div>
             ) : (
-              <p className="text-gray-600">No orders yet</p>
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">No orders yet</p>
+                <Link href="/meal-plans">
+                  <Button variant="outline" size="sm">
+                    Browse Meal Plans
+                  </Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
