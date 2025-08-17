@@ -3,8 +3,10 @@ import CustomerDetailContent from "./customer-detail-content"
 
 export default function CustomerDetailPage({ params }: { params: { id: string } }) {
   return (
-    <Suspense fallback={<div>Loading customer details...</div>}>
-      <CustomerDetailContent customerId={params.id} />
-    </Suspense>
+    <div className="container mx-auto py-8">
+      <Suspense fallback={<div>Loading customer details...</div>}>
+        <CustomerDetailContent customerId={params.id} />
+      </Suspense>
+    </div>
   )
 }

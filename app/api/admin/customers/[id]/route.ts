@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     console.log(`Fetching customer details for ID: ${customerId}`)
 
-    // Get customer basic info
+    // Get customer details
     const customerResult = await sql`
       SELECT 
         id,
@@ -23,9 +23,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         email,
         phone,
         address,
-        role,
         created_at,
-        updated_at
+        role
       FROM users
       WHERE id = ${customerId}
       AND (role IS NULL OR role != 'admin')
@@ -37,65 +36,49 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const customer = customerResult[0]
 
-    // Get customer orders
-    const orders = await sql`
+    // Get customer's orders
+    const ordersResult = await sql`
       SELECT 
         id,
         total,
         total_amount,
         status,
         created_at,
-        updated_at
+        meal_plan_name,
+        delivery_date
       FROM orders
       WHERE user_id = ${customerId}
       ORDER BY created_at DESC
     `
 
-    // Calculate customer statistics
-    const stats = {
-      totalOrders: orders.length,
-      totalSpent: orders.reduce((sum, order) => {
-        const amount = Number(order.total || order.total_amount || 0)
-        return sum + amount
-      }, 0),
-      avgOrderValue: 0,
-      lastOrderDate: orders.length > 0 ? orders[0].created_at : null,
-      firstOrderDate: orders.length > 0 ? orders[orders.length - 1].created_at : null,
+    // Calculate customer stats
+    const totalOrders = ordersResult.length
+    const totalSpent = ordersResult.reduce((sum, order) => {
+      const amount = order.total || order.total_amount || 0
+      return sum + Number(amount)
+    }, 0)
+
+    const lastOrderDate = ordersResult.length > 0 ? ordersResult[0].created_at : null
+    const status = totalOrders > 0 ? "active" : "inactive"
+
+    const customerDetails = {
+      ...customer,
+      total_orders: totalOrders,
+      total_spent: totalSpent,
+      last_order_date: lastOrderDate,
+      status,
+      orders: ordersResult,
     }
-
-    stats.avgOrderValue = stats.totalOrders > 0 ? stats.totalSpent / stats.totalOrders : 0
-
-    // Get order status breakdown
-    const statusBreakdown = orders.reduce(
-      (acc, order) => {
-        const status = order.status || "pending"
-        acc[status] = (acc[status] || 0) + 1
-        return acc
-      },
-      {} as Record<string, number>,
-    )
 
     return NextResponse.json({
       success: true,
-      customer: {
-        ...customer,
-        status: stats.totalOrders > 0 ? "active" : "inactive",
-      },
-      orders: orders.map((order) => ({
-        ...order,
-        total: Number(order.total || order.total_amount || 0),
-      })),
-      stats,
-      statusBreakdown,
+      customer: customerDetails,
     })
   } catch (error) {
     console.error("Error fetching customer details:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch customer details",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({
+      success: false,
+      error: "Failed to fetch customer details",
+    })
   }
 }

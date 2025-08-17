@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Database, Users, ShoppingCart, UserPlus, Trash2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Database, RefreshCw, Trash2 } from "lucide-react"
 
 interface DatabaseDiagnostic {
   tables: string[]
@@ -25,28 +27,33 @@ interface DatabaseDiagnostic {
   timestamp: string
 }
 
-export default function DatabaseDebugPage() {
+export default function DebugDatabasePage() {
   const [diagnostic, setDiagnostic] = useState<DatabaseDiagnostic | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [cleaning, setCleaning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [cleaningData, setCleaningData] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
-  const fetchDiagnostic = async () => {
+  const runDiagnostic = async () => {
     try {
       setLoading(true)
-      setError(null)
+      setMessage(null)
 
-      const response = await fetch("/api/admin/debug-database")
+      const response = await fetch("/api/admin/debug-database", {
+        method: "GET",
+        credentials: "include",
+      })
+
       const data = await response.json()
 
       if (data.success) {
         setDiagnostic(data.diagnostic)
+        setMessage("Database diagnostic completed successfully")
       } else {
-        setError(data.error || "Failed to fetch diagnostic")
+        setMessage(`Error: ${data.error}`)
       }
     } catch (error) {
-      console.error("Error fetching diagnostic:", error)
-      setError("Failed to fetch diagnostic")
+      console.error("Error running diagnostic:", error)
+      setMessage("Failed to run database diagnostic")
     } finally {
       setLoading(false)
     }
@@ -54,98 +61,98 @@ export default function DatabaseDebugPage() {
 
   const cleanSampleData = async () => {
     try {
-      setCleaning(true)
+      setCleaningData(true)
+      setMessage(null)
+
       const response = await fetch("/api/admin/clean-sample-data", {
         method: "POST",
+        credentials: "include",
       })
+
       const data = await response.json()
 
       if (data.success) {
-        alert(data.message)
-        // Refresh the diagnostic data
-        await fetchDiagnostic()
+        setMessage(data.message)
+        // Re-run diagnostic to show updated data
+        setTimeout(() => runDiagnostic(), 1000)
       } else {
-        alert("Error: " + data.error)
+        setMessage(`Error: ${data.error}`)
       }
     } catch (error) {
-      console.error("Error cleaning data:", error)
-      alert("Failed to clean sample data")
+      console.error("Error cleaning sample data:", error)
+      setMessage("Failed to clean sample data")
     } finally {
-      setCleaning(false)
+      setCleaningData(false)
     }
   }
 
-  useEffect(() => {
-    fetchDiagnostic()
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Database Diagnostic</h1>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading database information...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Database Diagnostic</h1>
-          <Button onClick={fetchDiagnostic} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-8 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Database Diagnostic</h1>
-          <p className="text-muted-foreground">Check database structure and content</p>
+        <div className="flex items-center gap-4">
+          <Link href="/admin" className="flex items-center text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to Admin Dashboard
+          </Link>
         </div>
         <div className="flex gap-2">
-          <Button onClick={cleanSampleData} variant="destructive" disabled={cleaning}>
+          <Button onClick={cleanSampleData} variant="destructive" disabled={cleaningData}>
             <Trash2 className="h-4 w-4 mr-2" />
-            {cleaning ? "Cleaning..." : "Clean Sample Data"}
+            {cleaningData ? "Cleaning..." : "Clean Sample Data"}
           </Button>
-          <Button onClick={fetchDiagnostic} variant="outline">
+          <Button onClick={runDiagnostic} disabled={loading}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {loading ? "Running..." : "Run Diagnostic"}
           </Button>
         </div>
       </div>
 
+      <div>
+        <h1 className="text-3xl font-bold">Database Diagnostic</h1>
+        <p className="text-muted-foreground">Debug and analyze database structure and content</p>
+      </div>
+
+      {message && (
+        <Card className={message.includes("Error") ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
+          <CardContent className="pt-6">
+            <p className={message.includes("Error") ? "text-red-600" : "text-green-600"}>{message}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!diagnostic && !loading && (
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Database className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium">No diagnostic data</h3>
+            <p className="mt-1 text-sm text-gray-500">Click "Run Diagnostic" to analyze the database</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {loading && (
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-500">Running database diagnostic...</p>
+          </CardContent>
+        </Card>
+      )}
+
       {diagnostic && (
-        <>
+        <div className="space-y-6">
           {/* Tables Overview */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Database className="h-5 w-5 mr-2" />
-                Available Tables ({diagnostic.tables.length})
-              </CardTitle>
+              <CardTitle>Database Tables ({diagnostic.tables.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="flex flex-wrap gap-2">
                 {diagnostic.tables.map((table) => (
-                  <div key={table} className="p-2 bg-muted rounded text-sm">
+                  <Badge key={table} variant="outline">
                     {table}
-                  </div>
+                  </Badge>
                 ))}
               </div>
             </CardContent>
@@ -154,33 +161,18 @@ export default function DatabaseDebugPage() {
           {/* Users Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2" />
-                Users Table ({diagnostic.users.count} records)
-              </CardTitle>
+              <CardTitle>Users Table ({diagnostic.users.count} records)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Structure:</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Column</th>
-                        <th className="text-left py-2">Type</th>
-                        <th className="text-left py-2">Nullable</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {diagnostic.users.structure.map((col) => (
-                        <tr key={col.column_name} className="border-b">
-                          <td className="py-1">{col.column_name}</td>
-                          <td className="py-1">{col.data_type}</td>
-                          <td className="py-1">{col.is_nullable}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {diagnostic.users.structure.map((col, index) => (
+                    <div key={index} className="text-sm">
+                      <span className="font-medium">{col.column_name}</span>
+                      <span className="text-muted-foreground ml-2">({col.data_type})</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -199,13 +191,13 @@ export default function DatabaseDebugPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {diagnostic.users.sample.map((user) => (
-                          <tr key={user.id} className="border-b">
-                            <td className="py-1">{user.id}</td>
-                            <td className="py-1">{user.name || "N/A"}</td>
-                            <td className="py-1">{user.email || "N/A"}</td>
-                            <td className="py-1">{user.role || "user"}</td>
-                            <td className="py-1">
+                        {diagnostic.users.sample.slice(0, 5).map((user, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="py-2">{user.id}</td>
+                            <td className="py-2">{user.name || "N/A"}</td>
+                            <td className="py-2">{user.email || "N/A"}</td>
+                            <td className="py-2">{user.role || "user"}</td>
+                            <td className="py-2">
                               {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
                             </td>
                           </tr>
@@ -221,33 +213,18 @@ export default function DatabaseDebugPage() {
           {/* Orders Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                Orders Table ({diagnostic.orders.count} records)
-              </CardTitle>
+              <CardTitle>Orders Table ({diagnostic.orders.count} records)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Structure:</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Column</th>
-                        <th className="text-left py-2">Type</th>
-                        <th className="text-left py-2">Nullable</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {diagnostic.orders.structure.map((col) => (
-                        <tr key={col.column_name} className="border-b">
-                          <td className="py-1">{col.column_name}</td>
-                          <td className="py-1">{col.data_type}</td>
-                          <td className="py-1">{col.is_nullable}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {diagnostic.orders.structure.map((col, index) => (
+                    <div key={index} className="text-sm">
+                      <span className="font-medium">{col.column_name}</span>
+                      <span className="text-muted-foreground ml-2">({col.data_type})</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -266,13 +243,13 @@ export default function DatabaseDebugPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {diagnostic.orders.sample.map((order) => (
-                          <tr key={order.id} className="border-b">
-                            <td className="py-1">{order.id}</td>
-                            <td className="py-1">{order.user_id || "N/A"}</td>
-                            <td className="py-1">{order.total || order.total_amount || "N/A"}</td>
-                            <td className="py-1">{order.status || "N/A"}</td>
-                            <td className="py-1">
+                        {diagnostic.orders.sample.slice(0, 5).map((order, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="py-2">{order.id}</td>
+                            <td className="py-2">{order.user_id}</td>
+                            <td className="py-2">{order.total || order.total_amount || "N/A"}</td>
+                            <td className="py-2">{order.status || "N/A"}</td>
+                            <td className="py-2">
                               {order.created_at ? new Date(order.created_at).toLocaleDateString() : "N/A"}
                             </td>
                           </tr>
@@ -288,84 +265,69 @@ export default function DatabaseDebugPage() {
           {/* Waitlist Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <UserPlus className="h-5 w-5 mr-2" />
-                Waitlist Table ({diagnostic.waitlist.count} records)
-              </CardTitle>
+              <CardTitle>Waitlist Table ({diagnostic.waitlist.count} records)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Structure:</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Column</th>
-                        <th className="text-left py-2">Type</th>
-                        <th className="text-left py-2">Nullable</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {diagnostic.waitlist.structure.map((col) => (
-                        <tr key={col.column_name} className="border-b">
-                          <td className="py-1">{col.column_name}</td>
-                          <td className="py-1">{col.data_type}</td>
-                          <td className="py-1">{col.is_nullable}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {diagnostic.waitlist.structure.map((col, index) => (
+                    <div key={index} className="text-sm">
+                      <span className="font-medium">{col.column_name}</span>
+                      <span className="text-muted-foreground ml-2">({col.data_type})</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {diagnostic.waitlist.sample.length > 0 ? (
+              {diagnostic.waitlist.sample.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-2">Sample Data:</h4>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2">ID</th>
-                          <th className="text-left py-2">Name</th>
-                          <th className="text-left py-2">Email</th>
-                          <th className="text-left py-2">Phone</th>
-                          <th className="text-left py-2">City</th>
-                          <th className="text-left py-2">Created</th>
+                          {Object.keys(diagnostic.waitlist.sample[0] || {})
+                            .slice(0, 6)
+                            .map((key) => (
+                              <th key={key} className="text-left py-2 capitalize">
+                                {key.replace(/_/g, " ")}
+                              </th>
+                            ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {diagnostic.waitlist.sample.map((item) => (
-                          <tr key={item.id} className="border-b">
-                            <td className="py-1">{item.id}</td>
-                            <td className="py-1">
-                              {item.first_name && item.last_name
-                                ? `${item.first_name} ${item.last_name}`
-                                : item.name || "N/A"}
-                            </td>
-                            <td className="py-1">{item.email || "N/A"}</td>
-                            <td className="py-1">{item.phone || "N/A"}</td>
-                            <td className="py-1">{item.city || "N/A"}</td>
-                            <td className="py-1">
-                              {item.created_at ? new Date(item.created_at).toLocaleDateString() : "N/A"}
-                            </td>
+                        {diagnostic.waitlist.sample.slice(0, 5).map((entry, index) => (
+                          <tr key={index} className="border-b">
+                            {Object.values(entry)
+                              .slice(0, 6)
+                              .map((value, valueIndex) => (
+                                <td key={valueIndex} className="py-2">
+                                  {value ? String(value).substring(0, 50) : "N/A"}
+                                </td>
+                              ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  No waitlist data found. This might indicate an issue with the waitlist table or queries.
-                </div>
               )}
             </CardContent>
           </Card>
 
-          <div className="text-sm text-muted-foreground">
-            Last updated: {new Date(diagnostic.timestamp).toLocaleString()}
-          </div>
-        </>
+          {/* Diagnostic Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Diagnostic Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Diagnostic completed at: {new Date(diagnostic.timestamp).toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )
