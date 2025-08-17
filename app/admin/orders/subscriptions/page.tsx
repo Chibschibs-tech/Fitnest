@@ -3,8 +3,10 @@ import SubscriptionsContent from "./subscriptions-content"
 
 export default function SubscriptionsPage() {
   return (
-    <Suspense fallback={<div>Loading subscriptions...</div>}>
-      <SubscriptionsContent />
-    </Suspense>
+    <div className="container mx-auto py-6">
+      <Suspense fallback={<div>Loading subscriptions...</div>}>
+        <SubscriptionsContent />
+      </Suspense>
+    </div>
   )
 }

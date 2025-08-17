@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Package } from "lucide-react"
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Package, DollarSign } from "lucide-react"
 
 interface Customer {
   id: string
@@ -14,23 +14,25 @@ interface Customer {
   phone?: string
   address?: string
   created_at: string
-  totalOrders: number
-  totalSpent: number
-  activeOrders: number
-  lastOrderDate?: string
+  total_orders: number
+  total_spent: number
+  last_order_date?: string
   status: "active" | "inactive"
 }
 
 interface Order {
-  id: string
-  total: number
+  id: number
+  total_amount: number
   status: string
   created_at: string
-  meal_plan_id?: string
-  order_type?: string
+  delivery_date?: string
 }
 
-export default function CustomerDetailContent({ customerId }: { customerId: string }) {
+interface CustomerDetailContentProps {
+  customerId: string
+}
+
+export default function CustomerDetailContent({ customerId }: CustomerDetailContentProps) {
   const router = useRouter()
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
@@ -87,20 +89,28 @@ export default function CustomerDetailContent({ customerId }: { customerId: stri
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Customers
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
-        </div>
-        <div className="space-y-6">
-          <div className="h-32 bg-gray-200 rounded animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
-            ))}
+          <div>
+            <h1 className="text-3xl font-bold">Loading...</h1>
+            <p className="text-muted-foreground">Loading customer details</p>
           </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">-</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     )
@@ -108,16 +118,20 @@ export default function CustomerDetailContent({ customerId }: { customerId: stri
 
   if (error || !customer) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Customers
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Error</h1>
+            <p className="text-muted-foreground">Failed to load customer details</p>
+          </div>
         </div>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error || "Customer not found"}</p>
+            <p className="text-red-600">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -125,95 +139,90 @@ export default function CustomerDetailContent({ customerId }: { customerId: stri
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Customers
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
         </Button>
+        <div>
+          <h1 className="text-3xl font-bold">{customer.name}</h1>
+          <p className="text-muted-foreground">Customer Details</p>
+        </div>
       </div>
 
       {/* Customer Info */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Customer Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold">{customer.name}</h3>
-                <Badge variant={customer.status === "active" ? "default" : "secondary"}>{customer.status}</Badge>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span>{customer.email}</span>
-                </div>
-
-                {customer.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <span>{customer.phone}</span>
-                  </div>
-                )}
-
-                {customer.address && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span>{customer.address}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span>Joined {formatDate(customer.created_at)}</span>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span>{customer.email}</span>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customer.totalOrders}</div>
+            {customer.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{customer.phone}</span>
+              </div>
+            )}
+            {customer.address && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span>{customer.address}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>Joined {formatDate(customer.created_at)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={customer.status === "active" ? "default" : "secondary"}>{customer.status}</Badge>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
+          <CardHeader>
+            <CardTitle>Order Statistics</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{customer.activeOrders}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(customer.totalSpent)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Last Order</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm">{customer.lastOrderDate ? formatDate(customer.lastOrderDate) : "Never"}</div>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span>Total Orders</span>
+              </div>
+              <span className="font-bold">{customer.total_orders}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span>Total Spent</span>
+              </div>
+              <span className="font-bold">{formatCurrency(customer.total_spent)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span>Last Order</span>
+              </div>
+              <span className="font-bold">
+                {customer.last_order_date ? formatDate(customer.last_order_date) : "Never"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span>Avg Order Value</span>
+              </div>
+              <span className="font-bold">
+                {customer.total_orders > 0
+                  ? formatCurrency(customer.total_spent / customer.total_orders)
+                  : formatCurrency(0)}
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -221,15 +230,15 @@ export default function CustomerDetailContent({ customerId }: { customerId: stri
       {/* Orders History */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Order History ({orders.length})
-          </CardTitle>
+          <CardTitle>Order History ({orders.length})</CardTitle>
+          <CardDescription>Complete order history for this customer</CardDescription>
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No orders found for this customer.</p>
+              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-medium">No orders found</h3>
+              <p className="mt-1 text-sm text-gray-500">This customer hasn't placed any orders yet.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -237,20 +246,30 @@ export default function CustomerDetailContent({ customerId }: { customerId: stri
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium">Order ID</th>
-                    <th className="text-left py-3 px-4 font-medium">Date</th>
                     <th className="text-left py-3 px-4 font-medium">Total</th>
                     <th className="text-left py-3 px-4 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 font-medium">Type</th>
+                    <th className="text-left py-3 px-4 font-medium">Order Date</th>
+                    <th className="text-left py-3 px-4 font-medium">Delivery Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
-                    <tr key={order.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 font-mono text-sm">#{order.id}</td>
-                      <td className="py-3 px-4">{formatDate(order.created_at)}</td>
-                      <td className="py-3 px-4 font-medium">{formatCurrency(Number(order.total))}</td>
+                    <tr key={order.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-4">
+                        <div className="font-medium">#{order.id}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium">{formatCurrency(order.total_amount)}</div>
+                      </td>
                       <td className="py-3 px-4">{getStatusBadge(order.status)}</td>
-                      <td className="py-3 px-4 capitalize">{order.order_type || "Standard"}</td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm">{formatDate(order.created_at)}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm">
+                          {order.delivery_date ? formatDate(order.delivery_date) : "Not scheduled"}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
