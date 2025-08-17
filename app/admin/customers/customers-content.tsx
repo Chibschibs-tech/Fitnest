@@ -12,6 +12,8 @@ interface Customer {
   id: string
   name: string
   email: string
+  phone?: string
+  address?: string
   total_orders: number
   total_spent: number
   last_order_date: string | null
@@ -43,8 +45,24 @@ export default function CustomersContent() {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch("/api/admin/customers")
+      console.log("Fetching customers...")
+
+      const response = await fetch("/api/admin/customers", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+
+      console.log("Response status:", response.status)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
+      console.log("Received data:", data)
 
       if (data.success) {
         setCustomers(data.customers || [])
@@ -56,9 +74,11 @@ export default function CustomersContent() {
             avgOrderValue: 0,
           },
         )
+        console.log(`Successfully loaded ${data.customers?.length || 0} customers`)
       } else {
         setError(data.error || "Failed to fetch customers")
         setCustomers([])
+        console.error("API returned error:", data.error)
       }
     } catch (error) {
       console.error("Error fetching customers:", error)
@@ -80,7 +100,7 @@ export default function CustomersContent() {
   )
 
   const formatCurrency = (amount: number) => {
-    return `${amount.toFixed(2)} MAD`
+    return `${Number(amount).toFixed(2)} MAD`
   }
 
   const formatDate = (dateString: string | null) => {
@@ -112,6 +132,9 @@ export default function CustomersContent() {
               </CardContent>
             </Card>
           ))}
+        </div>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading customers...</p>
         </div>
       </div>
     )
@@ -213,6 +236,11 @@ export default function CustomersContent() {
               <p className="text-muted-foreground">
                 {searchTerm ? "No customers found matching your criteria." : "No customers found."}
               </p>
+              {!searchTerm && (
+                <Button onClick={fetchCustomers} variant="outline" className="mt-4 bg-transparent">
+                  Try Again
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -239,6 +267,7 @@ export default function CustomersContent() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-sm">{customer.email}</div>
+                        {customer.phone && <div className="text-xs text-muted-foreground">{customer.phone}</div>}
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-medium">{customer.total_orders}</div>
