@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Database, Users, ShoppingCart, UserPlus } from "lucide-react"
+import { RefreshCw, Database, Users, ShoppingCart, UserPlus, Trash2 } from "lucide-react"
 
 interface DatabaseDiagnostic {
   tables: string[]
@@ -28,6 +28,7 @@ interface DatabaseDiagnostic {
 export default function DatabaseDebugPage() {
   const [diagnostic, setDiagnostic] = useState<DatabaseDiagnostic | null>(null)
   const [loading, setLoading] = useState(true)
+  const [cleaning, setCleaning] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchDiagnostic = async () => {
@@ -48,6 +49,29 @@ export default function DatabaseDebugPage() {
       setError("Failed to fetch diagnostic")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cleanSampleData = async () => {
+    try {
+      setCleaning(true)
+      const response = await fetch("/api/admin/clean-sample-data", {
+        method: "POST",
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        alert(data.message)
+        // Refresh the diagnostic data
+        await fetchDiagnostic()
+      } else {
+        alert("Error: " + data.error)
+      }
+    } catch (error) {
+      console.error("Error cleaning data:", error)
+      alert("Failed to clean sample data")
+    } finally {
+      setCleaning(false)
     }
   }
 
@@ -94,10 +118,16 @@ export default function DatabaseDebugPage() {
           <h1 className="text-3xl font-bold">Database Diagnostic</h1>
           <p className="text-muted-foreground">Check database structure and content</p>
         </div>
-        <Button onClick={fetchDiagnostic} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={cleanSampleData} variant="destructive" disabled={cleaning}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            {cleaning ? "Cleaning..." : "Clean Sample Data"}
+          </Button>
+          <Button onClick={fetchDiagnostic} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {diagnostic && (
@@ -288,7 +318,7 @@ export default function DatabaseDebugPage() {
                 </div>
               </div>
 
-              {diagnostic.waitlist.sample.length > 0 && (
+              {diagnostic.waitlist.sample.length > 0 ? (
                 <div>
                   <h4 className="font-medium mb-2">Sample Data:</h4>
                   <div className="overflow-x-auto">
@@ -307,7 +337,11 @@ export default function DatabaseDebugPage() {
                         {diagnostic.waitlist.sample.map((item) => (
                           <tr key={item.id} className="border-b">
                             <td className="py-1">{item.id}</td>
-                            <td className="py-1">{item.name || "N/A"}</td>
+                            <td className="py-1">
+                              {item.first_name && item.last_name
+                                ? `${item.first_name} ${item.last_name}`
+                                : item.name || "N/A"}
+                            </td>
                             <td className="py-1">{item.email || "N/A"}</td>
                             <td className="py-1">{item.phone || "N/A"}</td>
                             <td className="py-1">{item.city || "N/A"}</td>
@@ -319,6 +353,10 @@ export default function DatabaseDebugPage() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No waitlist data found. This might indicate an issue with the waitlist table or queries.
                 </div>
               )}
             </CardContent>

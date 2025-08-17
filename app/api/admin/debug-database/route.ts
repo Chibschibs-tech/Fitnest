@@ -1,24 +1,23 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log("Starting database diagnostic...")
 
-    // Check what tables exist
-    const tables = await sql`
+    // Get all table names
+    const tablesResult = await sql`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public'
       ORDER BY table_name
     `
+    const tables = tablesResult.map((row) => row.table_name)
 
-    console.log("Available tables:", tables)
-
-    // Check users table structure and content
-    let usersInfo = { structure: [], count: 0, sample: [] }
+    // Get users table info
+    let users = { structure: [], count: 0, sample: [] }
     try {
       const usersStructure = await sql`
         SELECT column_name, data_type, is_nullable
@@ -32,20 +31,21 @@ export async function GET(request: NextRequest) {
       const usersSample = await sql`
         SELECT id, name, email, role, created_at
         FROM users
-        LIMIT 5
+        ORDER BY created_at DESC
+        LIMIT 10
       `
 
-      usersInfo = {
+      users = {
         structure: usersStructure,
         count: Number(usersCount[0]?.count || 0),
         sample: usersSample,
       }
     } catch (error) {
-      console.log("Error checking users table:", error)
+      console.log("Error getting users data:", error)
     }
 
-    // Check orders table structure and content
-    let ordersInfo = { structure: [], count: 0, sample: [] }
+    // Get orders table info
+    let orders = { structure: [], count: 0, sample: [] }
     try {
       const ordersStructure = await sql`
         SELECT column_name, data_type, is_nullable
@@ -59,20 +59,21 @@ export async function GET(request: NextRequest) {
       const ordersSample = await sql`
         SELECT id, user_id, total, total_amount, status, created_at
         FROM orders
-        LIMIT 5
+        ORDER BY created_at DESC
+        LIMIT 10
       `
 
-      ordersInfo = {
+      orders = {
         structure: ordersStructure,
         count: Number(ordersCount[0]?.count || 0),
         sample: ordersSample,
       }
     } catch (error) {
-      console.log("Error checking orders table:", error)
+      console.log("Error getting orders data:", error)
     }
 
-    // Check waitlist table (might have customer data)
-    let waitlistInfo = { structure: [], count: 0, sample: [] }
+    // Get waitlist table info - try multiple approaches
+    let waitlist = { structure: [], count: 0, sample: [] }
     try {
       const waitlistStructure = await sql`
         SELECT column_name, data_type, is_nullable
@@ -83,28 +84,53 @@ export async function GET(request: NextRequest) {
 
       const waitlistCount = await sql`SELECT COUNT(*) as count FROM waitlist`
 
-      const waitlistSample = await sql`
-        SELECT id, name, email, phone, city, created_at
-        FROM waitlist
-        LIMIT 5
-      `
+      // Try different column combinations for waitlist
+      let waitlistSample = []
+      try {
+        waitlistSample = await sql`
+          SELECT id, first_name, last_name, email, phone, city, created_at
+          FROM waitlist
+          ORDER BY created_at DESC
+          LIMIT 10
+        `
+      } catch (e1) {
+        try {
+          waitlistSample = await sql`
+            SELECT id, name, email, phone, city, created_at
+            FROM waitlist
+            ORDER BY created_at DESC
+            LIMIT 10
+          `
+        } catch (e2) {
+          try {
+            waitlistSample = await sql`
+              SELECT *
+              FROM waitlist
+              ORDER BY created_at DESC
+              LIMIT 10
+            `
+          } catch (e3) {
+            console.log("All waitlist sample queries failed:", e3)
+          }
+        }
+      }
 
-      waitlistInfo = {
+      waitlist = {
         structure: waitlistStructure,
         count: Number(waitlistCount[0]?.count || 0),
         sample: waitlistSample,
       }
     } catch (error) {
-      console.log("Error checking waitlist table:", error)
+      console.log("Error getting waitlist data:", error)
     }
 
     return NextResponse.json({
       success: true,
       diagnostic: {
-        tables: tables.map((t) => t.table_name),
-        users: usersInfo,
-        orders: ordersInfo,
-        waitlist: waitlistInfo,
+        tables,
+        users,
+        orders,
+        waitlist,
         timestamp: new Date().toISOString(),
       },
     })
@@ -113,7 +139,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: error.message,
-      diagnostic: null,
     })
   }
 }
