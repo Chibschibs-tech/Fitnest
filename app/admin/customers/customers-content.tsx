@@ -112,6 +112,10 @@ export default function CustomersContent() {
     router.push(`/admin/customers/${customerId}`)
   }
 
+  const handleDebugDatabase = () => {
+    router.push("/admin/debug-database")
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -147,10 +151,15 @@ export default function CustomersContent() {
           <h1 className="text-3xl font-bold">Customer Management</h1>
           <p className="text-muted-foreground">Manage your customers and their orders</p>
         </div>
-        <Button onClick={fetchCustomers} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleDebugDatabase} variant="outline" size="sm">
+            Debug Database
+          </Button>
+          <Button onClick={fetchCustomers} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -237,9 +246,15 @@ export default function CustomersContent() {
                 {searchTerm ? "No customers found matching your criteria." : "No customers found."}
               </p>
               {!searchTerm && (
-                <Button onClick={fetchCustomers} variant="outline" className="mt-4 bg-transparent">
-                  Try Again
-                </Button>
+                <div className="mt-4 space-y-2">
+                  <Button onClick={fetchCustomers} variant="outline" className="bg-transparent">
+                    Try Again
+                  </Button>
+                  <br />
+                  <Button onClick={handleDebugDatabase} variant="outline" size="sm">
+                    Debug Database
+                  </Button>
+                </div>
               )}
             </div>
           ) : (

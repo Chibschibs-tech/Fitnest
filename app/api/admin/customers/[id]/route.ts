@@ -15,33 +15,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     console.log(`Fetching customer details for ID: ${customerId}`)
 
-    // Get customer details
+    // Get customer basic info
     const customerResult = await sql`
       SELECT 
-        u.id,
-        u.name,
-        u.email,
-        u.phone,
-        u.address,
-        u.created_at,
-        u.role,
-        COUNT(DISTINCT o.id) as total_orders,
-        COALESCE(SUM(
-          CASE 
-            WHEN o.total IS NOT NULL THEN o.total::numeric
-            WHEN o.total_amount IS NOT NULL THEN o.total_amount::numeric
-            ELSE 0
-          END
-        ), 0) as total_spent,
-        MAX(o.created_at) as last_order_date,
-        CASE 
-          WHEN COUNT(DISTINCT o.id) > 0 THEN 'active'
-          ELSE 'inactive'
-        END as status
-      FROM users u
-      LEFT JOIN orders o ON u.id = o.user_id AND (o.status != 'cancelled' OR o.status IS NULL)
-      WHERE u.id = ${customerId}
-      GROUP BY u.id, u.name, u.email, u.phone, u.address, u.created_at, u.role
+        id,
+        name,
+        email,
+        phone,
+        address,
+        role,
+        created_at,
+        updated_at
+      FROM users
+      WHERE id = ${customerId}
+      AND (role IS NULL OR role != 'admin')
     `
 
     if (customerResult.length === 0) {
@@ -50,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const customer = customerResult[0]
 
-    // Get customer's order history
+    // Get customer orders
     const orders = await sql`
       SELECT 
         id,
@@ -62,39 +49,53 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       FROM orders
       WHERE user_id = ${customerId}
       ORDER BY created_at DESC
-      LIMIT 50
     `
 
-    // Format the response
-    const customerData = {
-      id: customer.id,
-      name: customer.name || "Unknown",
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      created_at: customer.created_at,
-      total_orders: Number(customer.total_orders),
-      total_spent: Number(customer.total_spent),
-      last_order_date: customer.last_order_date,
-      status: customer.status,
-      orders: orders.map((order) => ({
-        id: order.id,
-        total: Number(order.total || order.total_amount || 0),
-        status: order.status || "completed",
-        created_at: order.created_at,
-        updated_at: order.updated_at,
-      })),
+    // Calculate customer statistics
+    const stats = {
+      totalOrders: orders.length,
+      totalSpent: orders.reduce((sum, order) => {
+        const amount = Number(order.total || order.total_amount || 0)
+        return sum + amount
+      }, 0),
+      avgOrderValue: 0,
+      lastOrderDate: orders.length > 0 ? orders[0].created_at : null,
+      firstOrderDate: orders.length > 0 ? orders[orders.length - 1].created_at : null,
     }
+
+    stats.avgOrderValue = stats.totalOrders > 0 ? stats.totalSpent / stats.totalOrders : 0
+
+    // Get order status breakdown
+    const statusBreakdown = orders.reduce(
+      (acc, order) => {
+        const status = order.status || "pending"
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>,
+    )
 
     return NextResponse.json({
       success: true,
-      customer: customerData,
+      customer: {
+        ...customer,
+        status: stats.totalOrders > 0 ? "active" : "inactive",
+      },
+      orders: orders.map((order) => ({
+        ...order,
+        total: Number(order.total || order.total_amount || 0),
+      })),
+      stats,
+      statusBreakdown,
     })
   } catch (error) {
     console.error("Error fetching customer details:", error)
-    return NextResponse.json({
-      success: false,
-      error: "Failed to fetch customer details",
-    })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch customer details",
+      },
+      { status: 500 },
+    )
   }
 }
