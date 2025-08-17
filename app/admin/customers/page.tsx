@@ -23,7 +23,7 @@ export default async function CustomersPage() {
     <div className="container mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Customer Management</h1>
-        <p className="text-gray-600">View and manage customer accounts and order history</p>
+        <p className="text-gray-600">Manage your customers and their orders</p>
       </div>
       <CustomersContent />
     </div>

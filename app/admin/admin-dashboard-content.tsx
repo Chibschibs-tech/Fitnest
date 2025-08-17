@@ -19,6 +19,7 @@ import {
   Truck,
   PauseCircle,
   PlayCircle,
+  Database,
 } from "lucide-react"
 
 interface DashboardStats {
@@ -38,6 +39,7 @@ export function AdminDashboardContent() {
   const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [creatingData, setCreatingData] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -57,6 +59,27 @@ export function AdminDashboardContent() {
       setError("Failed to load dashboard data")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const createSampleData = async () => {
+    try {
+      setCreatingData(true)
+      const response = await fetch("/api/admin/create-sample-data", {
+        method: "POST",
+      })
+      if (response.ok) {
+        // Refresh dashboard data
+        await fetchDashboardData()
+        alert("Sample data created successfully!")
+      } else {
+        alert("Failed to create sample data")
+      }
+    } catch (error) {
+      console.error("Failed to create sample data:", error)
+      alert("Failed to create sample data")
+    } finally {
+      setCreatingData(false)
     }
   }
 
@@ -90,11 +113,31 @@ export function AdminDashboardContent() {
     )
   }
 
+  const hasNoData =
+    !dashboardData ||
+    (dashboardData.totalRevenue === 0 &&
+      dashboardData.activeSubscriptions === 0 &&
+      dashboardData.recentOrders.length === 0)
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-gray-600">Manage your fitness meal delivery business</p>
+
+        {hasNoData && (
+          <div className="mt-4">
+            <Alert>
+              <Database className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>No data found. Would you like to create some sample data to get started?</span>
+                <Button onClick={createSampleData} disabled={creatingData} className="ml-4">
+                  {creatingData ? "Creating..." : "Create Sample Data"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
       </div>
 
       {/* Key Metrics */}
@@ -163,7 +206,7 @@ export function AdminDashboardContent() {
               <span className="text-sm">Pending Total</span>
               <Badge variant="outline">{dashboardData?.pendingDeliveries || 0}</Badge>
             </div>
-            <Link href="/admin/delivery-management">
+            <Link href="/admin/deliveries">
               <Button className="w-full">Manage Deliveries</Button>
             </Link>
           </CardContent>
@@ -186,7 +229,7 @@ export function AdminDashboardContent() {
               <span className="text-sm">Express Shop Orders</span>
               <Badge variant="outline">{dashboardData?.expressShopOrders || 0}</Badge>
             </div>
-            <Link href="/admin/orders">
+            <Link href="/admin/orders/orders">
               <Button className="w-full">View Orders</Button>
             </Link>
           </CardContent>
@@ -206,13 +249,13 @@ export function AdminDashboardContent() {
               <Badge variant="outline">{dashboardData?.pausedSubscriptions || 0}</Badge>
             </div>
             <div className="flex gap-2">
-              <Link href="/admin/subscriptions/paused" className="flex-1">
+              <Link href="/admin/orders/subscriptions" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full bg-transparent">
                   <PauseCircle className="h-4 w-4 mr-1" />
                   Paused
                 </Button>
               </Link>
-              <Link href="/admin/subscriptions/active" className="flex-1">
+              <Link href="/admin/orders/subscriptions" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full bg-transparent">
                   <PlayCircle className="h-4 w-4 mr-1" />
                   Active
@@ -252,7 +295,7 @@ export function AdminDashboardContent() {
               <p className="text-gray-600">No recent orders</p>
             )}
             <div className="mt-4">
-              <Link href="/admin/orders">
+              <Link href="/admin/orders/orders">
                 <Button variant="outline" className="w-full bg-transparent">
                   View All Orders
                 </Button>

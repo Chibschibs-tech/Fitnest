@@ -20,43 +20,36 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const deliveryId = Number.parseInt(params.id)
+    const mealId = Number.parseInt(params.id)
     const body = await request.json()
-    const { status } = body
+    const { is_available } = body
 
-    if (!["pending", "in_transit", "delivered", "failed"].includes(status)) {
-      return NextResponse.json({ message: "Invalid status" }, { status: 400 })
+    if (typeof is_available !== "boolean") {
+      return NextResponse.json({ message: "is_available must be a boolean" }, { status: 400 })
     }
 
-    // Map delivery status to order status
-    let orderStatus = status
-    if (status === "pending") orderStatus = "active"
-    if (status === "in_transit") orderStatus = "processing"
-    if (status === "delivered") orderStatus = "delivered"
-    if (status === "failed") orderStatus = "cancelled"
-
     const result = await sql`
-      UPDATE orders 
-      SET status = ${orderStatus}
-      WHERE id = ${deliveryId}
+      UPDATE meals 
+      SET is_available = ${is_available}
+      WHERE id = ${mealId}
       RETURNING *
     `
 
     if (result.length === 0) {
-      return NextResponse.json({ message: "Delivery not found" }, { status: 404 })
+      return NextResponse.json({ message: "Meal not found" }, { status: 404 })
     }
 
     return NextResponse.json({
       success: true,
-      delivery: result[0],
-      message: `Delivery status updated to ${status}`,
+      meal: result[0],
+      message: `Meal ${is_available ? "enabled" : "disabled"} successfully`,
     })
   } catch (error) {
-    console.error("Error updating delivery status:", error)
+    console.error("Error updating meal status:", error)
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to update delivery status",
+        message: "Failed to update meal status",
       },
       { status: 500 },
     )
