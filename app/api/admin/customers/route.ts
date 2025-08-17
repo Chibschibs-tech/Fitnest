@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
-import { sql } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 
 export const dynamic = "force-dynamic"
 
@@ -19,6 +19,8 @@ export async function GET() {
     if (!user || user.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
+
+    const sql = neon(process.env.DATABASE_URL!)
 
     // Ensure users table exists with sample data
     try {
@@ -57,6 +59,26 @@ export async function GET() {
       console.error("Error with users table:", tableError)
     }
 
+    // Ensure orders table exists
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS orders (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER,
+          customer_name VARCHAR(255),
+          customer_email VARCHAR(255),
+          plan_name VARCHAR(255),
+          total_amount DECIMAL(10,2) DEFAULT 0,
+          status VARCHAR(50) DEFAULT 'pending',
+          delivery_frequency VARCHAR(50),
+          duration_weeks INTEGER,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `
+    } catch (tableError) {
+      console.error("Error with orders table:", tableError)
+    }
+
     // Get customers with their order statistics
     const customers = await sql`
       SELECT 
@@ -83,6 +105,7 @@ export async function GET() {
           SUM(total_amount) as total_spent,
           MAX(created_at) as last_order_date
         FROM orders
+        WHERE user_id IS NOT NULL
         GROUP BY user_id
       ) order_stats ON u.id = order_stats.user_id
       WHERE u.role = 'user'

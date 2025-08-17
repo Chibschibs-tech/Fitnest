@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ShoppingBag, Search, Calendar, User, AlertTriangle, Eye, DollarSign, Package } from "lucide-react"
+import { ShoppingBag, Search, Calendar, DollarSign, AlertTriangle, Eye, Package } from "lucide-react"
 
 interface Order {
   id: number
@@ -16,9 +16,8 @@ interface Order {
   plan_name: string
   total_amount: number
   status: "pending" | "confirmed" | "preparing" | "delivered" | "cancelled"
-  order_type: "subscription" | "one-time"
+  delivery_frequency?: string
   created_at: string
-  delivery_date?: string
 }
 
 export function OrdersContent() {
@@ -70,7 +69,7 @@ export function OrdersContent() {
       case "confirmed":
         return <Badge className="bg-blue-100 text-blue-800">Confirmed</Badge>
       case "preparing":
-        return <Badge className="bg-purple-100 text-purple-800">Preparing</Badge>
+        return <Badge className="bg-orange-100 text-orange-800">Preparing</Badge>
       case "delivered":
         return <Badge className="bg-green-100 text-green-800">Delivered</Badge>
       case "cancelled":
@@ -80,23 +79,8 @@ export function OrdersContent() {
     }
   }
 
-  const getOrderTypeBadge = (type: string) => {
-    switch (type) {
-      case "subscription":
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700">
-            Subscription
-          </Badge>
-        )
-      case "one-time":
-        return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-            One-time
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">{type}</Badge>
-    }
+  const getOrderType = (order: Order) => {
+    return order.delivery_frequency ? "Subscription" : "One-time"
   }
 
   const formatDate = (dateString: string) => {
@@ -129,10 +113,6 @@ export function OrdersContent() {
     )
   }
 
-  const pendingOrders = orders.filter((o) => o.status === "pending").length
-  const confirmedOrders = orders.filter((o) => o.status === "confirmed").length
-  const totalRevenue = orders.reduce((sum, o) => sum + o.total_amount, 0)
-
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
@@ -154,21 +134,21 @@ export function OrdersContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingOrders}</div>
+            <div className="text-2xl font-bold">{orders.filter((o) => o.status === "pending").length}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Delivered</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{confirmedOrders}</div>
+            <div className="text-2xl font-bold">{orders.filter((o) => o.status === "delivered").length}</div>
           </CardContent>
         </Card>
 
@@ -178,7 +158,9 @@ export function OrdersContent() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalRevenue.toFixed(2)} MAD</div>
+            <div className="text-2xl font-bold">
+              {orders.reduce((sum, o) => sum + o.total_amount, 0).toFixed(2)} MAD
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -216,11 +198,11 @@ export function OrdersContent() {
                 <TableRow>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Plan</TableHead>
+                  <TableHead>Plan/Product</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Order Date</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -228,21 +210,20 @@ export function OrdersContent() {
                 {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
-                      <div className="font-medium">#{order.id}</div>
+                      <div className="font-mono text-sm">#{order.id}</div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium flex items-center">
-                          <User className="h-4 w-4 mr-1 text-gray-400" />
-                          {order.customer_name}
-                        </div>
+                        <div className="font-medium">{order.customer_name}</div>
                         <div className="text-sm text-gray-500">{order.customer_email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{order.plan_name}</div>
                     </TableCell>
-                    <TableCell>{getOrderTypeBadge(order.order_type)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{getOrderType(order)}</Badge>
+                    </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>
                       <div className="font-medium">{order.total_amount.toFixed(2)} MAD</div>

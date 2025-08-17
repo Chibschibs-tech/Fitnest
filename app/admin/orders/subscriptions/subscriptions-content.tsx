@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Package, Search, Calendar, User, AlertTriangle, Play, Pause, Eye, DollarSign } from "lucide-react"
+import { Package, Search, Calendar, DollarSign, AlertTriangle, Play, Pause, Eye } from "lucide-react"
 
 interface Subscription {
   id: number
@@ -15,11 +15,10 @@ interface Subscription {
   customer_email: string
   plan_name: string
   total_amount: number
-  status: "active" | "paused" | "completed" | "cancelled"
+  status: "active" | "paused" | "cancelled"
   delivery_frequency: string
   duration_weeks: number
   created_at: string
-  next_delivery?: string
 }
 
 export function SubscriptionsContent() {
@@ -36,10 +35,10 @@ export function SubscriptionsContent() {
   useEffect(() => {
     if (searchTerm) {
       const filtered = subscriptions.filter(
-        (subscription) =>
-          subscription.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          subscription.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          subscription.plan_name.toLowerCase().includes(searchTerm.toLowerCase()),
+        (sub) =>
+          sub.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          sub.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          sub.plan_name.toLowerCase().includes(searchTerm.toLowerCase()),
       )
       setFilteredSubscriptions(filtered)
     } else {
@@ -70,8 +69,6 @@ export function SubscriptionsContent() {
         return <Badge className="bg-green-100 text-green-800">Active</Badge>
       case "paused":
         return <Badge className="bg-yellow-100 text-yellow-800">Paused</Badge>
-      case "completed":
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>
       case "cancelled":
         return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>
       default:
@@ -85,27 +82,6 @@ export function SubscriptionsContent() {
       month: "short",
       day: "numeric",
     })
-  }
-
-  const handleStatusChange = async (subscriptionId: number, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/admin/subscriptions/${subscriptionId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      if (response.ok) {
-        fetchSubscriptions() // Refresh the list
-      } else {
-        setError("Failed to update subscription status")
-      }
-    } catch (error) {
-      console.error("Failed to update subscription:", error)
-      setError("Failed to update subscription status")
-    }
   }
 
   if (loading) {
@@ -130,15 +106,11 @@ export function SubscriptionsContent() {
     )
   }
 
-  const activeSubscriptions = subscriptions.filter((s) => s.status === "active").length
-  const pausedSubscriptions = subscriptions.filter((s) => s.status === "paused").length
-  const totalRevenue = subscriptions.reduce((sum, s) => sum + s.total_amount, 0)
-
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Subscription Management</h1>
-        <p className="text-gray-600">Manage customer subscriptions and meal plans</p>
+        <p className="text-gray-600">Manage recurring meal plan subscriptions</p>
       </div>
 
       {/* Subscription Stats */}
@@ -155,31 +127,37 @@ export function SubscriptionsContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
             <Play className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeSubscriptions}</div>
+            <div className="text-2xl font-bold">{subscriptions.filter((s) => s.status === "active").length}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Paused Subscriptions</CardTitle>
+            <CardTitle className="text-sm font-medium">Paused</CardTitle>
             <Pause className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pausedSubscriptions}</div>
+            <div className="text-2xl font-bold">{subscriptions.filter((s) => s.status === "paused").length}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalRevenue.toFixed(2)} MAD</div>
+            <div className="text-2xl font-bold">
+              {subscriptions
+                .filter((s) => s.status === "active")
+                .reduce((sum, s) => sum + s.total_amount, 0)
+                .toFixed(2)}{" "}
+              MAD
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -219,9 +197,9 @@ export function SubscriptionsContent() {
                   <TableHead>Plan</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Duration</TableHead>
                   <TableHead>Frequency</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Started</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -230,10 +208,7 @@ export function SubscriptionsContent() {
                   <TableRow key={subscription.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium flex items-center">
-                          <User className="h-4 w-4 mr-1 text-gray-400" />
-                          {subscription.customer_name}
-                        </div>
+                        <div className="font-medium">{subscription.customer_name}</div>
                         <div className="text-sm text-gray-500">{subscription.customer_email}</div>
                       </div>
                     </TableCell>
@@ -245,45 +220,34 @@ export function SubscriptionsContent() {
                       <div className="font-medium">{subscription.total_amount.toFixed(2)} MAD</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {subscription.duration_weeks} week{subscription.duration_weeks !== 1 ? "s" : ""}
-                      </Badge>
+                      <Badge variant="outline">{subscription.delivery_frequency}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm capitalize">{subscription.delivery_frequency}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                        {formatDate(subscription.created_at)}
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                        {subscription.duration_weeks} weeks
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {subscription.status === "active" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(subscription.id, "paused")}
-                          >
-                            <Pause className="h-4 w-4 mr-1" />
-                            Pause
-                          </Button>
-                        )}
-                        {subscription.status === "paused" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(subscription.id, "active")}
-                          >
-                            <Play className="h-4 w-4 mr-1" />
-                            Resume
-                          </Button>
-                        )}
+                      <div className="text-sm">{formatDate(subscription.created_at)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4 mr-1" />
                           View
                         </Button>
+                        {subscription.status === "active" ? (
+                          <Button variant="outline" size="sm">
+                            <Pause className="h-4 w-4 mr-1" />
+                            Pause
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm">
+                            <Play className="h-4 w-4 mr-1" />
+                            Resume
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
