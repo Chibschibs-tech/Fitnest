@@ -15,6 +15,7 @@ import {
   Apple,
   ChevronDown,
   ChevronRight,
+  ShoppingCart,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -28,6 +29,18 @@ const navigation = [
     name: "Customers",
     href: "/admin/customers",
     icon: Users,
+  },
+  {
+    name: "Products",
+    icon: ShoppingCart,
+    isGroup: true,
+    children: [
+      { name: "Meal Plans", href: "/admin/products/meal-plans", icon: Apple },
+      { name: "Individual Meals", href: "/admin/products/meals", icon: Package },
+      { name: "Snacks & Supplements", href: "/admin/products/snacks", icon: Package },
+      { name: "Accessories", href: "/admin/products/accessories", icon: Package },
+      { name: "Express Shop", href: "/admin/products/express-shop", icon: ShoppingCart },
+    ],
   },
   {
     name: "General Orders",
@@ -67,7 +80,7 @@ const navigation = [
 
 function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["General Orders"])
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["General Orders", "Products"])
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups((prev) =>

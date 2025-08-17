@@ -1,153 +1,164 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Truck, MapPin, Clock, Users, Calendar, Route } from "lucide-react"
+import { Truck, MapPin, Clock, Users, Route, Calendar } from "lucide-react"
 
-export function DeliveriesContent() {
+export default function DeliveriesContent() {
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Delivery Management</h1>
-        <p className="text-gray-600">Plan and manage meal deliveries across Morocco</p>
+    <div className="space-y-6">
+      {/* Coming Soon Banner */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-blue-900">Delivery Management System</h2>
+            <p className="text-blue-700 mt-1">Advanced delivery planning and route optimization coming soon!</p>
+          </div>
+          <Truck className="h-12 w-12 text-blue-500" />
+        </div>
       </div>
-
-      {/* Coming Soon Notice */}
-      <Card className="mb-8 border-dashed border-2 border-gray-300">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit">
-            <Truck className="h-8 w-8 text-blue-600" />
-          </div>
-          <CardTitle className="text-2xl">Delivery Management Coming Soon</CardTitle>
-          <CardDescription className="text-lg">
-            Advanced delivery planning and management features are in development
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-4">
-            <p className="text-gray-600">
-              This section will include comprehensive delivery management tools to optimize your operations.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Planned Features */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Route className="h-5 w-5 text-blue-600" />
-              <CardTitle className="text-lg">Route Optimization</CardTitle>
-            </div>
+            <CardTitle className="flex items-center">
+              <Route className="h-5 w-5 mr-2 text-green-600" />
+              Route Optimization
+            </CardTitle>
+            <CardDescription>Automatically optimize delivery routes for maximum efficiency</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
-              Automatically optimize delivery routes to minimize travel time and fuel costs across Casablanca, Rabat,
-              and other cities.
-            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• AI-powered route planning</li>
+              <li>• Real-time traffic integration</li>
+              <li>• Multi-stop optimization</li>
+              <li>• Fuel cost calculation</li>
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-green-600" />
-              <CardTitle className="text-lg">Delivery Scheduling</CardTitle>
-            </div>
+            <CardTitle className="flex items-center">
+              <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+              Delivery Scheduling
+            </CardTitle>
+            <CardDescription>Smart scheduling based on customer preferences and capacity</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
-              Schedule deliveries based on customer preferences, subscription timing, and delivery capacity.
-            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Time slot management</li>
+              <li>• Customer preferences</li>
+              <li>• Capacity planning</li>
+              <li>• Automated notifications</li>
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5 text-red-600" />
-              <CardTitle className="text-lg">Real-time Tracking</CardTitle>
-            </div>
+            <CardTitle className="flex items-center">
+              <MapPin className="h-5 w-5 mr-2 text-purple-600" />
+              Real-time Tracking
+            </CardTitle>
+            <CardDescription>Live tracking for customers and delivery management</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
-              Track delivery progress in real-time and provide customers with accurate delivery estimates.
-            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• GPS tracking integration</li>
+              <li>• Customer notifications</li>
+              <li>• Delivery confirmations</li>
+              <li>• Issue reporting</li>
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-purple-600" />
-              <CardTitle className="text-lg">Driver Management</CardTitle>
-            </div>
+            <CardTitle className="flex items-center">
+              <Users className="h-5 w-5 mr-2 text-orange-600" />
+              Driver Management
+            </CardTitle>
+            <CardDescription>Manage delivery drivers and their assignments</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
-              Manage delivery drivers, assign routes, and track performance metrics.
-            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Driver profiles & schedules</li>
+              <li>• Performance tracking</li>
+              <li>• Assignment optimization</li>
+              <li>• Communication tools</li>
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-orange-600" />
-              <CardTitle className="text-lg">Time Slot Management</CardTitle>
-            </div>
+            <CardTitle className="flex items-center">
+              <Clock className="h-5 w-5 mr-2 text-red-600" />
+              Delivery Analytics
+            </CardTitle>
+            <CardDescription>Comprehensive analytics and reporting</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
-              Offer customers flexible delivery time slots and manage capacity for each time window.
-            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Delivery time analysis</li>
+              <li>• Success rate tracking</li>
+              <li>• Cost per delivery</li>
+              <li>• Customer satisfaction</li>
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Truck className="h-5 w-5 text-indigo-600" />
-              <CardTitle className="text-lg">Fleet Management</CardTitle>
-            </div>
+            <CardTitle className="flex items-center">
+              <Truck className="h-5 w-5 mr-2 text-indigo-600" />
+              Fleet Management
+            </CardTitle>
+            <CardDescription>Manage delivery vehicles and maintenance</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
-              Monitor vehicle status, maintenance schedules, and optimize fleet utilization.
-            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Vehicle tracking</li>
+              <li>• Maintenance scheduling</li>
+              <li>• Fuel management</li>
+              <li>• Insurance tracking</li>
+            </ul>
           </CardContent>
         </Card>
       </div>
 
-      {/* Development Timeline */}
-      <Card className="mt-8">
+      {/* Current Status */}
+      <Card>
         <CardHeader>
-          <CardTitle>Development Roadmap</CardTitle>
-          <CardDescription>Planned features and timeline</CardDescription>
+          <CardTitle>Development Status</CardTitle>
+          <CardDescription>The delivery management system is currently in planning phase</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-              <div>
-                <p className="font-medium">Phase 1: Basic Delivery Tracking</p>
-                <p className="text-sm text-gray-600">Manual delivery assignment and status updates</p>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Route Optimization</span>
+              <span className="text-sm text-gray-500">Planned</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-              <div>
-                <p className="font-medium">Phase 2: Route Optimization</p>
-                <p className="text-sm text-gray-600">Automated route planning and optimization</p>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Delivery Scheduling</span>
+              <span className="text-sm text-gray-500">Planned</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-              <div>
-                <p className="font-medium">Phase 3: Real-time Tracking</p>
-                <p className="text-sm text-gray-600">GPS tracking and customer notifications</p>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Real-time Tracking</span>
+              <span className="text-sm text-gray-500">Planned</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Driver Management</span>
+              <span className="text-sm text-gray-500">Planned</span>
+            </div>
+          </div>
+          <div className="mt-6">
+            <Button disabled>
+              <Truck className="h-4 w-4 mr-2" />
+              Coming Soon
+            </Button>
           </div>
         </CardContent>
       </Card>

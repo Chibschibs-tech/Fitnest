@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
 import { neon } from "@neondatabase/serverless"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session-id")?.value
@@ -22,63 +22,6 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Ensure users table exists with sample data
-    try {
-      await sql`
-        CREATE TABLE IF NOT EXISTS users (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) UNIQUE NOT NULL,
-          phone VARCHAR(20),
-          password_hash VARCHAR(255),
-          role VARCHAR(50) DEFAULT 'user',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `
-
-      // Check if we have any users (excluding admin)
-      const userCount = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'user'`
-
-      if (userCount[0].count === 0) {
-        // Create some sample customers
-        await sql`
-          INSERT INTO users (name, email, phone, role)
-          VALUES 
-            ('Ahmed Hassan', 'ahmed.hassan@example.com', '+212 6 12 34 56 78', 'user'),
-            ('Fatima Zahra', 'fatima.zahra@example.com', '+212 6 87 65 43 21', 'user'),
-            ('Omar Benali', 'omar.benali@example.com', '+212 6 11 22 33 44', 'user'),
-            ('Aicha Alami', 'aicha.alami@example.com', '+212 6 55 66 77 88', 'user'),
-            ('Youssef Tazi', 'youssef.tazi@example.com', '+212 6 99 88 77 66', 'user'),
-            ('Khadija Idrissi', 'khadija.idrissi@example.com', '+212 6 44 33 22 11', 'user'),
-            ('Mohammed Berrada', 'mohammed.berrada@example.com', '+212 6 77 88 99 00', 'user'),
-            ('Laila Fassi', 'laila.fassi@example.com', '+212 6 33 44 55 66', 'user')
-        `
-      }
-    } catch (tableError) {
-      console.error("Error with users table:", tableError)
-    }
-
-    // Ensure orders table exists
-    try {
-      await sql`
-        CREATE TABLE IF NOT EXISTS orders (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER,
-          customer_name VARCHAR(255),
-          customer_email VARCHAR(255),
-          plan_name VARCHAR(255),
-          total_amount DECIMAL(10,2) DEFAULT 0,
-          status VARCHAR(50) DEFAULT 'pending',
-          delivery_frequency VARCHAR(50),
-          duration_weeks INTEGER,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `
-    } catch (tableError) {
-      console.error("Error with orders table:", tableError)
-    }
-
     // Get customers with their order statistics
     const customers = await sql`
       SELECT 
@@ -86,44 +29,23 @@ export async function GET() {
         u.name,
         u.email,
         u.phone,
-        u.created_at,
-        COALESCE(order_stats.total_orders, 0) as total_orders,
-        COALESCE(order_stats.active_subscriptions, 0) as active_subscriptions,
-        COALESCE(order_stats.total_spent, 0) as total_spent,
-        order_stats.last_order_date,
-        CASE 
-          WHEN order_stats.active_subscriptions > 0 THEN 'active'
-          WHEN order_stats.total_orders > 0 THEN 'inactive'
-          ELSE 'inactive'
-        END as status
+        u.role,
+        u.acquisition_source as "acquisitionSource",
+        u.created_at as "createdAt",
+        COUNT(DISTINCT o.id) as "totalOrders",
+        COUNT(DISTINCT CASE WHEN o.status = 'active' THEN o.id END) as "activeOrders",
+        COALESCE(SUM(CASE WHEN o.status != 'cancelled' THEN o.total END), 0) as "totalSpent",
+        MAX(o.created_at) as "lastOrderDate"
       FROM users u
-      LEFT JOIN (
-        SELECT 
-          user_id,
-          COUNT(*) as total_orders,
-          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_subscriptions,
-          SUM(total_amount) as total_spent,
-          MAX(created_at) as last_order_date
-        FROM orders
-        WHERE user_id IS NOT NULL
-        GROUP BY user_id
-      ) order_stats ON u.id = order_stats.user_id
+      LEFT JOIN orders o ON u.id = o.user_id
       WHERE u.role = 'user'
+      GROUP BY u.id, u.name, u.email, u.phone, u.role, u.acquisition_source, u.created_at
       ORDER BY u.created_at DESC
     `
 
-    return NextResponse.json({
-      success: true,
-      customers: customers || [],
-    })
+    return NextResponse.json(customers)
   } catch (error) {
     console.error("Error fetching customers:", error)
-    return NextResponse.json(
-      {
-        message: "Something went wrong",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 })
   }
 }
