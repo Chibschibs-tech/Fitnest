@@ -5,30 +5,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Plus, Edit, Trash2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import Image from "next/image"
+import { Plus, Search, Edit, Trash2, Package } from "lucide-react"
 
 interface Snack {
   id: number
   name: string
   description: string
-  calories: number
   price: number
   category: string
-  ingredients: string[]
-  allergens: string[]
-  image_url?: string
-  is_available: boolean
-  stock_quantity?: number
+  stock: number
+  active: boolean
+  created_at: string
 }
 
-export function SnacksContent() {
+export default function SnacksContent() {
   const [snacks, setSnacks] = useState<Snack[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [showAddForm, setShowAddForm] = useState(false)
 
   useEffect(() => {
     fetchSnacks()
@@ -36,15 +30,13 @@ export function SnacksContent() {
 
   const fetchSnacks = async () => {
     try {
-      setLoading(true)
       const response = await fetch("/api/admin/products/snacks")
-      if (!response.ok) {
-        throw new Error("Failed to fetch snacks")
-      }
       const data = await response.json()
-      setSnacks(data.snacks || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch snacks")
+      if (data.success) {
+        setSnacks(data.snacks || [])
+      }
+    } catch (error) {
+      console.error("Error fetching snacks:", error)
     } finally {
       setLoading(false)
     }
@@ -53,125 +45,139 @@ export function SnacksContent() {
   const filteredSnacks = snacks.filter(
     (snack) =>
       snack.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      snack.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      snack.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fitnest-green"></div>
       </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Snack Management</h1>
-          <p className="text-gray-600">Manage your snack offerings</p>
+          <h1 className="text-2xl font-bold text-gray-900">Snacks & Supplements</h1>
+          <p className="text-gray-600">Manage protein bars, supplements, and healthy snacks</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowAddForm(true)} className="bg-fitnest-green hover:bg-fitnest-green/90">
           <Plus className="h-4 w-4 mr-2" />
-          Add New Snack
+          Add Snack
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Search</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search snacks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          placeholder="Search snacks..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Snacks ({filteredSnacks.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Calories</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSnacks.map((snack) => (
-                <TableRow key={snack.id}>
-                  <TableCell>
-                    <div className="relative h-12 w-12 rounded-md overflow-hidden">
-                      <Image
-                        src={snack.image_url || "/placeholder.svg?height=48&width=48"}
-                        alt={snack.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{snack.name}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">{snack.description}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{snack.category}</Badge>
-                  </TableCell>
-                  <TableCell>{snack.calories} cal</TableCell>
-                  <TableCell>{snack.price} MAD</TableCell>
-                  <TableCell>{snack.stock_quantity !== undefined ? `${snack.stock_quantity} units` : "N/A"}</TableCell>
-                  <TableCell>
-                    <Badge variant={snack.is_available ? "default" : "secondary"}>
-                      {snack.is_available ? "Available" : "Unavailable"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {filteredSnacks.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No snacks found</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Package className="h-8 w-8 text-fitnest-green" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Snacks</p>
+                <p className="text-2xl font-bold">{snacks.length}</p>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Package className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active</p>
+                <p className="text-2xl font-bold">{snacks.filter((s) => s.active).length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Package className="h-8 w-8 text-orange-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Low Stock</p>
+                <p className="text-2xl font-bold">{snacks.filter((s) => s.stock < 10).length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Package className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Categories</p>
+                <p className="text-2xl font-bold">{new Set(snacks.map((s) => s.category)).size}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Snacks Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredSnacks.map((snack) => (
+          <Card key={snack.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-lg">{snack.name}</CardTitle>
+                <Badge variant={snack.active ? "default" : "secondary"}>{snack.active ? "Active" : "Inactive"}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 text-sm mb-3">{snack.description}</p>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Price:</span>
+                  <span className="font-semibold">{snack.price} MAD</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Category:</span>
+                  <span className="text-sm">{snack.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Stock:</span>
+                  <span className={`text-sm ${snack.stock < 10 ? "text-red-600" : "text-green-600"}`}>
+                    {snack.stock} units
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button size="sm" variant="outline" className="flex-1 bg-transparent">
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+                <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 bg-transparent">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredSnacks.length === 0 && (
+        <div className="text-center py-12">
+          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No snacks found</h3>
+          <p className="text-gray-600">Get started by adding your first snack product.</p>
+        </div>
+      )}
     </div>
   )
 }
