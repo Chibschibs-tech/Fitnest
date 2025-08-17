@@ -1,12 +1,11 @@
-import { Suspense } from "react"
 import CustomerDetailContent from "./customer-detail-content"
 
-export default function CustomerDetailPage({ params }: { params: { id: string } }) {
-  return (
-    <div className="container mx-auto py-8">
-      <Suspense fallback={<div>Loading customer details...</div>}>
-        <CustomerDetailContent customerId={params.id} />
-      </Suspense>
-    </div>
-  )
+interface PageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function CustomerDetailPage({ params }: PageProps) {
+  return <CustomerDetailContent customerId={params.id} />
 }

@@ -33,12 +33,32 @@ export async function POST() {
 
     let deletedCount = 0
 
-    // Delete users with sample emails
+    // FIRST: Delete orders from sample users to avoid foreign key constraint
+    for (const email of sampleEmails) {
+      await sql`
+        DELETE FROM orders 
+        WHERE user_id IN (
+          SELECT id FROM users WHERE email = ${email} AND role != 'admin'
+        )
+      `
+    }
+
+    for (const name of sampleNames) {
+      await sql`
+        DELETE FROM orders 
+        WHERE user_id IN (
+          SELECT id FROM users WHERE name = ${name} AND role != 'admin'
+        )
+      `
+    }
+
+    // THEN: Delete users with sample emails
     for (const email of sampleEmails) {
       const result = await sql`
         DELETE FROM users 
         WHERE email = ${email}
         AND role != 'admin'
+        RETURNING id
       `
       deletedCount += result.length
     }
@@ -49,26 +69,51 @@ export async function POST() {
         DELETE FROM users 
         WHERE name = ${name}
         AND role != 'admin'
+        RETURNING id
       `
       deletedCount += result.length
     }
 
-    // Also clean any orders from deleted users
-    await sql`
-      DELETE FROM orders 
-      WHERE user_id NOT IN (SELECT id FROM users)
+    // Clean waitlist sample data too
+    const waitlistSampleEmails = [
+      "test-1754423527708@example.com",
+      "test-1754423441918@example.com",
+      "test-1754423476123@example.com",
+      "test-1754474414428@example.com",
+      "test-1754474580058@example.com",
+    ]
+
+    let waitlistDeleted = 0
+    for (const email of waitlistSampleEmails) {
+      const result = await sql`
+        DELETE FROM waitlist 
+        WHERE email = ${email}
+        RETURNING id
+      `
+      waitlistDeleted += result.length
+    }
+
+    // Also clean entries with "TEST" names
+    const testResult = await sql`
+      DELETE FROM waitlist 
+      WHERE first_name = 'TEST' OR last_name = 'SUBMISSION'
+      RETURNING id
     `
+    waitlistDeleted += testResult.length
 
-    // Get remaining user count
+    // Get remaining counts
     const remainingUsers = await sql`SELECT COUNT(*) as count FROM users`
+    const remainingWaitlist = await sql`SELECT COUNT(*) as count FROM waitlist`
     const userCount = Number(remainingUsers[0]?.count || 0)
+    const waitlistCount = Number(remainingWaitlist[0]?.count || 0)
 
-    console.log(`Cleaned ${deletedCount} sample users, ${userCount} users remaining`)
+    console.log(`Cleaned ${deletedCount} sample users and ${waitlistDeleted} waitlist entries`)
 
     return NextResponse.json({
       success: true,
-      message: `Successfully cleaned sample data. Removed ${deletedCount} sample users.`,
+      message: `Successfully cleaned sample data. Removed ${deletedCount} sample users and ${waitlistDeleted} waitlist entries.`,
       remainingUsers: userCount,
+      remainingWaitlist: waitlistCount,
     })
   } catch (error) {
     console.error("Error cleaning sample data:", error)

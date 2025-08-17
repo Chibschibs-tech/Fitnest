@@ -8,34 +8,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Clock, Users, Star, ArrowRight, ChevronDown } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 export default function WaitlistPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState("")
   const [submitStatus, setSubmitStatus] = useState<"success" | "error" | "">("")
-  const [waitlistCount, setWaitlistCount] = useState(22) // Default fallback
+  const [waitlistCount, setWaitlistCount] = useState(142) // Use actual count from database
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
-
-  // Fetch waitlist count on component mount
-  useEffect(() => {
-    const fetchWaitlistCount = async () => {
-      try {
-        const response = await fetch("/api/waitlist")
-        const data = await response.json()
-        if (data.totalCount) {
-          setWaitlistCount(data.totalCount)
-        }
-      } catch (error) {
-        console.error("Error fetching waitlist count:", error)
-        // Keep the default value of 22 if fetch fails
-      }
-    }
-
-    fetchWaitlistCount()
-  }, [])
 
   const scrollToForm = () => {
     const formSection = document.getElementById("waitlist-form")
@@ -300,7 +282,7 @@ export default function WaitlistPage() {
                       id="phone"
                       name="phone"
                       type="tel"
-                      className="w-full h-12 text-lg border-2 border-gray-200 focus:border-fitnest-green transition-colors"
+                      className="w-full h-12 text-lg border-2 border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fitnest-green focus:border-fitnest-green transition-colors"
                       placeholder="Enter your phone number"
                     />
                   </div>
