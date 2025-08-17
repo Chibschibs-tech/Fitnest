@@ -2,30 +2,33 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Truck, Calendar, MapPin, Package } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Search, MapPin, Calendar, Package, CheckCircle, Clock, Truck } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Delivery {
   id: number
-  customerName: string
-  customerEmail: string
-  address: string
-  deliveryDate: string
-  status: string
-  orderTotal: number
-  driverName?: string
-  trackingNumber?: string
-  createdAt: string
+  order_id: number
+  customer_name: string
+  customer_address: string
+  customer_phone?: string
+  delivery_date: string
+  status: "pending" | "in_transit" | "delivered" | "failed"
+  driver_name?: string
+  delivery_notes?: string
+  created_at: string
+  delivered_at?: string
 }
 
-export default function DeliveriesContent() {
+export function DeliveriesContent() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
 
   useEffect(() => {
     fetchDeliveries()
@@ -39,186 +42,267 @@ export default function DeliveriesContent() {
         throw new Error("Failed to fetch deliveries")
       }
       const data = await response.json()
-      setDeliveries(data)
-    } catch (error) {
-      console.error("Error fetching deliveries:", error)
-      setError("Failed to load deliveries")
+      setDeliveries(data.deliveries || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch deliveries")
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredDeliveries = deliveries.filter(
-    (delivery) =>
-      delivery.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delivery.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delivery.trackingNumber?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredDeliveries = deliveries.filter((delivery) => {
+    const matchesSearch =
+      delivery.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      delivery.customer_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      delivery.order_id.toString().includes(searchTerm)
+    const matchesStatus = statusFilter === "all" || delivery.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Clock className="h-4 w-4" />
+      case "in_transit":
+        return <Truck className="h-4 w-4" />
+      case "delivered":
+        return <CheckCircle className="h-4 w-4" />
+      case "failed":
+        return <Package className="h-4 w-4" />
+      default:
+        return <Clock className="h-4 w-4" />
+    }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case "scheduled":
-        return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>
+      case "pending":
+        return "outline"
       case "in_transit":
-        return <Badge className="bg-yellow-100 text-yellow-800">In Transit</Badge>
+        return "default"
       case "delivered":
-        return <Badge className="bg-green-100 text-green-800">Delivered</Badge>
+        return "default"
       case "failed":
-        return <Badge className="bg-red-100 text-red-800">Failed</Badge>
+        return "destructive"
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return "outline"
+    }
+  }
+
+  const handleStatusUpdate = async (deliveryId: number, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/admin/deliveries/${deliveryId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (response.ok) {
+        setDeliveries((prev) =>
+          prev.map((delivery) =>
+            delivery.id === deliveryId
+              ? {
+                  ...delivery,
+                  status: newStatus as any,
+                  delivered_at: newStatus === "delivered" ? new Date().toISOString() : delivery.delivered_at,
+                }
+              : delivery,
+          ),
+        )
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err)
     }
   }
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading deliveries...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="text-center p-8">
-        <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={fetchDeliveries}>Retry</Button>
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Delivery Management</h1>
+          <p className="text-gray-600">Track and manage delivery schedules</p>
+        </div>
+        <Button>
+          <Package className="h-4 w-4 mr-2" />
+          Schedule Delivery
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Deliveries</CardTitle>
+            <CardTitle className="text-sm">Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-gray-900">{deliveries.length}</p>
+            <div className="text-2xl font-bold text-orange-600">
+              {deliveries.filter((d) => d.status === "pending").length}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">In Transit</CardTitle>
+            <CardTitle className="text-sm">In Transit</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-blue-600">
               {deliveries.filter((d) => d.status === "in_transit").length}
-            </p>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Delivered</CardTitle>
+            <CardTitle className="text-sm">Delivered</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600">
               {deliveries.filter((d) => d.status === "delivered").length}
-            </p>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Success Rate</CardTitle>
+            <CardTitle className="text-sm">Failed</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              {deliveries.length > 0
-                ? Math.round((deliveries.filter((d) => d.status === "delivered").length / deliveries.length) * 100)
-                : 0}
-              %
-            </p>
+            <div className="text-2xl font-bold text-red-600">
+              {deliveries.filter((d) => d.status === "failed").length}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          placeholder="Search deliveries by customer, email, or tracking number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Deliveries Table */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Delivery Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Tracking</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredDeliveries.map((delivery) => (
-              <TableRow key={delivery.id}>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{delivery.customerName}</div>
-                    <div className="text-sm text-gray-500">{delivery.customerEmail}</div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span className="max-w-xs truncate">{delivery.address}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {new Date(delivery.deliveryDate).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                <TableCell>{getStatusBadge(delivery.status)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <Truck className="h-4 w-4 mr-1" />
-                    {delivery.driverName || "Not assigned"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-mono">{delivery.trackingNumber || "N/A"}</div>
-                </TableCell>
-                <TableCell className="font-medium">{formatCurrency(delivery.orderTotal)}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      Track
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {filteredDeliveries.length === 0 && (
-          <div className="text-center py-8">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium">No deliveries found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? "Try adjusting your search terms." : "No deliveries have been scheduled yet."}
-            </p>
+        <CardHeader>
+          <CardTitle>Search and Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by customer name, address, or order ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="in_transit">In Transit</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+            </select>
           </div>
-        )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Deliveries ({filteredDeliveries.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Delivery Address</TableHead>
+                <TableHead>Delivery Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Driver</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDeliveries.map((delivery) => (
+                <TableRow key={delivery.id}>
+                  <TableCell>
+                    <div className="font-medium">#{delivery.order_id}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{delivery.customer_name}</div>
+                      {delivery.customer_phone && (
+                        <div className="text-sm text-gray-500">{delivery.customer_phone}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                      <div className="text-sm max-w-xs">{delivery.customer_address}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <div className="text-sm">{new Date(delivery.delivery_date).toLocaleDateString()}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(delivery.status)}
+                      <Badge variant={getStatusBadgeVariant(delivery.status)}>{delivery.status}</Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>{delivery.driver_name || "Not assigned"}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {delivery.status === "pending" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(delivery.id, "in_transit")}
+                        >
+                          Start Transit
+                        </Button>
+                      )}
+                      {delivery.status === "in_transit" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(delivery.id, "delivered")}
+                        >
+                          Mark Delivered
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm">
+                        Details
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {filteredDeliveries.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No deliveries found</p>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   )

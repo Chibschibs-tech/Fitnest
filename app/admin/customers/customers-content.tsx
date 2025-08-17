@@ -2,29 +2,31 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, User, Mail, Calendar, Package } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Search, Eye, Mail, Phone } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Customer {
   id: number
   name: string
   email: string
-  role: string
-  totalOrders: number
-  totalSpent: number
-  lastOrderDate?: string
-  status: string
-  createdAt: string
+  phone?: string
+  city?: string
+  total_orders: number
+  total_spent: number
+  subscription_status: "active" | "paused" | "cancelled" | "none"
+  created_at: string
+  last_order_date?: string
 }
 
-export default function CustomersContent() {
+export function CustomersContent() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchCustomers()
@@ -38,10 +40,9 @@ export default function CustomersContent() {
         throw new Error("Failed to fetch customers")
       }
       const data = await response.json()
-      setCustomers(data)
-    } catch (error) {
-      console.error("Error fetching customers:", error)
-      setError("Failed to load customers")
+      setCustomers(data.customers || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch customers")
     } finally {
       setLoading(false)
     }
@@ -50,183 +51,184 @@ export default function CustomersContent() {
   const filteredCustomers = customers.filter(
     (customer) =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.phone && customer.phone.includes(searchTerm)),
   )
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
-  }
-
-  const getStatusBadge = (status: string) => {
+  const getSubscriptionBadgeVariant = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>
-      case "inactive":
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
-      case "suspended":
-        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>
+        return "default"
+      case "paused":
+        return "secondary"
+      case "cancelled":
+        return "destructive"
+      case "none":
+        return "outline"
       default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "admin":
-        return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>
-      case "customer":
-        return <Badge className="bg-blue-100 text-blue-800">Customer</Badge>
-      default:
-        return <Badge variant="outline">{role}</Badge>
+        return "outline"
     }
   }
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading customers...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="text-center p-8">
-        <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={fetchCustomers}>Retry</Button>
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Customer Management</h1>
+          <p className="text-gray-600">Manage your customers and their information</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Customers</CardTitle>
+            <CardTitle className="text-sm">Total Customers</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+            <div className="text-2xl font-bold">{customers.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Active Customers</CardTitle>
+            <CardTitle className="text-sm">Active Subscriptions</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">{customers.filter((c) => c.status === "active").length}</p>
+            <div className="text-2xl font-bold">
+              {customers.filter((c) => c.subscription_status === "active").length}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Orders</CardTitle>
+            <CardTitle className="text-sm">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">{customers.reduce((sum, c) => sum + c.totalOrders, 0)}</p>
+            <div className="text-2xl font-bold">
+              {customers.reduce((sum, c) => sum + c.total_spent, 0).toFixed(2)} MAD
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+            <CardTitle className="text-sm">Avg Order Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(customers.reduce((sum, c) => sum + c.totalSpent, 0))}
-            </p>
+            <div className="text-2xl font-bold">
+              {customers.length > 0
+                ? (
+                    customers.reduce((sum, c) => sum + c.total_spent, 0) /
+                      customers.reduce((sum, c) => sum + c.total_orders, 0) || 0
+                  ).toFixed(2)
+                : "0.00"}{" "}
+              MAD
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          placeholder="Search customers by name or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Customers Table */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Orders</TableHead>
-              <TableHead>Total Spent</TableHead>
-              <TableHead>Last Order</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCustomers.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell>
-                  <div className="flex items-center space-x-3">
-                    <User className="h-8 w-8 text-gray-400" />
+        <CardHeader>
+          <CardTitle>Search</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search customers by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Customers ({filteredCustomers.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Orders</TableHead>
+                <TableHead>Total Spent</TableHead>
+                <TableHead>Subscription</TableHead>
+                <TableHead>Last Order</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell>
                     <div>
                       <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-gray-500 flex items-center">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {customer.email}
+                      <div className="text-sm text-gray-500">
+                        Customer since {new Date(customer.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>{getRoleBadge(customer.role)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center">
-                    <Package className="h-4 w-4 mr-1" />
-                    {customer.totalOrders}
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">{formatCurrency(customer.totalSpent)}</TableCell>
-                <TableCell>
-                  {customer.lastOrderDate ? (
-                    <div className="flex items-center text-sm">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(customer.lastOrderDate).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-3 w-3" />
+                        <span className="truncate max-w-xs">{customer.email}</span>
+                      </div>
+                      {customer.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-3 w-3" />
+                          <span>{customer.phone}</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <span className="text-gray-400">No orders</span>
-                  )}
-                </TableCell>
-                <TableCell>{getStatusBadge(customer.status)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {new Date(customer.createdAt).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
+                  </TableCell>
+                  <TableCell>{customer.city || "N/A"}</TableCell>
+                  <TableCell>{customer.total_orders}</TableCell>
+                  <TableCell>{customer.total_spent.toFixed(2)} MAD</TableCell>
+                  <TableCell>
+                    <Badge variant={getSubscriptionBadgeVariant(customer.subscription_status)}>
+                      {customer.subscription_status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {customer.last_order_date ? new Date(customer.last_order_date).toLocaleDateString() : "Never"}
+                  </TableCell>
+                  <TableCell>
                     <Button variant="outline" size="sm">
-                      View
+                      <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
-        {filteredCustomers.length === 0 && (
-          <div className="text-center py-8">
-            <User className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium">No customers found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? "Try adjusting your search terms." : "No customers have registered yet."}
-            </p>
-          </div>
-        )}
+          {filteredCustomers.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No customers found</p>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   )

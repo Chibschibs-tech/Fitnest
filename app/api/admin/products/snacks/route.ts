@@ -17,40 +17,45 @@ export async function GET(request: NextRequest) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get products from existing products table
-    const snacks = await sql`
-      SELECT 
-        id,
-        name,
-        description,
-        price,
-        sale_price as "salePrice",
-        category,
-        nutritional_info as "nutritionalInfo",
-        stock,
-        is_active as "isActive",
-        created_at as "createdAt"
-      FROM products
-      WHERE category IN ('protein_bar', 'supplement', 'healthy_snack', 'drink')
-      ORDER BY created_at DESC
-    `
+    try {
+      // Get products from existing products table
+      const snacks = await sql`
+        SELECT 
+          id,
+          name,
+          description,
+          price,
+          sale_price as "salePrice",
+          category,
+          nutritional_info as "nutritionalInfo",
+          stock,
+          is_active as "isActive",
+          created_at as "createdAt"
+        FROM products
+        WHERE category IN ('protein_bar', 'supplement', 'healthy_snack', 'drink')
+        ORDER BY created_at DESC
+      `
 
-    // Transform data to match the interface
-    const transformedSnacks = snacks.map((snack: any) => ({
-      id: snack.id,
-      name: snack.name,
-      description: snack.description || "No description available",
-      price: Number(snack.price),
-      category: snack.category,
-      availability: "express_shop",
-      protein: snack.nutritionalInfo?.protein || 0,
-      calories: snack.nutritionalInfo?.calories || 0,
-      active: snack.isActive,
-      stock: snack.stock || 0,
-      createdAt: snack.createdAt,
-    }))
+      // Transform data to match the interface
+      const transformedSnacks = snacks.map((snack: any) => ({
+        id: snack.id,
+        name: snack.name,
+        description: snack.description || "No description available",
+        price: Number(snack.price),
+        category: snack.category,
+        availability: "express_shop",
+        protein: snack.nutritionalInfo?.protein || 0,
+        calories: snack.nutritionalInfo?.calories || 0,
+        active: snack.isActive,
+        stock: snack.stock || 0,
+        createdAt: snack.createdAt,
+      }))
 
-    return NextResponse.json(transformedSnacks)
+      return NextResponse.json(transformedSnacks)
+    } catch (dbError) {
+      console.log("Products table not found or empty, returning empty array")
+      return NextResponse.json([])
+    }
   } catch (error) {
     console.error("Error fetching snacks:", error)
     return NextResponse.json({ error: "Failed to fetch snacks" }, { status: 500 })

@@ -17,30 +17,35 @@ export async function GET(request: NextRequest) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get subscription orders
-    const subscriptions = await sql`
-      SELECT 
-        o.id,
-        COALESCE(u.name, o.customer_name, 'Guest Customer') as "customerName",
-        COALESCE(u.email, o.customer_email, 'guest@example.com') as "customerEmail",
-        mp.name as "mealPlanName",
-        o.total,
-        CASE 
-          WHEN o.status = 'completed' THEN 'active'
-          WHEN o.status = 'cancelled' THEN 'cancelled'
-          ELSE 'active'
-        END as status,
-        o.created_at as "createdAt",
-        'weekly' as "deliveryFrequency",
-        o.created_at + INTERVAL '7 days' as "nextDelivery"
-      FROM orders o
-      LEFT JOIN users u ON o.user_id = u.id
-      LEFT JOIN meal_plans mp ON o.meal_plan_id = mp.id
-      WHERE o.order_type = 'subscription' OR mp.id IS NOT NULL
-      ORDER BY o.created_at DESC
-    `
+    try {
+      // Get subscription orders
+      const subscriptions = await sql`
+        SELECT 
+          o.id,
+          COALESCE(u.name, o.customer_name, 'Guest Customer') as "customerName",
+          COALESCE(u.email, o.customer_email, 'guest@example.com') as "customerEmail",
+          mp.name as "mealPlanName",
+          o.total,
+          CASE 
+            WHEN o.status = 'completed' THEN 'active'
+            WHEN o.status = 'cancelled' THEN 'cancelled'
+            ELSE 'active'
+          END as status,
+          o.created_at as "createdAt",
+          'weekly' as "deliveryFrequency",
+          o.created_at + INTERVAL '7 days' as "nextDelivery"
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN meal_plans mp ON o.meal_plan_id = mp.id
+        WHERE o.order_type = 'subscription' OR mp.id IS NOT NULL
+        ORDER BY o.created_at DESC
+      `
 
-    return NextResponse.json(subscriptions)
+      return NextResponse.json(subscriptions)
+    } catch (dbError) {
+      console.log("Error fetching subscriptions, returning empty array:", dbError)
+      return NextResponse.json([])
+    }
   } catch (error) {
     console.error("Error fetching subscriptions:", error)
     return NextResponse.json({ error: "Failed to fetch subscriptions" }, { status: 500 })

@@ -17,23 +17,28 @@ export async function GET(request: NextRequest) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get meal plans from existing meal_plans table
-    const mealPlans = await sql`
-      SELECT 
-        id,
-        name,
-        description,
-        weekly_price as "weeklyPrice",
-        type,
-        calories_min as "caloriesMin",
-        calories_max as "caloriesMax",
-        active,
-        created_at as "createdAt"
-      FROM meal_plans
-      ORDER BY created_at DESC
-    `
+    try {
+      // Get meal plans from existing meal_plans table
+      const mealPlans = await sql`
+        SELECT 
+          id,
+          name,
+          description,
+          weekly_price as "weeklyPrice",
+          type,
+          calories_min as "caloriesMin",
+          calories_max as "caloriesMax",
+          active,
+          created_at as "createdAt"
+        FROM meal_plans
+        ORDER BY created_at DESC
+      `
 
-    return NextResponse.json(mealPlans)
+      return NextResponse.json(mealPlans)
+    } catch (dbError) {
+      console.log("Meal plans table not found or empty, returning empty array")
+      return NextResponse.json([])
+    }
   } catch (error) {
     console.error("Error fetching meal plans:", error)
     return NextResponse.json({ error: "Failed to fetch meal plans" }, { status: 500 })

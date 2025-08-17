@@ -2,29 +2,35 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, User, Calendar, Package } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Search, Play, Pause, X, Eye } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Subscription {
   id: number
-  customerName: string
-  customerEmail: string
-  mealPlanName: string
-  total: number
-  status: string
-  createdAt: string
-  deliveryFrequency: string
-  nextDelivery?: string
+  user_id: number
+  customer_name: string
+  customer_email: string
+  plan_name: string
+  status: "active" | "paused" | "cancelled"
+  weekly_price: number
+  start_date: string
+  next_delivery: string
+  total_orders: number
+  total_spent: number
+  pause_reason?: string
+  created_at: string
 }
 
-export default function SubscriptionsContent() {
+export function SubscriptionsContent() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
 
   useEffect(() => {
     fetchSubscriptions()
@@ -38,179 +44,240 @@ export default function SubscriptionsContent() {
         throw new Error("Failed to fetch subscriptions")
       }
       const data = await response.json()
-      setSubscriptions(data)
-    } catch (error) {
-      console.error("Error fetching subscriptions:", error)
-      setError("Failed to load subscriptions")
+      setSubscriptions(data.subscriptions || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch subscriptions")
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredSubscriptions = subscriptions.filter(
-    (sub) =>
-      sub.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredSubscriptions = subscriptions.filter((subscription) => {
+    const matchesSearch =
+      subscription.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subscription.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subscription.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || subscription.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
-  }
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>
+        return "default"
       case "paused":
-        return <Badge className="bg-yellow-100 text-yellow-800">Paused</Badge>
+        return "secondary"
       case "cancelled":
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>
+        return "destructive"
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return "outline"
+    }
+  }
+
+  const handleStatusUpdate = async (subscriptionId: number, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/admin/subscriptions/${subscriptionId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (response.ok) {
+        setSubscriptions((prev) =>
+          prev.map((sub) => (sub.id === subscriptionId ? { ...sub, status: newStatus as any } : sub)),
+        )
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err)
     }
   }
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading subscriptions...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="text-center p-8">
-        <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={fetchSubscriptions}>Retry</Button>
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Subscription Management</h1>
+          <p className="text-gray-600">Manage customer meal plan subscriptions</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Subscriptions</CardTitle>
+            <CardTitle className="text-sm">Active</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-gray-900">{subscriptions.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Active</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600">
               {subscriptions.filter((s) => s.status === "active").length}
-            </p>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Paused</CardTitle>
+            <CardTitle className="text-sm">Paused</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-orange-600">
               {subscriptions.filter((s) => s.status === "paused").length}
-            </p>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm">Cancelled</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              {formatCurrency(
-                subscriptions.filter((s) => s.status === "active").reduce((sum, s) => sum + Number(s.total), 0) * 4,
-              )}
-            </p>
+            <div className="text-2xl font-bold text-red-600">
+              {subscriptions.filter((s) => s.status === "cancelled").length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Monthly Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(
+                subscriptions.filter((s) => s.status === "active").reduce((sum, s) => sum + s.weekly_price, 0) * 4
+              ).toFixed(2)}{" "}
+              MAD
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          placeholder="Search subscriptions by customer name or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Subscriptions Table */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Frequency</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Next Delivery</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSubscriptions.map((subscription) => (
-              <TableRow key={subscription.id}>
-                <TableCell>
-                  <div className="flex items-center space-x-3">
-                    <User className="h-8 w-8 text-gray-400" />
-                    <div>
-                      <div className="font-medium">{subscription.customerName}</div>
-                      <div className="text-sm text-gray-500">{subscription.customerEmail}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">{subscription.mealPlanName || "Custom Plan"}</div>
-                </TableCell>
-                <TableCell>{getStatusBadge(subscription.status)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{subscription.deliveryFrequency || "Weekly"}</Badge>
-                </TableCell>
-                <TableCell className="font-medium">{formatCurrency(Number(subscription.total))}</TableCell>
-                <TableCell>
-                  {subscription.nextDelivery ? (
-                    <div className="flex items-center text-sm">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(subscription.nextDelivery).toLocaleDateString()}
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">Not scheduled</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {filteredSubscriptions.length === 0 && (
-          <div className="text-center py-8">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium">No subscriptions found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? "Try adjusting your search terms." : "No active subscriptions at the moment."}
-            </p>
+        <CardHeader>
+          <CardTitle>Search and Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by customer name, email, or plan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
           </div>
-        )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscriptions ({filteredSubscriptions.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Weekly Price</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>Next Delivery</TableHead>
+                <TableHead>Total Orders</TableHead>
+                <TableHead>Total Spent</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSubscriptions.map((subscription) => (
+                <TableRow key={subscription.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{subscription.customer_name}</div>
+                      <div className="text-sm text-gray-500">{subscription.customer_email}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{subscription.plan_name}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusBadgeVariant(subscription.status)}>{subscription.status}</Badge>
+                  </TableCell>
+                  <TableCell>{subscription.weekly_price} MAD</TableCell>
+                  <TableCell>{new Date(subscription.start_date).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {subscription.next_delivery ? new Date(subscription.next_delivery).toLocaleDateString() : "N/A"}
+                  </TableCell>
+                  <TableCell>{subscription.total_orders}</TableCell>
+                  <TableCell>{subscription.total_spent.toFixed(2)} MAD</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {subscription.status === "active" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(subscription.id, "paused")}
+                        >
+                          <Pause className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {subscription.status === "paused" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(subscription.id, "active")}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {subscription.status !== "cancelled" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(subscription.id, "cancelled")}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {filteredSubscriptions.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No subscriptions found</p>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   )

@@ -1,16 +1,31 @@
-import { Suspense } from "react"
+import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
+import { getSessionUser } from "@/lib/simple-auth"
 import ExpressShopContent from "./express-shop-content"
 
-export default function ExpressShopPage() {
+export const dynamic = "force-dynamic"
+
+export default async function ExpressShopPage() {
+  const cookieStore = cookies()
+  const sessionId = cookieStore.get("session-id")?.value
+
+  if (!sessionId) {
+    redirect("/login?redirect=/admin/products/express-shop")
+  }
+
+  const user = await getSessionUser(sessionId)
+
+  if (!user || user.role !== "admin") {
+    redirect("/login?redirect=/admin/products/express-shop")
+  }
+
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Express Shop Management</h1>
-        <p className="text-gray-600">Manage featured products and express shop inventory</p>
+        <h1 className="text-3xl font-bold">Express Shop Products</h1>
+        <p className="text-gray-600">Manage products available for immediate purchase</p>
       </div>
-      <Suspense fallback={<div>Loading...</div>}>
-        <ExpressShopContent />
-      </Suspense>
+      <ExpressShopContent />
     </div>
   )
 }
