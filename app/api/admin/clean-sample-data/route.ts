@@ -1,125 +1,113 @@
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    console.log("Cleaning sample data...")
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
+    if (!sessionId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-    // List of sample/fake emails to remove
-    const sampleEmails = [
-      "sara@example.com",
-      "karim@example.com",
-      "leila@example.com",
-      "omar@example.com",
-      "admin@example.com",
-      "test@example.com",
-      "demo@example.com",
-      "sample@example.com",
-    ]
+    const user = await getSessionUser(sessionId)
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
-    // Also remove users with obviously fake names
-    const sampleNames = [
-      "Sara Lamouri",
-      "Karim Mansouri",
-      "Leila Bennani",
-      "Omar Alaoui",
-      "Admin User",
-      "Test User",
-      "Demo User",
-      "Sample User",
-    ]
+    console.log("Starting sample data cleanup...")
 
-    let deletedCount = 0
+    const deletedRecords = {
+      orders: 0,
+      users: 0,
+      waitlist: 0,
+      cart_items: 0,
+    }
 
-    // FIRST: Delete orders from sample users to avoid foreign key constraint
-    for (const email of sampleEmails) {
-      await sql`
+    try {
+      // Step 1: Delete orders for sample users first (to avoid foreign key constraint)
+      const sampleUserOrders = await sql`
         DELETE FROM orders 
         WHERE user_id IN (
-          SELECT id FROM users WHERE email = ${email} AND role != 'admin'
+          SELECT id FROM users 
+          WHERE email LIKE '%@example.com' 
+          OR email LIKE 'test-%'
+          OR name LIKE 'TEST%'
+          OR name = 'Sample User'
         )
       `
-    }
+      deletedRecords.orders = sampleUserOrders.length || 0
+      console.log(`Deleted ${deletedRecords.orders} sample orders`)
 
-    for (const name of sampleNames) {
-      await sql`
-        DELETE FROM orders 
+      // Step 2: Delete cart items for sample users
+      const sampleCartItems = await sql`
+        DELETE FROM cart_items 
         WHERE user_id IN (
-          SELECT id FROM users WHERE name = ${name} AND role != 'admin'
+          SELECT id FROM users 
+          WHERE email LIKE '%@example.com' 
+          OR email LIKE 'test-%'
+          OR name LIKE 'TEST%'
+          OR name = 'Sample User'
         )
       `
-    }
+      deletedRecords.cart_items = sampleCartItems.length || 0
+      console.log(`Deleted ${deletedRecords.cart_items} sample cart items`)
 
-    // THEN: Delete users with sample emails
-    for (const email of sampleEmails) {
-      const result = await sql`
+      // Step 3: Delete sample users
+      const sampleUsers = await sql`
         DELETE FROM users 
-        WHERE email = ${email}
-        AND role != 'admin'
-        RETURNING id
+        WHERE email LIKE '%@example.com' 
+        OR email LIKE 'test-%'
+        OR name LIKE 'TEST%'
+        OR name = 'Sample User'
       `
-      deletedCount += result.length
-    }
+      deletedRecords.users = sampleUsers.length || 0
+      console.log(`Deleted ${deletedRecords.users} sample users`)
 
-    // Delete users with sample names
-    for (const name of sampleNames) {
-      const result = await sql`
-        DELETE FROM users 
-        WHERE name = ${name}
-        AND role != 'admin'
-        RETURNING id
-      `
-      deletedCount += result.length
-    }
-
-    // Clean waitlist sample data too
-    const waitlistSampleEmails = [
-      "test-1754423527708@example.com",
-      "test-1754423441918@example.com",
-      "test-1754423476123@example.com",
-      "test-1754474414428@example.com",
-      "test-1754474580058@example.com",
-    ]
-
-    let waitlistDeleted = 0
-    for (const email of waitlistSampleEmails) {
-      const result = await sql`
+      // Step 4: Delete sample waitlist entries
+      const sampleWaitlist = await sql`
         DELETE FROM waitlist 
-        WHERE email = ${email}
-        RETURNING id
+        WHERE email LIKE '%@example.com' 
+        OR email LIKE 'test-%'
+        OR first_name LIKE 'TEST%'
+        OR last_name = 'SUBMISSION'
       `
-      waitlistDeleted += result.length
+      deletedRecords.waitlist = sampleWaitlist.length || 0
+      console.log(`Deleted ${deletedRecords.waitlist} sample waitlist entries`)
+
+      // Step 5: Get current counts
+      const currentCounts = await sql`
+        SELECT 
+          (SELECT COUNT(*) FROM users WHERE role != 'admin' OR role IS NULL) as users_count,
+          (SELECT COUNT(*) FROM orders) as orders_count,
+          (SELECT COUNT(*) FROM waitlist) as waitlist_count
+      `
+
+      return NextResponse.json({
+        success: true,
+        message: "Sample data cleaned successfully",
+        deleted: deletedRecords,
+        remaining: {
+          users: Number(currentCounts[0]?.users_count || 0),
+          orders: Number(currentCounts[0]?.orders_count || 0),
+          waitlist: Number(currentCounts[0]?.waitlist_count || 0),
+        },
+      })
+    } catch (error) {
+      console.error("Error during cleanup:", error)
+      return NextResponse.json({
+        success: false,
+        error: `Cleanup failed: ${error.message}`,
+        deleted: deletedRecords,
+      })
     }
-
-    // Also clean entries with "TEST" names
-    const testResult = await sql`
-      DELETE FROM waitlist 
-      WHERE first_name = 'TEST' OR last_name = 'SUBMISSION'
-      RETURNING id
-    `
-    waitlistDeleted += testResult.length
-
-    // Get remaining counts
-    const remainingUsers = await sql`SELECT COUNT(*) as count FROM users`
-    const remainingWaitlist = await sql`SELECT COUNT(*) as count FROM waitlist`
-    const userCount = Number(remainingUsers[0]?.count || 0)
-    const waitlistCount = Number(remainingWaitlist[0]?.count || 0)
-
-    console.log(`Cleaned ${deletedCount} sample users and ${waitlistDeleted} waitlist entries`)
-
-    return NextResponse.json({
-      success: true,
-      message: `Successfully cleaned sample data. Removed ${deletedCount} sample users and ${waitlistDeleted} waitlist entries.`,
-      remainingUsers: userCount,
-      remainingWaitlist: waitlistCount,
-    })
   } catch (error) {
     console.error("Error cleaning sample data:", error)
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: "Failed to clean sample data",
     })
   }
 }
