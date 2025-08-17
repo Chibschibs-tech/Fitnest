@@ -27,92 +27,51 @@ export async function GET() {
     let meals = []
 
     try {
-      // Get all meals from the database
-      meals = await sql`
+      // Try to get meals from the meals table
+      const mealsQuery = await sql`
         SELECT 
           id,
           name,
           description,
+          price,
+          category,
+          image_url,
           calories,
           protein,
           carbs,
           fat,
-          COALESCE(price, 0) as price,
-          category,
-          image_url,
-          COALESCE(is_available, true) as is_available,
-          created_at
-        FROM meals 
+          fiber,
+          ingredients,
+          allergens,
+          is_available,
+          created_at,
+          updated_at
+        FROM meals
         ORDER BY created_at DESC
       `
-    } catch (mealsError) {
-      console.log("Meals query failed:", mealsError)
 
-      // Check if meals table exists, if not create it
-      try {
-        await sql`
-          CREATE TABLE IF NOT EXISTS meals (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            calories INTEGER DEFAULT 0,
-            protein INTEGER DEFAULT 0,
-            carbs INTEGER DEFAULT 0,
-            fat INTEGER DEFAULT 0,
-            price DECIMAL(10,2) DEFAULT 0,
-            category VARCHAR(100) DEFAULT 'General',
-            image_url TEXT,
-            is_available BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `
+      meals = mealsQuery.map((meal) => ({
+        ...meal,
+        price: Number(meal.price) || 0,
+        calories: Number(meal.calories) || 0,
+        protein: Number(meal.protein) || 0,
+        carbs: Number(meal.carbs) || 0,
+        fat: Number(meal.fat) || 0,
+        fiber: Number(meal.fiber) || 0,
+        is_available: Boolean(meal.is_available),
+        status: meal.is_available ? "active" : "inactive",
+      }))
 
-        // Try query again
-        meals = await sql`
-          SELECT 
-            id,
-            name,
-            description,
-            calories,
-            protein,
-            carbs,
-            fat,
-            COALESCE(price, 0) as price,
-            category,
-            image_url,
-            COALESCE(is_available, true) as is_available,
-            created_at
-          FROM meals 
-          ORDER BY created_at DESC
-        `
-      } catch (createError) {
-        console.log("Failed to create meals table:", createError)
-        meals = []
-      }
+      console.log(`Found ${meals.length} meals`)
+    } catch (error) {
+      console.log("Meals query failed:", error)
+      meals = []
     }
-
-    // Transform the data to ensure proper types
-    const transformedMeals = meals.map((meal) => ({
-      id: Number(meal.id),
-      name: meal.name || "Unnamed Meal",
-      description: meal.description || "No description available",
-      calories: Number(meal.calories) || 0,
-      protein: Number(meal.protein) || 0,
-      carbs: Number(meal.carbs) || 0,
-      fat: Number(meal.fat) || 0,
-      price: Number(meal.price) || 0,
-      category: meal.category || "Uncategorized",
-      image_url: meal.image_url || "",
-      is_available: Boolean(meal.is_available),
-      created_at: meal.created_at,
-    }))
-
-    console.log(`Found ${transformedMeals.length} meals`)
 
     return NextResponse.json({
       success: true,
-      meals: transformedMeals,
-      total: transformedMeals.length,
+      meals,
+      total: meals.length,
     })
   } catch (error) {
     console.error("Error fetching meals:", error)
@@ -123,59 +82,6 @@ export async function GET() {
         error: error instanceof Error ? error.message : "Unknown error",
         meals: [],
         total: 0,
-      },
-      { status: 500 },
-    )
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-
-    if (!sessionId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await getSessionUser(sessionId)
-
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    const body = await request.json()
-    const { name, description, calories, protein, carbs, fat, price, category, image_url, is_available = true } = body
-
-    if (!name || !description) {
-      return NextResponse.json({ message: "Name and description are required" }, { status: 400 })
-    }
-
-    const result = await sql`
-      INSERT INTO meals (
-        name, description, calories, protein, carbs, fat, 
-        price, category, image_url, is_available
-      )
-      VALUES (
-        ${name}, ${description}, ${calories || 0}, ${protein || 0}, 
-        ${carbs || 0}, ${fat || 0}, ${price || 0}, ${category || "Uncategorized"}, 
-        ${image_url || ""}, ${is_available}
-      )
-      RETURNING *
-    `
-
-    return NextResponse.json({
-      success: true,
-      meal: result[0],
-      message: "Meal created successfully",
-    })
-  } catch (error) {
-    console.error("Error creating meal:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to create meal",
-        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )

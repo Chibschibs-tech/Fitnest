@@ -7,20 +7,24 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Search, Eye, Edit, Trash2, Plus, RefreshCw } from "lucide-react"
 
 interface Meal {
   id: number
   name: string
   description: string
+  price: number
+  category: string
+  image_url?: string
   calories: number
   protein: number
   carbs: number
   fat: number
-  price: number
-  category: string
-  image_url: string
+  fiber: number
+  ingredients?: string
+  allergens?: string
   is_available: boolean
+  status: "active" | "inactive"
   created_at: string
 }
 
@@ -29,7 +33,6 @@ export default function MealsContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
 
   useEffect(() => {
     fetchMeals()
@@ -37,12 +40,17 @@ export default function MealsContent() {
 
   const fetchMeals = async () => {
     try {
+      setLoading(true)
+      setError(null)
       const response = await fetch("/api/admin/products/meals")
+      const data = await response.json()
+
       if (response.ok) {
-        const data = await response.json()
         setMeals(data.meals || [])
+        console.log("Loaded meals:", data.meals?.length || 0)
       } else {
-        setError("Failed to load meals")
+        setError(data.message || "Failed to load meals")
+        console.error("API error:", data)
       }
     } catch (error) {
       console.error("Failed to fetch meals:", error)
@@ -52,40 +60,23 @@ export default function MealsContent() {
     }
   }
 
-  const toggleAvailability = async (mealId: number, currentStatus: boolean) => {
-    try {
-      const response = await fetch(`/api/admin/products/meals/${mealId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ is_available: !currentStatus }),
-      })
-
-      if (response.ok) {
-        setMeals(meals.map((meal) => (meal.id === mealId ? { ...meal, is_available: !currentStatus } : meal)))
-      }
-    } catch (error) {
-      console.error("Failed to update meal status:", error)
-    }
-  }
-
-  const filteredMeals = meals.filter((meal) => {
-    const matchesSearch =
+  const filteredMeals = meals.filter(
+    (meal) =>
       meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      meal.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || meal.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
-
-  const categories = ["all", ...Array.from(new Set(meals.map((meal) => meal.category)))]
+      meal.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   if (loading) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-          <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded w-24 animate-pulse"></div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+          ))}
         </div>
         <div className="grid gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -99,7 +90,13 @@ export default function MealsContent() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
+        <AlertDescription className="flex items-center justify-between">
+          <span>{error}</span>
+          <Button onClick={fetchMeals} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </AlertDescription>
       </Alert>
     )
   }
@@ -108,32 +105,25 @@ export default function MealsContent() {
     <div className="space-y-6">
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex flex-col sm:flex-row gap-4 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search meals..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category === "all" ? "All Categories" : category}
-              </option>
-            ))}
-          </select>
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search meals..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
-        <Button className="bg-green-600 hover:bg-green-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Meal
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={fetchMeals} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Meal
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -148,18 +138,12 @@ export default function MealsContent() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Available</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Meals</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{meals.filter((meal) => meal.is_available).length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Unavailable</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{meals.filter((meal) => !meal.is_available).length}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {meals.filter((meal) => meal.status === "active").length}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -167,7 +151,17 @@ export default function MealsContent() {
             <CardTitle className="text-sm font-medium">Categories</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{categories.length - 1}</div>
+            <div className="text-2xl font-bold">{new Set(meals.map((meal) => meal.category)).size}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Avg Price</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {meals.length > 0 ? (meals.reduce((sum, meal) => sum + meal.price, 0) / meals.length).toFixed(2) : 0} MAD
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -176,7 +170,7 @@ export default function MealsContent() {
       <Card>
         <CardHeader>
           <CardTitle>Meals ({filteredMeals.length})</CardTitle>
-          <CardDescription>Manage your meal offerings and their availability</CardDescription>
+          <CardDescription>Manage your meal offerings and nutritional information</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -185,8 +179,8 @@ export default function MealsContent() {
                 <TableRow>
                   <TableHead>Meal</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Nutrition</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Nutrition</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -196,17 +190,13 @@ export default function MealsContent() {
                   <TableRow key={meal.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                          {meal.image_url ? (
-                            <img
-                              src={meal.image_url || "/placeholder.svg"}
-                              alt={meal.name}
-                              className="w-12 h-12 object-cover rounded-lg"
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-500">No Image</span>
-                          )}
-                        </div>
+                        {meal.image_url && (
+                          <img
+                            src={meal.image_url || "/placeholder.svg"}
+                            alt={meal.name}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        )}
                         <div>
                           <div className="font-medium">{meal.name}</div>
                           <div className="text-sm text-gray-500 max-w-xs truncate">{meal.description}</div>
@@ -217,6 +207,9 @@ export default function MealsContent() {
                       <Badge variant="outline">{meal.category}</Badge>
                     </TableCell>
                     <TableCell>
+                      <div className="font-medium">{meal.price} MAD</div>
+                    </TableCell>
+                    <TableCell>
                       <div className="text-sm">
                         <div>{meal.calories} cal</div>
                         <div className="text-gray-500">
@@ -225,14 +218,11 @@ export default function MealsContent() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{meal.price} MAD</div>
-                    </TableCell>
-                    <TableCell>
                       <Badge
-                        variant={meal.is_available ? "default" : "secondary"}
-                        className={meal.is_available ? "bg-green-100 text-green-800" : ""}
+                        variant={meal.status === "active" ? "default" : "secondary"}
+                        className={meal.status === "active" ? "bg-green-100 text-green-800" : ""}
                       >
-                        {meal.is_available ? "Available" : "Unavailable"}
+                        {meal.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -243,14 +233,7 @@ export default function MealsContent() {
                         <Button variant="ghost" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleAvailability(meal.id, meal.is_available)}
-                        >
-                          {meal.is_available ? "Disable" : "Enable"}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-red-600">
+                        <Button variant="ghost" size="sm">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -260,9 +243,16 @@ export default function MealsContent() {
               </TableBody>
             </Table>
           </div>
-          {filteredMeals.length === 0 && (
+          {filteredMeals.length === 0 && !loading && (
             <div className="text-center py-8">
-              <p className="text-gray-500">No meals found matching your criteria.</p>
+              <p className="text-gray-500">
+                {meals.length === 0
+                  ? "No meals found in the database."
+                  : "No meals found matching your search criteria."}
+              </p>
+              {meals.length === 0 && (
+                <p className="text-sm text-gray-400 mt-2">Add meals to start building your menu offerings.</p>
+              )}
             </div>
           )}
         </CardContent>

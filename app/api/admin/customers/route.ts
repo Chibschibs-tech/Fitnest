@@ -28,7 +28,7 @@ export async function GET() {
     let customers = []
 
     try {
-      // Try to get customers with order statistics
+      // Try to get customers with order statistics - more permissive query
       const customersQuery = await sql`
         SELECT 
           u.id,
@@ -41,12 +41,13 @@ export async function GET() {
           MAX(o.created_at) as last_order_date
         FROM users u
         LEFT JOIN orders o ON u.id = o.user_id
-        WHERE u.role != 'admin' OR u.role IS NULL
+        WHERE u.role IS NULL OR u.role != 'admin'
         GROUP BY u.id, u.name, u.email, u.phone, u.created_at
         ORDER BY u.created_at DESC
       `
 
       customers = customersQuery
+      console.log(`Found ${customers.length} customers with order join`)
     } catch (orderJoinError) {
       console.log("Order join failed, trying simple users query:", orderJoinError)
 
@@ -60,7 +61,7 @@ export async function GET() {
             phone,
             created_at
           FROM users
-          WHERE role != 'admin' OR role IS NULL
+          WHERE role IS NULL OR role != 'admin'
           ORDER BY created_at DESC
         `
 
@@ -70,9 +71,37 @@ export async function GET() {
           total_spent: 0,
           last_order_date: null,
         }))
+        console.log(`Found ${customers.length} customers with simple query`)
       } catch (simpleError) {
-        console.log("Simple users query failed:", simpleError)
-        customers = []
+        console.log("Simple users query failed, trying all users:", simpleError)
+
+        // Last fallback: get all users
+        try {
+          const allUsersQuery = await sql`
+            SELECT 
+              id,
+              name,
+              email,
+              phone,
+              created_at,
+              role
+            FROM users
+            ORDER BY created_at DESC
+          `
+
+          customers = allUsersQuery
+            .filter((user) => user.role !== "admin")
+            .map((user) => ({
+              ...user,
+              total_orders: 0,
+              total_spent: 0,
+              last_order_date: null,
+            }))
+          console.log(`Found ${customers.length} customers from all users`)
+        } catch (allUsersError) {
+          console.log("All users query failed:", allUsersError)
+          customers = []
+        }
       }
     }
 
@@ -90,7 +119,7 @@ export async function GET() {
       status: (Number(customer.total_orders) > 0 ? "active" : "inactive") as "active" | "inactive",
     }))
 
-    console.log(`Found ${transformedCustomers.length} customers`)
+    console.log(`Returning ${transformedCustomers.length} transformed customers`)
 
     return NextResponse.json({
       success: true,

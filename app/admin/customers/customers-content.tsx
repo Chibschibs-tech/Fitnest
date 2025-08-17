@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, Eye, Mail, Phone, MapPin, Calendar } from "lucide-react"
+import { Search, Eye, Mail, Phone, MapPin, Calendar, RefreshCw } from "lucide-react"
 
 interface Customer {
   id: number
@@ -34,12 +34,17 @@ export default function CustomersContent() {
 
   const fetchCustomers = async () => {
     try {
+      setLoading(true)
+      setError(null)
       const response = await fetch("/api/admin/customers")
+      const data = await response.json()
+
       if (response.ok) {
-        const data = await response.json()
         setCustomers(data.customers || [])
+        console.log("Loaded customers:", data.customers?.length || 0)
       } else {
-        setError("Failed to load customers")
+        setError(data.message || "Failed to load customers")
+        console.error("API error:", data)
       }
     } catch (error) {
       console.error("Failed to fetch customers:", error)
@@ -60,6 +65,12 @@ export default function CustomersContent() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded w-24 animate-pulse"></div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+          ))}
         </div>
         <div className="grid gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -73,7 +84,13 @@ export default function CustomersContent() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
+        <AlertDescription className="flex items-center justify-between">
+          <span>{error}</span>
+          <Button onClick={fetchCustomers} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </AlertDescription>
       </Alert>
     )
   }
@@ -91,6 +108,10 @@ export default function CustomersContent() {
             className="pl-10"
           />
         </div>
+        <Button onClick={fetchCustomers} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -132,7 +153,10 @@ export default function CustomersContent() {
               {customers.length > 0
                 ? (
                     customers.reduce((sum, customer) => sum + customer.total_spent, 0) /
-                      customers.reduce((sum, customer) => sum + customer.total_orders, 0) || 0
+                    Math.max(
+                      customers.reduce((sum, customer) => sum + customer.total_orders, 0),
+                      1,
+                    )
                   ).toFixed(2)
                 : 0}{" "}
               MAD
@@ -229,9 +253,18 @@ export default function CustomersContent() {
               </TableBody>
             </Table>
           </div>
-          {filteredCustomers.length === 0 && (
+          {filteredCustomers.length === 0 && !loading && (
             <div className="text-center py-8">
-              <p className="text-gray-500">No customers found matching your criteria.</p>
+              <p className="text-gray-500">
+                {customers.length === 0
+                  ? "No customers found in the database."
+                  : "No customers found matching your search criteria."}
+              </p>
+              {customers.length === 0 && (
+                <p className="text-sm text-gray-400 mt-2">
+                  Customers will appear here once users register and place orders.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
