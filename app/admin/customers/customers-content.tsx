@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, Users, UserCheck, DollarSign, TrendingUp, RefreshCw } from "lucide-react"
+import { Search, Users, UserCheck, DollarSign, TrendingUp, RefreshCw, Eye } from "lucide-react"
 
 interface Customer {
   id: string
@@ -26,6 +27,7 @@ interface CustomerMetrics {
 }
 
 export default function CustomersContent() {
+  const router = useRouter()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [metrics, setMetrics] = useState<CustomerMetrics>({
     totalCustomers: 0,
@@ -84,6 +86,10 @@ export default function CustomersContent() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never"
     return new Date(dateString).toLocaleDateString()
+  }
+
+  const handleViewDetails = (customerId: string) => {
+    router.push(`/admin/customers/${customerId}`)
   }
 
   if (loading) {
@@ -249,7 +255,8 @@ export default function CustomersContent() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(customer.id)}>
+                          <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Button>
                       </td>
