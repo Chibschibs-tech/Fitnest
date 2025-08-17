@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getSessionUser } from "@/lib/simple-auth"
 
+const sql = neon(process.env.DATABASE_URL!)
+
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
@@ -15,33 +17,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
+    // Get meal plans from database
+    const mealPlans = await sql`
+      SELECT 
+        id,
+        name,
+        description,
+        weekly_price as price_per_week,
+        duration_weeks,
+        meals_per_day,
+        type as category,
+        features,
+        image_url,
+        active as is_available,
+        created_at
+      FROM meal_plans
+      ORDER BY created_at DESC
+    `
 
-    try {
-      // Get meal plans from existing meal_plans table
-      const mealPlans = await sql`
-        SELECT 
-          id,
-          name,
-          description,
-          weekly_price as "weeklyPrice",
-          type,
-          calories_min as "caloriesMin",
-          calories_max as "caloriesMax",
-          active,
-          created_at as "createdAt"
-        FROM meal_plans
-        ORDER BY created_at DESC
-      `
+    // Add subscriber count (mock for now)
+    const mealPlansWithSubscribers = mealPlans.map((plan: any) => ({
+      ...plan,
+      subscribers_count: Math.floor(Math.random() * 50) + 1, // Mock data
+    }))
 
-      return NextResponse.json(mealPlans)
-    } catch (dbError) {
-      console.log("Meal plans table not found or empty, returning empty array")
-      return NextResponse.json([])
-    }
+    return NextResponse.json({
+      success: true,
+      mealPlans: mealPlansWithSubscribers,
+    })
   } catch (error) {
     console.error("Error fetching meal plans:", error)
-    return NextResponse.json({ error: "Failed to fetch meal plans" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch meal plans",
+        mealPlans: [],
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -58,7 +71,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
     const data = await request.json()
 
     const newMealPlan = await sql`

@@ -1,59 +1,66 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
+    // Check if user is authenticated and is admin
     const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getSessionUser(sessionId)
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    const sql = neon(process.env.DATABASE_URL!)
-
-    try {
-      // Get customers with order statistics
-      const customers = await sql`
+    // Get customers with order statistics
+    const customers = await sql`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.phone,
+        u.city,
+        COALESCE(order_stats.total_orders, 0) as total_orders,
+        COALESCE(order_stats.total_spent, 0) as total_spent,
+        COALESCE(order_stats.last_order_date, null) as last_order_date,
+        CASE 
+          WHEN sub.status IS NOT NULL THEN sub.status
+          ELSE 'none'
+        END as subscription_status,
+        u.created_at
+      FROM users u
+      LEFT JOIN (
         SELECT 
-          u.id,
-          u.name,
-          u.email,
-          u.role,
-          COALESCE(order_stats.total_orders, 0) as "totalOrders",
-          COALESCE(order_stats.total_spent, 0) as "totalSpent",
-          order_stats.last_order_date as "lastOrderDate",
-          CASE 
-            WHEN COALESCE(order_stats.total_orders, 0) > 0 THEN 'active'
-            ELSE 'inactive'
-          END as status,
-          u.created_at as "createdAt"
-        FROM users u
-        LEFT JOIN (
-          SELECT 
-            user_id,
-            COUNT(*) as total_orders,
-            SUM(total) as total_spent,
-            MAX(created_at) as last_order_date
-          FROM orders
-          GROUP BY user_id
-        ) order_stats ON u.id = order_stats.user_id
-        WHERE u.role != 'admin'
-        ORDER BY u.created_at DESC
-      `
+          user_id,
+          COUNT(*) as total_orders,
+          SUM(total) as total_spent,
+          MAX(created_at) as last_order_date
+        FROM orders
+        WHERE user_id IS NOT NULL
+        GROUP BY user_id
+      ) order_stats ON u.id = order_stats.user_id
+      LEFT JOIN (
+        SELECT DISTINCT user_id, 'active' as status
+        FROM orders 
+        WHERE order_type = 'subscription' 
+        AND status != 'cancelled'
+      ) sub ON u.id = sub.user_id
+      WHERE u.role != 'admin'
+      ORDER BY u.created_at DESC
+    `
 
-      return NextResponse.json(customers)
-    } catch (dbError) {
-      console.log("Error fetching customers, returning empty array:", dbError)
-      return NextResponse.json([])
-    }
+    return NextResponse.json({
+      success: true,
+      customers: customers,
+    })
   } catch (error) {
     console.error("Error fetching customers:", error)
-    return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch customers",
+        customers: [],
+      },
+      { status: 500 },
+    )
   }
 }

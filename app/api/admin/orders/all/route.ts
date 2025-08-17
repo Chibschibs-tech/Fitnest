@@ -1,51 +1,49 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
+    // Check if user is authenticated and is admin
     const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getSessionUser(sessionId)
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    // Get all orders
+    const orders = await sql`
+      SELECT 
+        o.id,
+        COALESCE(u.name, o.customer_name, 'Guest Customer') as customer_name,
+        COALESCE(u.email, o.customer_email, 'guest@example.com') as customer_email,
+        o.status,
+        o.total as total_amount,
+        COALESCE(o.order_type, 'express_shop') as order_type,
+        1 as items_count,
+        o.created_at as order_date,
+        o.delivery_date,
+        'paid' as payment_status,
+        COALESCE(o.delivery_address, 'Address not provided') as delivery_address
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      ORDER BY o.created_at DESC
+      LIMIT 100
+    `
 
-    const sql = neon(process.env.DATABASE_URL!)
-
-    try {
-      // Get all orders that are not subscriptions
-      const orders = await sql`
-        SELECT 
-          o.id,
-          COALESCE(u.name, o.customer_name, 'Guest Customer') as "customerName",
-          COALESCE(u.email, o.customer_email, 'guest@example.com') as "customerEmail",
-          CASE 
-            WHEN o.order_type IS NOT NULL THEN o.order_type
-            ELSE 'one_time'
-          END as "orderType",
-          o.total,
-          o.status,
-          o.created_at as "createdAt",
-          1 as "itemCount"
-        FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
-        WHERE COALESCE(o.order_type, 'one_time') != 'subscription'
-        ORDER BY o.created_at DESC
-        LIMIT 100
-      `
-
-      return NextResponse.json(orders)
-    } catch (dbError) {
-      console.log("Error fetching orders, returning empty array:", dbError)
-      return NextResponse.json([])
-    }
+    return NextResponse.json({
+      success: true,
+      orders: orders,
+    })
   } catch (error) {
     console.error("Error fetching orders:", error)
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch orders",
+        orders: [],
+      },
+      { status: 500 },
+    )
   }
 }

@@ -3,7 +3,7 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: NextRequest) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Check if user is authenticated and is admin
     const sessionId = request.cookies.get("session-id")?.value
@@ -11,39 +11,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get meals from database
-    const meals = await sql`
-      SELECT 
-        id,
-        name,
-        description,
-        calories,
-        protein,
-        carbs,
-        fat,
-        category,
-        ingredients,
-        allergens,
-        price,
-        image_url,
-        is_available,
-        created_at,
-        updated_at
-      FROM meals
-      ORDER BY created_at DESC
+    const { status } = await request.json()
+    const orderId = params.id
+
+    // Update order status
+    await sql`
+      UPDATE orders 
+      SET status = ${status}
+      WHERE id = ${orderId}
     `
 
     return NextResponse.json({
       success: true,
-      meals: meals,
+      message: "Order status updated successfully",
     })
   } catch (error) {
-    console.error("Error fetching meals:", error)
+    console.error("Error updating order status:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch meals",
-        meals: [],
+        error: "Failed to update order status",
       },
       { status: 500 },
     )

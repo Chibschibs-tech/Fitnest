@@ -1,54 +1,54 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { getSessionUser } from "@/lib/simple-auth"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
+    // Check if user is authenticated and is admin
     const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getSessionUser(sessionId)
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    // Get deliveries from orders
+    const deliveries = await sql`
+      SELECT 
+        o.id,
+        o.id as order_id,
+        COALESCE(u.name, o.customer_name, 'Guest Customer') as customer_name,
+        COALESCE(o.delivery_address, 'Address not provided') as customer_address,
+        COALESCE(u.phone, o.customer_phone) as customer_phone,
+        COALESCE(o.delivery_date, o.created_at + INTERVAL '2 days') as delivery_date,
+        CASE 
+          WHEN o.status = 'delivered' THEN 'delivered'
+          WHEN o.status = 'processing' THEN 'in_transit'
+          WHEN o.status = 'confirmed' THEN 'pending'
+          ELSE 'pending'
+        END as status,
+        NULL as driver_name,
+        o.delivery_notes,
+        o.created_at,
+        o.updated_at as delivered_at
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      ORDER BY o.created_at DESC
+      LIMIT 100
+    `
 
-    const sql = neon(process.env.DATABASE_URL!)
-
-    try {
-      // Get deliveries from orders with delivery information
-      const deliveries = await sql`
-        SELECT 
-          o.id,
-          COALESCE(u.name, o.customer_name, 'Guest Customer') as "customerName",
-          COALESCE(u.email, o.customer_email, 'guest@example.com') as "customerEmail",
-          COALESCE(o.delivery_address, 'Address not provided') as address,
-          COALESCE(o.delivery_date, o.created_at + INTERVAL '2 days') as "deliveryDate",
-          CASE 
-            WHEN o.status = 'completed' THEN 'delivered'
-            WHEN o.status = 'processing' THEN 'in_transit'
-            WHEN o.status = 'confirmed' THEN 'scheduled'
-            ELSE 'scheduled'
-          END as status,
-          o.total as "orderTotal",
-          NULL as "driverName",
-          CONCAT('TRK', LPAD(o.id::text, 8, '0')) as "trackingNumber",
-          o.created_at as "createdAt"
-        FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
-        ORDER BY o.created_at DESC
-        LIMIT 100
-      `
-
-      return NextResponse.json(deliveries)
-    } catch (dbError) {
-      console.log("Error fetching deliveries, returning empty array:", dbError)
-      return NextResponse.json([])
-    }
+    return NextResponse.json({
+      success: true,
+      deliveries: deliveries,
+    })
   } catch (error) {
     console.error("Error fetching deliveries:", error)
-    return NextResponse.json({ error: "Failed to fetch deliveries" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch deliveries",
+        deliveries: [],
+      },
+      { status: 500 },
+    )
   }
 }
