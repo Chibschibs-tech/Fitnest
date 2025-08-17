@@ -19,7 +19,6 @@ import {
   Truck,
   PauseCircle,
   PlayCircle,
-  Database,
 } from "lucide-react"
 
 interface DashboardStats {
@@ -39,7 +38,6 @@ export function AdminDashboardContent() {
   const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [creatingData, setCreatingData] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -59,27 +57,6 @@ export function AdminDashboardContent() {
       setError("Failed to load dashboard data")
     } finally {
       setLoading(false)
-    }
-  }
-
-  const createSampleData = async () => {
-    try {
-      setCreatingData(true)
-      const response = await fetch("/api/admin/create-sample-data", {
-        method: "POST",
-      })
-      if (response.ok) {
-        // Refresh dashboard data
-        await fetchDashboardData()
-        alert("Sample data created successfully!")
-      } else {
-        alert("Failed to create sample data")
-      }
-    } catch (error) {
-      console.error("Failed to create sample data:", error)
-      alert("Failed to create sample data")
-    } finally {
-      setCreatingData(false)
     }
   }
 
@@ -109,35 +86,18 @@ export function AdminDashboardContent() {
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+        <Button onClick={fetchDashboardData} className="mt-4">
+          Retry
+        </Button>
       </div>
     )
   }
-
-  const hasNoData =
-    !dashboardData ||
-    (dashboardData.totalRevenue === 0 &&
-      dashboardData.activeSubscriptions === 0 &&
-      dashboardData.recentOrders.length === 0)
 
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-gray-600">Manage your fitness meal delivery business</p>
-
-        {hasNoData && (
-          <div className="mt-4">
-            <Alert>
-              <Database className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <span>No data found. Would you like to create some sample data to get started?</span>
-                <Button onClick={createSampleData} disabled={creatingData} className="ml-4">
-                  {creatingData ? "Creating..." : "Create Sample Data"}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
       </div>
 
       {/* Key Metrics */}
@@ -285,7 +245,7 @@ export function AdminDashboardContent() {
                     <div className="text-right">
                       <p className="font-medium">{order.total_amount} MAD</p>
                       <Badge variant={order.status === "active" ? "default" : "outline"} className="text-xs">
-                        {order.status}
+                        {order.status || "pending"}
                       </Badge>
                     </div>
                   </div>

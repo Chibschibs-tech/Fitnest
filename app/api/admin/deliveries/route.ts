@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
-import { sql } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export const dynamic = "force-dynamic"
 
@@ -20,29 +22,65 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Get all deliveries with customer information
-    const deliveries = await sql`
-      SELECT 
-        o.id,
-        o.id as order_id,
-        u.name as customer_name,
-        u.email as customer_email,
-        COALESCE(o.delivery_address, u.address, 'No address provided') as delivery_address,
-        COALESCE(o.delivery_date, CURRENT_DATE + INTERVAL '1 day') as delivery_date,
-        COALESCE(o.delivery_time, '12:00') as delivery_time,
-        CASE 
-          WHEN o.status = 'delivered' THEN 'delivered'
-          WHEN o.status = 'active' THEN 'pending'
-          WHEN o.status = 'processing' THEN 'in_transit'
-          ELSE 'pending'
-        END as status,
-        o.notes,
-        o.created_at,
-        o.total_amount
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      ORDER BY o.created_at DESC
-    `
+    console.log("Fetching deliveries for admin...")
+
+    let deliveries = []
+
+    try {
+      // Get all deliveries with customer information
+      deliveries = await sql`
+        SELECT 
+          o.id,
+          o.id as order_id,
+          COALESCE(u.name, o.customer_name, 'Unknown Customer') as customer_name,
+          COALESCE(u.email, o.customer_email, 'no-email@example.com') as customer_email,
+          COALESCE(o.delivery_address, u.address, 'No address provided') as delivery_address,
+          COALESCE(o.delivery_date, CURRENT_DATE + INTERVAL '1 day') as delivery_date,
+          COALESCE(o.delivery_time, '12:00') as delivery_time,
+          CASE 
+            WHEN o.status = 'delivered' THEN 'delivered'
+            WHEN o.status = 'active' THEN 'pending'
+            WHEN o.status = 'processing' THEN 'in_transit'
+            ELSE 'pending'
+          END as status,
+          o.notes,
+          o.created_at,
+          COALESCE(o.total_amount, o.total, 0) as total_amount
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        ORDER BY o.created_at DESC
+      `
+    } catch (deliveryError) {
+      console.log("Delivery query with users failed:", deliveryError)
+
+      // Fallback: get orders without user join
+      try {
+        deliveries = await sql`
+          SELECT 
+            id,
+            id as order_id,
+            COALESCE(customer_name, 'Unknown Customer') as customer_name,
+            COALESCE(customer_email, 'no-email@example.com') as customer_email,
+            COALESCE(delivery_address, 'No address provided') as delivery_address,
+            COALESCE(delivery_date, CURRENT_DATE + INTERVAL '1 day') as delivery_date,
+            COALESCE(delivery_time, '12:00') as delivery_time,
+            CASE 
+              WHEN status = 'delivered' THEN 'delivered'
+              WHEN status = 'active' THEN 'pending'
+              WHEN status = 'processing' THEN 'in_transit'
+              ELSE 'pending'
+            END as status,
+            notes,
+            created_at,
+            COALESCE(total_amount, total, 0) as total_amount
+          FROM orders
+          ORDER BY created_at DESC
+        `
+      } catch (simpleError) {
+        console.log("Simple orders query failed:", simpleError)
+        deliveries = []
+      }
+    }
 
     // Transform the data to ensure proper types
     const transformedDeliveries = deliveries.map((delivery) => ({
@@ -59,6 +97,8 @@ export async function GET() {
       total_amount: Number(delivery.total_amount) || 0,
     }))
 
+    console.log(`Found ${transformedDeliveries.length} deliveries`)
+
     return NextResponse.json({
       success: true,
       deliveries: transformedDeliveries,
@@ -70,6 +110,7 @@ export async function GET() {
       {
         success: false,
         message: "Failed to fetch deliveries",
+        error: error instanceof Error ? error.message : "Unknown error",
         deliveries: [],
         total: 0,
       },

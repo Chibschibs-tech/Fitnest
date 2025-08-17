@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
-import { sql } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export const dynamic = "force-dynamic"
 
@@ -20,24 +22,59 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Get all customers with their order statistics
-    const customers = await sql`
-      SELECT 
-        u.id,
-        u.name,
-        u.email,
-        u.phone,
-        u.address,
-        u.created_at,
-        COALESCE(COUNT(o.id), 0) as total_orders,
-        COALESCE(SUM(o.total_amount), 0) as total_spent,
-        MAX(o.created_at) as last_order_date
-      FROM users u
-      LEFT JOIN orders o ON u.id = o.user_id
-      WHERE u.role = 'user'
-      GROUP BY u.id, u.name, u.email, u.phone, u.address, u.created_at
-      ORDER BY u.created_at DESC
-    `
+    console.log("Fetching customers for admin...")
+
+    // First, check if users table exists and get its structure
+    let customers = []
+
+    try {
+      // Try to get customers with order statistics
+      const customersQuery = await sql`
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.phone,
+          u.created_at,
+          COALESCE(COUNT(DISTINCT o.id), 0) as total_orders,
+          COALESCE(SUM(CASE WHEN o.total_amount IS NOT NULL THEN o.total_amount ELSE o.total END), 0) as total_spent,
+          MAX(o.created_at) as last_order_date
+        FROM users u
+        LEFT JOIN orders o ON u.id = o.user_id
+        WHERE u.role != 'admin' OR u.role IS NULL
+        GROUP BY u.id, u.name, u.email, u.phone, u.created_at
+        ORDER BY u.created_at DESC
+      `
+
+      customers = customersQuery
+    } catch (orderJoinError) {
+      console.log("Order join failed, trying simple users query:", orderJoinError)
+
+      // Fallback: just get users without order data
+      try {
+        const simpleUsersQuery = await sql`
+          SELECT 
+            id,
+            name,
+            email,
+            phone,
+            created_at
+          FROM users
+          WHERE role != 'admin' OR role IS NULL
+          ORDER BY created_at DESC
+        `
+
+        customers = simpleUsersQuery.map((user) => ({
+          ...user,
+          total_orders: 0,
+          total_spent: 0,
+          last_order_date: null,
+        }))
+      } catch (simpleError) {
+        console.log("Simple users query failed:", simpleError)
+        customers = []
+      }
+    }
 
     // Transform the data to ensure proper types
     const transformedCustomers = customers.map((customer) => ({
@@ -53,6 +90,8 @@ export async function GET() {
       status: (Number(customer.total_orders) > 0 ? "active" : "inactive") as "active" | "inactive",
     }))
 
+    console.log(`Found ${transformedCustomers.length} customers`)
+
     return NextResponse.json({
       success: true,
       customers: transformedCustomers,
@@ -64,6 +103,7 @@ export async function GET() {
       {
         success: false,
         message: "Failed to fetch customers",
+        error: error instanceof Error ? error.message : "Unknown error",
         customers: [],
         total: 0,
       },

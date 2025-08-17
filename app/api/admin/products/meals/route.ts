@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
-import { sql } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 export const dynamic = "force-dynamic"
 
@@ -20,24 +22,74 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Get all meals from the database
-    const meals = await sql`
-      SELECT 
-        id,
-        name,
-        description,
-        calories,
-        protein,
-        carbs,
-        fat,
-        price,
-        category,
-        image_url,
-        is_available,
-        created_at
-      FROM meals 
-      ORDER BY created_at DESC
-    `
+    console.log("Fetching meals for admin...")
+
+    let meals = []
+
+    try {
+      // Get all meals from the database
+      meals = await sql`
+        SELECT 
+          id,
+          name,
+          description,
+          calories,
+          protein,
+          carbs,
+          fat,
+          COALESCE(price, 0) as price,
+          category,
+          image_url,
+          COALESCE(is_available, true) as is_available,
+          created_at
+        FROM meals 
+        ORDER BY created_at DESC
+      `
+    } catch (mealsError) {
+      console.log("Meals query failed:", mealsError)
+
+      // Check if meals table exists, if not create it
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS meals (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            calories INTEGER DEFAULT 0,
+            protein INTEGER DEFAULT 0,
+            carbs INTEGER DEFAULT 0,
+            fat INTEGER DEFAULT 0,
+            price DECIMAL(10,2) DEFAULT 0,
+            category VARCHAR(100) DEFAULT 'General',
+            image_url TEXT,
+            is_available BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+
+        // Try query again
+        meals = await sql`
+          SELECT 
+            id,
+            name,
+            description,
+            calories,
+            protein,
+            carbs,
+            fat,
+            COALESCE(price, 0) as price,
+            category,
+            image_url,
+            COALESCE(is_available, true) as is_available,
+            created_at
+          FROM meals 
+          ORDER BY created_at DESC
+        `
+      } catch (createError) {
+        console.log("Failed to create meals table:", createError)
+        meals = []
+      }
+    }
 
     // Transform the data to ensure proper types
     const transformedMeals = meals.map((meal) => ({
@@ -55,6 +107,8 @@ export async function GET() {
       created_at: meal.created_at,
     }))
 
+    console.log(`Found ${transformedMeals.length} meals`)
+
     return NextResponse.json({
       success: true,
       meals: transformedMeals,
@@ -66,6 +120,7 @@ export async function GET() {
       {
         success: false,
         message: "Failed to fetch meals",
+        error: error instanceof Error ? error.message : "Unknown error",
         meals: [],
         total: 0,
       },
@@ -120,6 +175,7 @@ export async function POST(request: Request) {
       {
         success: false,
         message: "Failed to create meal",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
