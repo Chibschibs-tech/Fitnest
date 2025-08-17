@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Plus, Edit, Eye, Trash2 } from "lucide-react"
+import { Search, Plus, Edit, Eye, Trash2, Package } from "lucide-react"
 
 interface MealPlan {
   id: number
@@ -64,9 +64,10 @@ export default function MealPlansContent() {
     const colors = {
       weight_loss: "bg-red-100 text-red-800",
       muscle_gain: "bg-blue-100 text-blue-800",
-      keto: "bg-green-100 text-green-800",
-      balanced: "bg-purple-100 text-purple-800",
-      custom: "bg-gray-100 text-gray-800",
+      keto: "bg-purple-100 text-purple-800",
+      balanced: "bg-green-100 text-green-800",
+      vegan: "bg-yellow-100 text-yellow-800",
+      mediterranean: "bg-orange-100 text-orange-800",
     }
     return (
       <Badge className={colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800"}>
@@ -110,22 +111,22 @@ export default function MealPlansContent() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Avg. Price</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Plan Types</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              {formatCurrency(
-                mealPlans.reduce((sum, p) => sum + Number(p.weeklyPrice), 0) / Math.max(mealPlans.length, 1),
-              )}
-            </p>
+            <p className="text-2xl font-bold text-blue-600">{new Set(mealPlans.map((p) => p.type)).size}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Plan Types</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Avg. Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-purple-600">{new Set(mealPlans.map((p) => p.type)).size}</p>
+            <p className="text-2xl font-bold text-purple-600">
+              {formatCurrency(
+                mealPlans.reduce((sum, p) => sum + Number(p.weeklyPrice), 0) / Math.max(mealPlans.length, 1),
+              )}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -143,7 +144,7 @@ export default function MealPlansContent() {
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Meal Plan
+          Add Plan
         </Button>
       </div>
 
@@ -154,8 +155,8 @@ export default function MealPlansContent() {
             <TableRow>
               <TableHead>Plan Name</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Calories Range</TableHead>
               <TableHead>Weekly Price</TableHead>
+              <TableHead>Calorie Range</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Actions</TableHead>
@@ -171,20 +172,22 @@ export default function MealPlansContent() {
                   </div>
                 </TableCell>
                 <TableCell>{getTypeBadge(plan.type)}</TableCell>
+                <TableCell className="font-medium">{formatCurrency(Number(plan.weeklyPrice))}</TableCell>
                 <TableCell>
                   {plan.caloriesMin && plan.caloriesMax ? (
-                    <span className="text-sm">
+                    <div className="text-sm">
                       {plan.caloriesMin} - {plan.caloriesMax} cal
-                    </span>
+                    </div>
                   ) : (
                     <span className="text-sm text-gray-400">Not specified</span>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{formatCurrency(Number(plan.weeklyPrice))}</TableCell>
                 <TableCell>
                   <Badge variant={plan.active ? "default" : "secondary"}>{plan.active ? "Active" : "Inactive"}</Badge>
                 </TableCell>
-                <TableCell>{new Date(plan.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <div className="text-sm">{new Date(plan.createdAt).toLocaleDateString()}</div>
+                </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm">
@@ -202,6 +205,16 @@ export default function MealPlansContent() {
             ))}
           </TableBody>
         </Table>
+
+        {filteredMealPlans.length === 0 && (
+          <div className="text-center py-8">
+            <Package className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium">No meal plans found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? "Try adjusting your search terms." : "Start by adding your first meal plan."}
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   )

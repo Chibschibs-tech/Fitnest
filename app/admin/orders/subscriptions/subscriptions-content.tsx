@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Pause, Play, Eye } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search, User, Calendar, Package } from "lucide-react"
 
 interface Subscription {
   id: number
@@ -47,10 +48,9 @@ export default function SubscriptionsContent() {
   }
 
   const filteredSubscriptions = subscriptions.filter(
-    (subscription) =>
-      subscription.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subscription.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subscription.mealPlanName?.toLowerCase().includes(searchTerm.toLowerCase()),
+    (sub) =>
+      sub.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sub.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const formatCurrency = (amount: number) => {
@@ -58,10 +58,6 @@ export default function SubscriptionsContent() {
       style: "currency",
       currency: "USD",
     }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
   }
 
   const getStatusBadge = (status: string) => {
@@ -73,7 +69,7 @@ export default function SubscriptionsContent() {
       case "cancelled":
         return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>
     }
   }
 
@@ -94,57 +90,70 @@ export default function SubscriptionsContent() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Total Subscriptions</h3>
-          <p className="text-2xl font-bold text-gray-900">{subscriptions.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Active</h3>
-          <p className="text-2xl font-bold text-green-600">
-            {subscriptions.filter((s) => s.status === "active").length}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Paused</h3>
-          <p className="text-2xl font-bold text-yellow-600">
-            {subscriptions.filter((s) => s.status === "paused").length}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Monthly Revenue</h3>
-          <p className="text-2xl font-bold text-blue-600">
-            {formatCurrency(
-              subscriptions.filter((s) => s.status === "active").reduce((sum, s) => sum + Number(s.total), 0),
-            )}
-          </p>
-        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Total Subscriptions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-gray-900">{subscriptions.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Active</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              {subscriptions.filter((s) => s.status === "active").length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Paused</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-yellow-600">
+              {subscriptions.filter((s) => s.status === "paused").length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Monthly Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">
+              {formatCurrency(
+                subscriptions.filter((s) => s.status === "active").reduce((sum, s) => sum + Number(s.total), 0) * 4,
+              )}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-lg border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search subscriptions by customer or meal plan..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          placeholder="Search subscriptions by customer name or email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Subscriptions Table */}
-      <div className="bg-white rounded-lg border">
+      <Card>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
-              <TableHead>Meal Plan</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Frequency</TableHead>
-              <TableHead>Next Delivery</TableHead>
+              <TableHead>Plan</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Started</TableHead>
+              <TableHead>Frequency</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Next Delivery</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -152,45 +161,57 @@ export default function SubscriptionsContent() {
             {filteredSubscriptions.map((subscription) => (
               <TableRow key={subscription.id}>
                 <TableCell>
-                  <div>
-                    <div className="font-medium">{subscription.customerName}</div>
-                    <div className="text-sm text-gray-500">{subscription.customerEmail}</div>
+                  <div className="flex items-center space-x-3">
+                    <User className="h-8 w-8 text-gray-400" />
+                    <div>
+                      <div className="font-medium">{subscription.customerName}</div>
+                      <div className="text-sm text-gray-500">{subscription.customerEmail}</div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="font-medium">{subscription.mealPlanName || "Custom Plan"}</div>
                 </TableCell>
-                <TableCell className="font-medium">{formatCurrency(Number(subscription.total))}</TableCell>
+                <TableCell>{getStatusBadge(subscription.status)}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{subscription.deliveryFrequency || "Weekly"}</Badge>
                 </TableCell>
-                <TableCell>{subscription.nextDelivery ? formatDate(subscription.nextDelivery) : "TBD"}</TableCell>
-                <TableCell>{getStatusBadge(subscription.status)}</TableCell>
-                <TableCell>{formatDate(subscription.createdAt)}</TableCell>
+                <TableCell className="font-medium">{formatCurrency(Number(subscription.total))}</TableCell>
+                <TableCell>
+                  {subscription.nextDelivery ? (
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(subscription.nextDelivery).toLocaleDateString()}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">Not scheduled</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
-                    {subscription.status === "active" ? (
-                      <Button variant="outline" size="sm">
-                        <Pause className="h-4 w-4 mr-1" />
-                        Pause
-                      </Button>
-                    ) : subscription.status === "paused" ? (
-                      <Button variant="outline" size="sm">
-                        <Play className="h-4 w-4 mr-1" />
-                        Resume
-                      </Button>
-                    ) : null}
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+
+        {filteredSubscriptions.length === 0 && (
+          <div className="text-center py-8">
+            <Package className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium">No subscriptions found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? "Try adjusting your search terms." : "No active subscriptions at the moment."}
+            </p>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }

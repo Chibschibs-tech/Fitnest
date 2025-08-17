@@ -5,19 +5,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Eye, Mail, Phone } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search, User, Mail, Calendar, Package } from "lucide-react"
 
 interface Customer {
   id: number
   name: string
   email: string
-  phone?: string
-  acquisitionSource: string
-  createdAt: string
+  role: string
   totalOrders: number
-  activeOrders: number
   totalSpent: number
   lastOrderDate?: string
+  status: string
+  createdAt: string
 }
 
 export default function CustomersContent() {
@@ -60,8 +60,28 @@ export default function CustomersContent() {
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>
+      case "inactive":
+        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
+      case "suspended":
+        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "admin":
+        return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>
+      case "customer":
+        return <Badge className="bg-blue-100 text-blue-800">Customer</Badge>
+      default:
+        return <Badge variant="outline">{role}</Badge>
+    }
   }
 
   if (loading) {
@@ -81,59 +101,65 @@ export default function CustomersContent() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Total Customers</h3>
-          <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Active Customers</h3>
-          <p className="text-2xl font-bold text-green-600">{customers.filter((c) => c.activeOrders > 0).length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Total Revenue</h3>
-          <p className="text-2xl font-bold text-blue-600">
-            {formatCurrency(customers.reduce((sum, c) => sum + Number(c.totalSpent), 0))}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Avg. Order Value</h3>
-          <p className="text-2xl font-bold text-purple-600">
-            {formatCurrency(
-              customers.reduce((sum, c) => sum + Number(c.totalSpent), 0) /
-                Math.max(
-                  customers.reduce((sum, c) => sum + c.totalOrders, 0),
-                  1,
-                ),
-            )}
-          </p>
-        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Total Customers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Active Customers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">{customers.filter((c) => c.status === "active").length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">{customers.reduce((sum, c) => sum + c.totalOrders, 0)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              {formatCurrency(customers.reduce((sum, c) => sum + c.totalSpent, 0))}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-lg border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search customers by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          placeholder="Search customers by name or email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Customers Table */}
-      <div className="bg-white rounded-lg border">
+      <Card>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Source</TableHead>
+              <TableHead>Role</TableHead>
               <TableHead>Orders</TableHead>
               <TableHead>Total Spent</TableHead>
               <TableHead>Last Order</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Joined</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -141,52 +167,67 @@ export default function CustomersContent() {
             {filteredCustomers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>
-                  <div>
-                    <div className="font-medium">{customer.name}</div>
-                    <div className="text-sm text-gray-500">ID: {customer.id}</div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm">
-                      <Mail className="h-3 w-3 mr-1" />
-                      {customer.email}
-                    </div>
-                    {customer.phone && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {customer.phone}
+                  <div className="flex items-center space-x-3">
+                    <User className="h-8 w-8 text-gray-400" />
+                    <div>
+                      <div className="font-medium">{customer.name}</div>
+                      <div className="text-sm text-gray-500 flex items-center">
+                        <Mail className="h-3 w-3 mr-1" />
+                        {customer.email}
                       </div>
-                    )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>{getRoleBadge(customer.role)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <Package className="h-4 w-4 mr-1" />
+                    {customer.totalOrders}
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{formatCurrency(customer.totalSpent)}</TableCell>
+                <TableCell>
+                  {customer.lastOrderDate ? (
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(customer.lastOrderDate).toLocaleDateString()}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">No orders</span>
+                  )}
+                </TableCell>
+                <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {new Date(customer.createdAt).toLocaleDateString()}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{customer.acquisitionSource}</Badge>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{customer.totalOrders} total</div>
-                    <div className="text-sm text-gray-500">{customer.activeOrders} active</div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      View
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
                   </div>
-                </TableCell>
-                <TableCell className="font-medium">{formatCurrency(Number(customer.totalSpent))}</TableCell>
-                <TableCell>{customer.lastOrderDate ? formatDate(customer.lastOrderDate) : "Never"}</TableCell>
-                <TableCell>
-                  <Badge variant={customer.activeOrders > 0 ? "default" : "secondary"}>
-                    {customer.activeOrders > 0 ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+
+        {filteredCustomers.length === 0 && (
+          <div className="text-center py-8">
+            <User className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium">No customers found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? "Try adjusting your search terms." : "No customers have registered yet."}
+            </p>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }

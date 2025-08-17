@@ -17,29 +17,32 @@ export async function GET(request: NextRequest) {
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get all orders that are not subscriptions
-    const orders = await sql`
+    // Get deliveries from orders with delivery information
+    const deliveries = await sql`
       SELECT 
         o.id,
         COALESCE(u.name, o.customer_name, 'Guest Customer') as "customerName",
         COALESCE(u.email, o.customer_email, 'guest@example.com') as "customerEmail",
+        COALESCE(o.delivery_address, 'Address not provided') as address,
+        COALESCE(o.delivery_date, o.created_at + INTERVAL '2 days') as "deliveryDate",
         CASE 
-          WHEN o.order_type IS NOT NULL THEN o.order_type
-          ELSE 'one_time'
-        END as "orderType",
-        o.total,
-        o.status,
-        o.created_at as "createdAt",
-        1 as "itemCount"
+          WHEN o.status = 'completed' THEN 'delivered'
+          WHEN o.status = 'processing' THEN 'in_transit'
+          WHEN o.status = 'confirmed' THEN 'scheduled'
+          ELSE 'scheduled'
+        END as status,
+        o.total as "orderTotal",
+        NULL as "driverName",
+        CONCAT('TRK', LPAD(o.id::text, 8, '0')) as "trackingNumber",
+        o.created_at as "createdAt"
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
-      WHERE COALESCE(o.order_type, 'one_time') != 'subscription'
       ORDER BY o.created_at DESC
     `
 
-    return NextResponse.json(orders)
+    return NextResponse.json(deliveries)
   } catch (error) {
-    console.error("Error fetching orders:", error)
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
+    console.error("Error fetching deliveries:", error)
+    return NextResponse.json({ error: "Failed to fetch deliveries" }, { status: 500 })
   }
 }

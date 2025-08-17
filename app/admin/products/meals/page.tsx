@@ -3,13 +3,12 @@ import MealsContent from "./meals-content"
 
 export default function MealsPage() {
   return (
-    <div className="p-6">
+    <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Individual Meals Management</h1>
-        <p className="text-gray-600">Manage standalone meal products and their availability</p>
+        <h1 className="text-3xl font-bold">Individual Meals</h1>
+        <p className="text-gray-600">Manage standalone meals available for purchase</p>
       </div>
-
-      <Suspense fallback={<div>Loading meals...</div>}>
+      <Suspense fallback={<div>Loading...</div>}>
         <MealsContent />
       </Suspense>
     </div>

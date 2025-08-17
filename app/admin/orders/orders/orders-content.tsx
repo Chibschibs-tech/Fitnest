@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Eye, Package, Truck } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search, User, Calendar, Package, ShoppingCart } from "lucide-react"
 
 interface Order {
   id: number
@@ -48,8 +49,7 @@ export default function OrdersContent() {
   const filteredOrders = orders.filter(
     (order) =>
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm),
+      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const formatCurrency = (amount: number) => {
@@ -59,43 +59,27 @@ export default function OrdersContent() {
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
-  }
-
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "completed":
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
+      case "processing":
+        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>
       case "pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-      case "confirmed":
-        return <Badge className="bg-blue-100 text-blue-800">Confirmed</Badge>
-      case "preparing":
-        return <Badge className="bg-orange-100 text-orange-800">Preparing</Badge>
-      case "shipped":
-        return <Badge className="bg-purple-100 text-purple-800">Shipped</Badge>
-      case "delivered":
-        return <Badge className="bg-green-100 text-green-800">Delivered</Badge>
       case "cancelled":
         return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>
     }
   }
 
   const getOrderTypeBadge = (type: string) => {
     switch (type) {
-      case "subscription":
-        return (
-          <Badge variant="outline" className="bg-blue-50">
-            Subscription
-          </Badge>
-        )
+      case "express_shop":
+        return <Badge className="bg-purple-100 text-purple-800">Express Shop</Badge>
       case "one_time":
-        return (
-          <Badge variant="outline" className="bg-green-50">
-            One-time
-          </Badge>
-        )
+        return <Badge className="bg-blue-100 text-blue-800">One-time</Badge>
       default:
         return <Badge variant="outline">{type}</Badge>
     }
@@ -117,46 +101,56 @@ export default function OrdersContent() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Total Orders</h3>
-          <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Pending</h3>
-          <p className="text-2xl font-bold text-yellow-600">{orders.filter((o) => o.status === "pending").length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Preparing</h3>
-          <p className="text-2xl font-bold text-orange-600">{orders.filter((o) => o.status === "preparing").length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Shipped</h3>
-          <p className="text-2xl font-bold text-purple-600">{orders.filter((o) => o.status === "shipped").length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-500">Total Revenue</h3>
-          <p className="text-2xl font-bold text-green-600">
-            {formatCurrency(orders.reduce((sum, o) => sum + Number(o.total), 0))}
-          </p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">{orders.filter((o) => o.status === "completed").length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Processing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">{orders.filter((o) => o.status === "processing").length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              {formatCurrency(orders.reduce((sum, o) => sum + Number(o.total), 0))}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-lg border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search orders by customer, email, or order ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          placeholder="Search orders by customer name or email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg border">
+      <Card>
         <Table>
           <TableHeader>
             <TableRow>
@@ -173,44 +167,56 @@ export default function OrdersContent() {
           <TableBody>
             {filteredOrders.map((order) => (
               <TableRow key={order.id}>
+                <TableCell className="font-medium">#{order.id}</TableCell>
                 <TableCell>
-                  <div className="font-medium">#{order.id}</div>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{order.customerName}</div>
-                    <div className="text-sm text-gray-500">{order.customerEmail}</div>
+                  <div className="flex items-center space-x-3">
+                    <User className="h-8 w-8 text-gray-400" />
+                    <div>
+                      <div className="font-medium">{order.customerName}</div>
+                      <div className="text-sm text-gray-500">{order.customerEmail}</div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>{getOrderTypeBadge(order.orderType)}</TableCell>
                 <TableCell>
                   <div className="flex items-center">
-                    <Package className="h-4 w-4 mr-1 text-gray-400" />
+                    <ShoppingCart className="h-4 w-4 mr-1" />
                     {order.itemCount} items
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{formatCurrency(Number(order.total))}</TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
-                <TableCell>{formatDate(order.createdAt)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
-                    {order.status === "confirmed" && (
-                      <Button variant="outline" size="sm">
-                        <Truck className="h-4 w-4 mr-1" />
-                        Ship
-                      </Button>
-                    )}
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+
+        {filteredOrders.length === 0 && (
+          <div className="text-center py-8">
+            <Package className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium">No orders found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? "Try adjusting your search terms." : "No orders have been placed yet."}
+            </p>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }

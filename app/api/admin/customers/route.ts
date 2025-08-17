@@ -1,45 +1,48 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { getSessionUser } from "@/lib/simple-auth"
 import { neon } from "@neondatabase/serverless"
-
-export const dynamic = "force-dynamic"
+import { getSessionUser } from "@/lib/simple-auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const user = await getSessionUser(sessionId)
-
     if (!user || user.role !== "admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get customers with their order statistics
+    // Get customers with order statistics
     const customers = await sql`
       SELECT 
         u.id,
         u.name,
         u.email,
-        u.phone,
         u.role,
-        u.acquisition_source as "acquisitionSource",
-        u.created_at as "createdAt",
-        COUNT(DISTINCT o.id) as "totalOrders",
-        COUNT(DISTINCT CASE WHEN o.status = 'active' THEN o.id END) as "activeOrders",
-        COALESCE(SUM(CASE WHEN o.status != 'cancelled' THEN o.total END), 0) as "totalSpent",
-        MAX(o.created_at) as "lastOrderDate"
+        COALESCE(order_stats.total_orders, 0) as "totalOrders",
+        COALESCE(order_stats.total_spent, 0) as "totalSpent",
+        order_stats.last_order_date as "lastOrderDate",
+        CASE 
+          WHEN u.created_at > NOW() - INTERVAL '30 days' THEN 'active'
+          ELSE 'inactive'
+        END as status,
+        u.created_at as "createdAt"
       FROM users u
-      LEFT JOIN orders o ON u.id = o.user_id
-      WHERE u.role = 'user'
-      GROUP BY u.id, u.name, u.email, u.phone, u.role, u.acquisition_source, u.created_at
+      LEFT JOIN (
+        SELECT 
+          user_id,
+          COUNT(*) as total_orders,
+          SUM(total) as total_spent,
+          MAX(created_at) as last_order_date
+        FROM orders
+        GROUP BY user_id
+      ) order_stats ON u.id = order_stats.user_id
+      WHERE u.role = 'customer'
       ORDER BY u.created_at DESC
     `
 

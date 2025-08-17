@@ -1,82 +1,51 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
+    if (!sessionId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get products from all tables that are available in express shop
+    // Get all products from the products table
     const expressProducts = await sql`
       SELECT 
-        'meal' as product_type,
         id,
         name,
         description,
         price,
         category,
-        CASE WHEN availability IN ('express_shop', 'both') THEN true ELSE false END as available,
-        0 as stock,
-        false as featured,
-        0 as orders,
-        0 as revenue,
-        active,
-        created_at as "createdAt"
-      FROM meals
-      WHERE availability IN ('express_shop', 'both')
-      
-      UNION ALL
-      
-      SELECT 
-        'snack' as product_type,
-        id,
-        name,
-        description,
-        price,
-        category,
-        true as available,
         stock,
-        false as featured,
-        0 as orders,
-        0 as revenue,
-        active,
+        is_active as "isActive",
         created_at as "createdAt"
-      FROM snacks
-      WHERE availability = 'express_shop'
-      
-      UNION ALL
-      
-      SELECT 
-        'accessory' as product_type,
-        id,
-        name,
-        description,
-        price,
-        category,
-        true as available,
-        stock,
-        false as featured,
-        0 as orders,
-        0 as revenue,
-        active,
-        created_at as "createdAt"
-      FROM accessories
-      
-      ORDER BY "createdAt" DESC
+      FROM products
+      WHERE is_active = true
+      ORDER BY created_at DESC
     `
 
-    // Transform the data to match the interface
+    // Transform data to match the interface
     const transformedProducts = expressProducts.map((product: any) => ({
       id: product.id,
       name: product.name,
-      description: product.description,
-      price: product.price,
+      description: product.description || "No description available",
+      price: Number(product.price),
       category: product.category,
-      productType: product.product_type,
-      featured: product.featured,
+      productType: getProductType(product.category),
+      featured: false, // Default to false, can be enhanced later
       stock: product.stock || 0,
-      orders: product.orders || 0,
-      revenue: product.revenue || 0,
-      active: product.active,
+      orders: 0, // Would need order tracking
+      revenue: 0, // Would need order tracking
+      active: product.isActive,
       createdAt: product.createdAt,
     }))
 
@@ -85,4 +54,18 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching express shop products:", error)
     return NextResponse.json({ error: "Failed to fetch express shop products" }, { status: 500 })
   }
+}
+
+function getProductType(category: string): string {
+  const categoryMap: { [key: string]: string } = {
+    protein_bar: "snack",
+    supplement: "snack",
+    healthy_snack: "snack",
+    drink: "snack",
+    bag: "accessory",
+    bottle: "accessory",
+    apparel: "accessory",
+    equipment: "accessory",
+  }
+  return categoryMap[category] || "product"
 }

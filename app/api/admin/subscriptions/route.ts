@@ -1,26 +1,42 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
+    if (!sessionId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Get subscriptions with user and meal plan information
+    // Get subscription orders
     const subscriptions = await sql`
       SELECT 
         o.id,
-        u.name as "customerName",
-        u.email as "customerEmail",
+        COALESCE(u.name, o.customer_name, 'Guest Customer') as "customerName",
+        COALESCE(u.email, o.customer_email, 'guest@example.com') as "customerEmail",
         mp.name as "mealPlanName",
         o.total,
-        o.status,
+        CASE 
+          WHEN o.status = 'completed' THEN 'active'
+          WHEN o.status = 'cancelled' THEN 'cancelled'
+          ELSE 'active'
+        END as status,
         o.created_at as "createdAt",
-        o.delivery_frequency as "deliveryFrequency",
-        o.next_delivery as "nextDelivery"
+        'weekly' as "deliveryFrequency",
+        o.created_at + INTERVAL '7 days' as "nextDelivery"
       FROM orders o
-      JOIN users u ON o.user_id = u.id
+      LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN meal_plans mp ON o.meal_plan_id = mp.id
-      WHERE o.order_type = 'subscription'
+      WHERE o.order_type = 'subscription' OR mp.id IS NOT NULL
       ORDER BY o.created_at DESC
     `
 

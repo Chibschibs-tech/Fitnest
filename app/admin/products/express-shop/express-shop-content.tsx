@@ -69,28 +69,11 @@ export default function ExpressShopContent() {
       snack: "bg-blue-100 text-blue-800",
       accessory: "bg-purple-100 text-purple-800",
       supplement: "bg-orange-100 text-orange-800",
+      product: "bg-gray-100 text-gray-800",
     }
     return (
       <Badge className={colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800"}>{type.toUpperCase()}</Badge>
     )
-  }
-
-  const toggleFeatured = async (productId: number, currentFeatured: boolean) => {
-    try {
-      const response = await fetch(`/api/admin/products/express-shop/${productId}/featured`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ featured: !currentFeatured }),
-      })
-
-      if (response.ok) {
-        fetchExpressProducts() // Refresh the list
-      }
-    } catch (error) {
-      console.error("Error updating featured status:", error)
-    }
   }
 
   if (loading) {
@@ -128,20 +111,18 @@ export default function ExpressShopContent() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">In Stock</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">{products.reduce((sum, p) => sum + p.orders, 0)}</p>
+            <p className="text-2xl font-bold text-blue-600">{products.filter((p) => p.stock > 0).length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Total Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(products.reduce((sum, p) => sum + p.revenue, 0))}
-            </p>
+            <p className="text-2xl font-bold text-green-600">{products.reduce((sum, p) => sum + p.orders, 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -215,11 +196,7 @@ export default function ExpressShopContent() {
                 <TableCell className="font-medium">{product.orders}</TableCell>
                 <TableCell className="font-medium">{formatCurrency(product.revenue)}</TableCell>
                 <TableCell>
-                  <Button
-                    variant={product.featured ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleFeatured(product.id, product.featured)}
-                  >
+                  <Button variant={product.featured ? "default" : "outline"} size="sm">
                     <Star className={`h-4 w-4 mr-1 ${product.featured ? "fill-current" : ""}`} />
                     {product.featured ? "Featured" : "Feature"}
                   </Button>

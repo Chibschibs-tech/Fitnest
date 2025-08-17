@@ -70,6 +70,7 @@ export default function MealsContent() {
       lunch: "bg-green-100 text-green-800",
       dinner: "bg-blue-100 text-blue-800",
       snack: "bg-purple-100 text-purple-800",
+      main: "bg-gray-100 text-gray-800",
     }
     return (
       <Badge className={colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800"}>
@@ -136,11 +137,14 @@ export default function MealsContent() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Avg. Price</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Avg. Calories</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-purple-600">
-              {formatCurrency(meals.reduce((sum, m) => sum + Number(m.price), 0) / Math.max(meals.length, 1))}
+              {Math.round(
+                meals.filter((m) => m.calories).reduce((sum, m) => sum + (m.calories || 0), 0) /
+                  Math.max(meals.filter((m) => m.calories).length, 1),
+              )}
             </p>
           </CardContent>
         </Card>
