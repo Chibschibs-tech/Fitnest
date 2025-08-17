@@ -6,7 +6,6 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
     const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -19,79 +18,85 @@ export async function POST(request: NextRequest) {
 
     console.log("Starting sample data cleanup...")
 
-    const deletedRecords = {
-      orders: 0,
-      users: 0,
-      waitlist: 0,
+    const cleanupResults = {
+      ordersDeleted: 0,
+      usersDeleted: 0,
+      waitlistDeleted: 0,
+      errors: [],
     }
 
     try {
-      // First, delete orders that reference sample users (to avoid foreign key constraint)
-      const sampleUserOrders = await sql`
-        DELETE FROM orders 
-        WHERE user_id IN (
-          SELECT id FROM users 
-          WHERE email LIKE '%test%' 
-          OR email LIKE '%example%' 
-          OR email LIKE '%sample%'
-          OR name LIKE '%TEST%'
-          OR name LIKE '%Sample%'
-        )
-        RETURNING id
-      `
-      deletedRecords.orders = sampleUserOrders.length
-
-      // Then delete sample users
-      const sampleUsers = await sql`
-        DELETE FROM users 
-        WHERE (
+      // Step 1: Delete orders for test users to avoid foreign key constraint
+      const testUserIds = await sql`
+        SELECT id FROM users 
+        WHERE 
           email LIKE '%test%' 
           OR email LIKE '%example%' 
-          OR email LIKE '%sample%'
-          OR name LIKE '%TEST%'
-          OR name LIKE '%Sample%'
-        )
-        AND role != 'admin'
-        RETURNING id
+          OR email LIKE '%@test.%'
+          OR name = 'TEST'
+          OR name LIKE 'Test %'
       `
-      deletedRecords.users = sampleUsers.length
 
-      // Clean sample waitlist entries
-      const sampleWaitlist = await sql`
-        DELETE FROM waitlist 
-        WHERE email LIKE '%test%' 
-        OR email LIKE '%example%' 
-        OR email LIKE '%@example.com%'
-        OR first_name = 'TEST'
-        OR last_name = 'SUBMISSION'
-        RETURNING id
-      `
-      deletedRecords.waitlist = sampleWaitlist.length
+      console.log("Found test users:", testUserIds)
 
-      console.log("Sample data cleanup completed:", deletedRecords)
+      if (testUserIds.length > 0) {
+        const userIdsList = testUserIds.map((u) => u.id)
 
-      return NextResponse.json({
-        success: true,
-        message: "Sample data cleaned successfully",
-        deletedRecords,
-      })
+        // Delete orders for these users first
+        const deletedOrders = await sql`
+          DELETE FROM orders 
+          WHERE user_id = ANY(${userIdsList})
+          RETURNING id
+        `
+        cleanupResults.ordersDeleted = deletedOrders.length
+        console.log(`Deleted ${deletedOrders.length} orders`)
+
+        // Now delete the test users
+        const deletedUsers = await sql`
+          DELETE FROM users 
+          WHERE id = ANY(${userIdsList})
+          RETURNING id
+        `
+        cleanupResults.usersDeleted = deletedUsers.length
+        console.log(`Deleted ${deletedUsers.length} test users`)
+      }
     } catch (error) {
-      console.error("Error during cleanup:", error)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to clean sample data",
-          details: error instanceof Error ? error.message : "Unknown error",
-        },
-        { status: 500 },
-      )
+      console.error("Error cleaning user data:", error)
+      cleanupResults.errors.push(`User cleanup error: ${error.message}`)
     }
+
+    try {
+      // Step 2: Clean waitlist test entries
+      const deletedWaitlist = await sql`
+        DELETE FROM waitlist 
+        WHERE 
+          email LIKE '%test%' 
+          OR email LIKE '%example%' 
+          OR name = 'TEST'
+          OR name LIKE 'Test %'
+          OR email LIKE '%@test.%'
+          OR last_name = 'SUBMISSION'
+        RETURNING id
+      `
+      cleanupResults.waitlistDeleted = deletedWaitlist.length
+      console.log(`Deleted ${deletedWaitlist.length} test waitlist entries`)
+    } catch (error) {
+      console.error("Error cleaning waitlist:", error)
+      cleanupResults.errors.push(`Waitlist cleanup error: ${error.message}`)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Sample data cleanup completed",
+      results: cleanupResults,
+    })
   } catch (error) {
-    console.error("Error cleaning sample data:", error)
+    console.error("Error during cleanup:", error)
     return NextResponse.json(
       {
         success: false,
         error: "Failed to clean sample data",
+        details: error.message,
       },
       { status: 500 },
     )
