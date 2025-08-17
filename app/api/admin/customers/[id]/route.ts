@@ -1,13 +1,11 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getSessionUser } from "@/lib/simple-auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const customerId = params.id
-
     // Check authentication
     const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
@@ -19,80 +17,88 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    console.log(`Fetching customer details for ID: ${customerId}`)
+    const customerId = params.id
 
     // Get customer details
-    const customerResult = await sql`
+    const customer = await sql`
       SELECT 
         id,
         name,
         email,
-        phone,
-        address,
         role,
         created_at,
         updated_at
       FROM users 
       WHERE id = ${customerId}
-      AND (role IS NULL OR role = 'customer')
+      AND role != 'admin'
     `
 
-    if (customerResult.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer not found",
-      })
+    if (customer.length === 0) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 })
     }
 
-    const customer = customerResult[0]
-
-    // Get customer's orders - using only existing columns
+    // Get customer orders
     const orders = await sql`
       SELECT 
-        id,
-        status,
-        total,
-        total_amount,
-        created_at,
-        updated_at,
-        order_type
-      FROM orders 
-      WHERE user_id = ${customerId}
-      ORDER BY created_at DESC
+        o.id,
+        o.status,
+        o.total,
+        o.total_amount,
+        o.created_at,
+        o.order_type,
+        mp.name as meal_plan_name
+      FROM orders o
+      LEFT JOIN meal_plans mp ON o.meal_plan_id = mp.id
+      WHERE o.user_id = ${customerId}
+      ORDER BY o.created_at DESC
     `
 
-    // Calculate customer statistics
-    const totalOrders = orders.length
+    // Get customer subscriptions
+    const subscriptions = await sql`
+      SELECT 
+        o.id,
+        o.status,
+        o.total,
+        o.total_amount,
+        o.created_at,
+        mp.name as plan_name,
+        mp.weekly_price
+      FROM orders o
+      LEFT JOIN meal_plans mp ON o.meal_plan_id = mp.id
+      WHERE o.user_id = ${customerId}
+      AND (o.order_type = 'subscription' OR mp.id IS NOT NULL)
+      ORDER BY o.created_at DESC
+    `
+
+    // Calculate stats
     const totalSpent = orders.reduce((sum, order) => {
-      const amount = Number(order.total || order.total_amount || 0)
-      return sum + amount
+      const amount = order.total || order.total_amount || 0
+      return sum + Number(amount)
     }, 0)
 
-    const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0
-    const lastOrderDate = orders.length > 0 ? orders[0].created_at : null
-    const firstOrderDate = orders.length > 0 ? orders[orders.length - 1].created_at : null
+    const customerData = {
+      ...customer[0],
+      orders: orders,
+      subscriptions: subscriptions,
+      stats: {
+        totalOrders: orders.length,
+        totalSpent: totalSpent,
+        activeSubscriptions: subscriptions.filter((s) => s.status === "active" || s.status === "pending").length,
+      },
+    }
 
     return NextResponse.json({
       success: true,
-      customer: {
-        ...customer,
-        total_orders: totalOrders,
-        total_spent: totalSpent,
-        avg_order_value: avgOrderValue,
-        last_order_date: lastOrderDate,
-        first_order_date: firstOrderDate,
-        status: totalOrders > 0 ? "active" : "inactive",
-      },
-      orders: orders.map((order) => ({
-        ...order,
-        total: Number(order.total || order.total_amount || 0),
-      })),
+      customer: customerData,
     })
   } catch (error) {
     console.error("Error fetching customer details:", error)
-    return NextResponse.json({
-      success: false,
-      error: "Failed to fetch customer details",
-    })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch customer details",
+      },
+      { status: 500 },
+    )
   }
 }

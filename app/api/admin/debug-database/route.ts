@@ -1,68 +1,96 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getSessionUser } from "@/lib/simple-auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const sessionId = request.cookies.get("session-id")?.value
+    if (!sessionId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await getSessionUser(sessionId)
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    console.log("Running database diagnostic...")
+
+    const diagnostic = {
+      timestamp: new Date().toISOString(),
+      tables: {} as Record<string, any>,
+    }
+
     // Get all table names
-    const tablesResult = await sql`
+    const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public'
       ORDER BY table_name
     `
-    const tables = tablesResult.map((row) => row.table_name)
 
-    // Get users count and sample data
-    const usersCount = await sql`SELECT COUNT(*) as count FROM users`
-    const userCount = Number(usersCount[0]?.count || 0)
+    // For each table, get structure and sample data
+    for (const table of tables) {
+      const tableName = table.table_name
+      try {
+        // Get table structure
+        const columns = await sql`
+          SELECT column_name, data_type, is_nullable, column_default
+          FROM information_schema.columns 
+          WHERE table_name = ${tableName}
+          ORDER BY ordinal_position
+        `
 
-    const usersData = await sql`
-      SELECT id, name, email, role, created_at 
-      FROM users 
-      ORDER BY created_at DESC 
-      LIMIT 20
-    `
+        // Get row count
+        const countResult = await sql`
+          SELECT COUNT(*) as count FROM ${sql(tableName)}
+        `
+        const rowCount = Number(countResult[0].count)
 
-    // Get waitlist count and sample data
-    const waitlistCount = await sql`SELECT COUNT(*) as count FROM waitlist`
-    const waitlistCountNum = Number(waitlistCount[0]?.count || 0)
+        // Get sample data (first 5 rows)
+        let sampleData = []
+        if (rowCount > 0) {
+          sampleData = await sql`
+            SELECT * FROM ${sql(tableName)} 
+            ORDER BY 
+              CASE 
+                WHEN ${tableName} = 'users' THEN created_at
+                WHEN ${tableName} = 'waitlist' THEN created_at
+                WHEN ${tableName} = 'orders' THEN created_at
+                ELSE 1
+              END DESC
+            LIMIT 5
+          `
+        }
 
-    const waitlistData = await sql`
-      SELECT id, first_name, last_name, email, phone, city, created_at
-      FROM waitlist 
-      ORDER BY created_at DESC 
-      LIMIT 20
-    `
-
-    // Get orders count
-    const ordersCount = await sql`SELECT COUNT(*) as count FROM orders`
-    const ordersCountNum = Number(ordersCount[0]?.count || 0)
-
-    const ordersData = await sql`
-      SELECT id, user_id, status, total_amount, created_at
-      FROM orders 
-      ORDER BY created_at DESC 
-      LIMIT 20
-    `
+        diagnostic.tables[tableName] = {
+          structure: columns,
+          rowCount,
+          sampleData,
+        }
+      } catch (error) {
+        console.error(`Error processing table ${tableName}:`, error)
+        diagnostic.tables[tableName] = {
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      tables,
-      userCount,
-      waitlistCount: waitlistCountNum,
-      ordersCount: ordersCountNum,
-      users: usersData,
-      waitlist: waitlistData,
-      orders: ordersData,
-      timestamp: new Date().toISOString(),
+      diagnostic,
     })
   } catch (error) {
-    console.error("Database diagnostic error:", error)
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-    })
+    console.error("Error running database diagnostic:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to run database diagnostic",
+      },
+      { status: 500 },
+    )
   }
 }

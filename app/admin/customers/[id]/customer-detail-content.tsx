@@ -1,48 +1,53 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Mail, Calendar, Package, User, Phone, MapPin, DollarSign, TrendingUp } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ArrowLeft, User, Mail, Calendar, DollarSign, Package, CreditCard } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 
 interface Customer {
   id: number
   name: string
   email: string
-  phone?: string
-  address?: string
   role: string
   created_at: string
-  updated_at: string
-  total_orders: number
-  total_spent: number
-  avg_order_value: number
-  last_order_date: string | null
-  first_order_date: string | null
-  status: "active" | "inactive"
+  orders: Array<{
+    id: number
+    status: string
+    total: number
+    total_amount: number
+    created_at: string
+    order_type: string
+    meal_plan_name?: string
+  }>
+  subscriptions: Array<{
+    id: number
+    status: string
+    total: number
+    total_amount: number
+    created_at: string
+    plan_name?: string
+    weekly_price?: number
+  }>
+  stats: {
+    totalOrders: number
+    totalSpent: number
+    activeSubscriptions: number
+  }
 }
 
-interface Order {
-  id: number
-  status: string
-  total: number
-  total_amount: number
-  created_at: string
-  updated_at: string
-  order_type?: string
-}
-
-interface CustomerDetailProps {
+interface CustomerDetailContentProps {
   customerId: string
 }
 
-export default function CustomerDetailContent({ customerId }: CustomerDetailProps) {
+export function CustomerDetailContent({ customerId }: CustomerDetailContentProps) {
   const [customer, setCustomer] = useState<Customer | null>(null)
-  const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<string>("")
 
   useEffect(() => {
     fetchCustomerDetails()
@@ -51,38 +56,20 @@ export default function CustomerDetailContent({ customerId }: CustomerDetailProp
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true)
-      setError("")
-
-      const response = await fetch(`/api/admin/customers/${customerId}`, {
-        credentials: "include",
-      })
-
+      const response = await fetch(`/api/admin/customers/${customerId}`)
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error("Failed to fetch customer details")
       }
-
       const data = await response.json()
-
-      if (data.success) {
-        setCustomer(data.customer)
-        setOrders(data.orders || [])
-      } else {
-        setError(data.error || "Failed to fetch customer details")
-      }
+      setCustomer(data.customer)
     } catch (err) {
-      console.error("Error fetching customer details:", err)
-      setError("Failed to fetch customer details")
+      setError(err instanceof Error ? err.message : "Failed to fetch customer details")
     } finally {
       setLoading(false)
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return `${Number(amount).toFixed(2)} MAD`
-  }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Never"
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -90,103 +77,66 @@ export default function CustomerDetailContent({ customerId }: CustomerDetailProp
     })
   }
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "completed":
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>
-      default:
-        return <Badge variant="secondary">{status || "Unknown"}</Badge>
-    }
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (!amount) return "0 MAD"
+    return `${Number(amount).toFixed(2)} MAD`
   }
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Link href="/admin/customers">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Customers
-            </Button>
-          </Link>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading customer details...</div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     )
   }
 
-  if (error || !customer) {
+  if (error) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Link href="/admin/customers">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Customers
-            </Button>
-          </Link>
-        </div>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6">
-            <p className="text-red-800">{error || "Customer not found"}</p>
-            <Button onClick={fetchCustomerDetails} variant="outline" className="mt-4 bg-transparent">
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (!customer) {
+    return (
+      <Alert>
+        <AlertDescription>Customer not found</AlertDescription>
+      </Alert>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/admin/customers">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Customers
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{customer.name}</h1>
-            <p className="text-gray-600">Customer ID: {customer.id}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant={customer.status === "active" ? "default" : "secondary"}>{customer.status}</Badge>
-          <Button onClick={fetchCustomerDetails} variant="outline" size="sm">
-            Refresh
+      <div className="flex items-center gap-4">
+        <Link href="/admin/customers">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Customers
           </Button>
-        </div>
+        </Link>
+        <h1 className="text-2xl font-bold">Customer Details</h1>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Customer Info */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Customer Info</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{customer.total_orders}</div>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold">{customer.name}</div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Mail className="h-4 w-4 mr-1" />
+                {customer.email}
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4 mr-1" />
+                Joined {formatDate(customer.created_at)}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -196,158 +146,124 @@ export default function CustomerDetailContent({ customerId }: CustomerDetailProp
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(customer.total_spent)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(customer.stats.totalSpent)}</div>
+            <p className="text-xs text-muted-foreground">Across {customer.stats.totalOrders} orders</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(customer.avg_order_value)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Order</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">{formatDate(customer.last_order_date)}</div>
+            <div className="text-2xl font-bold">{customer.stats.activeSubscriptions}</div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Customer Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <User className="h-5 w-5 mr-2" />
-              Customer Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <User className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Name</p>
-                <p className="font-medium">{customer.name}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Mail className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">{customer.email}</p>
-              </div>
-            </div>
-
-            {customer.phone && (
-              <div className="flex items-center space-x-3">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p className="font-medium">{customer.phone}</p>
-                </div>
-              </div>
-            )}
-
-            {customer.address && (
-              <div className="flex items-center space-x-3">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-500">Address</p>
-                  <p className="font-medium">{customer.address}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center space-x-3">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Member Since</p>
-                <p className="font-medium">{formatDate(customer.created_at)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Account Status:</span>
-              <Badge variant={customer.status === "active" ? "default" : "secondary"}>{customer.status}</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Customer Type:</span>
-              <span className="font-medium">
-                {customer.total_orders > 10 ? "VIP" : customer.total_orders > 0 ? "Regular" : "New"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">First Order:</span>
-              <span className="font-medium">{formatDate(customer.first_order_date)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Role:</span>
-              <Badge variant="outline">{customer.role || "customer"}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Order History */}
+      {/* Orders */}
       <Card>
         <CardHeader>
-          <CardTitle>Order History ({orders.length})</CardTitle>
-          <p className="text-sm text-gray-500">Complete order history for this customer</p>
+          <CardTitle className="flex items-center">
+            <CreditCard className="h-5 w-5 mr-2" />
+            Order History ({customer.orders.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {orders.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No orders found for this customer.</p>
-            </div>
+          {customer.orders.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Meal Plan</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customer.orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">#{order.id}</TableCell>
+                    <TableCell>{formatDate(order.created_at)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{order.order_type || "order"}</Badge>
+                    </TableCell>
+                    <TableCell>{order.meal_plan_name || "N/A"}</TableCell>
+                    <TableCell>{formatCurrency(order.total || order.total_amount)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          order.status === "completed"
+                            ? "default"
+                            : order.status === "pending"
+                              ? "secondary"
+                              : "destructive"
+                        }
+                      >
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium">Order ID</th>
-                    <th className="text-left py-3 px-4 font-medium">Date</th>
-                    <th className="text-left py-3 px-4 font-medium">Type</th>
-                    <th className="text-left py-3 px-4 font-medium">Amount</th>
-                    <th className="text-left py-3 px-4 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="font-medium">#{order.id}</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm">{formatDateTime(order.created_at)}</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline">{order.order_type || "order"}</Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium">{formatCurrency(order.total)}</div>
-                      </td>
-                      <td className="py-3 px-4">{getStatusBadge(order.status)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="text-center py-8">
+              <p className="text-gray-500">No orders found</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Subscriptions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Package className="h-5 w-5 mr-2" />
+            Subscriptions ({customer.subscriptions.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {customer.subscriptions.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Subscription ID</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Weekly Price</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customer.subscriptions.map((subscription) => (
+                  <TableRow key={subscription.id}>
+                    <TableCell className="font-medium">#{subscription.id}</TableCell>
+                    <TableCell>{formatDate(subscription.created_at)}</TableCell>
+                    <TableCell>{subscription.plan_name || "Custom Plan"}</TableCell>
+                    <TableCell>{formatCurrency(subscription.weekly_price || subscription.total)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          subscription.status === "active" || subscription.status === "pending"
+                            ? "default"
+                            : "destructive"
+                        }
+                      >
+                        {subscription.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No subscriptions found</p>
             </div>
           )}
         </CardContent>
