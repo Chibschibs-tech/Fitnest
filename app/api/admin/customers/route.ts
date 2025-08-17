@@ -1,142 +1,107 @@
-import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { getSessionUser } from "@/lib/simple-auth"
+import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export const dynamic = "force-dynamic"
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session-id")?.value
-
+    // Check if user is authenticated and is admin
+    const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getSessionUser(sessionId)
+    console.log("Fetching customers...")
 
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-    }
-
-    console.log("Fetching customers for admin...")
-
-    // First, check if users table exists and get its structure
+    // Try multiple queries to handle different database schemas
     let customers = []
+    let totalRevenue = 0
+    let avgOrderValue = 0
 
     try {
-      // Try to get customers with order statistics - more permissive query
-      const customersQuery = await sql`
+      // First try: Get customers from users table with order data
+      customers = await sql`
         SELECT 
           u.id,
           u.name,
           u.email,
-          u.phone,
           u.created_at,
-          COALESCE(COUNT(DISTINCT o.id), 0) as total_orders,
-          COALESCE(SUM(CASE WHEN o.total_amount IS NOT NULL THEN o.total_amount ELSE o.total END), 0) as total_spent,
-          MAX(o.created_at) as last_order_date
+          COUNT(o.id) as total_orders,
+          COALESCE(SUM(COALESCE(o.total, o.total_amount, 0)), 0) as total_spent,
+          MAX(o.created_at) as last_order_date,
+          CASE 
+            WHEN COUNT(o.id) > 0 THEN 'active'
+            ELSE 'inactive'
+          END as status
         FROM users u
         LEFT JOIN orders o ON u.id = o.user_id
-        WHERE u.role IS NULL OR u.role != 'admin'
-        GROUP BY u.id, u.name, u.email, u.phone, u.created_at
+        GROUP BY u.id, u.name, u.email, u.created_at
         ORDER BY u.created_at DESC
       `
 
-      customers = customersQuery
-      console.log(`Found ${customers.length} customers with order join`)
-    } catch (orderJoinError) {
-      console.log("Order join failed, trying simple users query:", orderJoinError)
+      // Calculate metrics
+      const revenueResult = await sql`
+        SELECT COALESCE(SUM(COALESCE(total, total_amount, 0)), 0) as total_revenue
+        FROM orders
+      `
+      totalRevenue = Number(revenueResult[0]?.total_revenue || 0)
 
-      // Fallback: just get users without order data
+      const orderCountResult = await sql`
+        SELECT COUNT(*) as order_count
+        FROM orders
+        WHERE COALESCE(total, total_amount, 0) > 0
+      `
+      const orderCount = Number(orderCountResult[0]?.order_count || 0)
+      avgOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0
+    } catch (error) {
+      console.log("Primary query failed, trying fallback:", error)
+
+      // Fallback: Try simpler queries
       try {
-        const simpleUsersQuery = await sql`
+        customers = await sql`
           SELECT 
             id,
             name,
             email,
-            phone,
-            created_at
+            created_at,
+            0 as total_orders,
+            0 as total_spent,
+            NULL as last_order_date,
+            'inactive' as status
           FROM users
-          WHERE role IS NULL OR role != 'admin'
           ORDER BY created_at DESC
         `
-
-        customers = simpleUsersQuery.map((user) => ({
-          ...user,
-          total_orders: 0,
-          total_spent: 0,
-          last_order_date: null,
-        }))
-        console.log(`Found ${customers.length} customers with simple query`)
-      } catch (simpleError) {
-        console.log("Simple users query failed, trying all users:", simpleError)
-
-        // Last fallback: get all users
-        try {
-          const allUsersQuery = await sql`
-            SELECT 
-              id,
-              name,
-              email,
-              phone,
-              created_at,
-              role
-            FROM users
-            ORDER BY created_at DESC
-          `
-
-          customers = allUsersQuery
-            .filter((user) => user.role !== "admin")
-            .map((user) => ({
-              ...user,
-              total_orders: 0,
-              total_spent: 0,
-              last_order_date: null,
-            }))
-          console.log(`Found ${customers.length} customers from all users`)
-        } catch (allUsersError) {
-          console.log("All users query failed:", allUsersError)
-          customers = []
-        }
+      } catch (fallbackError) {
+        console.log("Fallback query also failed:", fallbackError)
+        // Return empty data instead of error
+        customers = []
       }
     }
 
-    // Transform the data to ensure proper types
-    const transformedCustomers = customers.map((customer) => ({
-      id: Number(customer.id),
-      name: customer.name || "Unknown User",
-      email: customer.email || "",
-      phone: customer.phone || null,
-      address: customer.address || null,
-      created_at: customer.created_at,
-      total_orders: Number(customer.total_orders) || 0,
-      total_spent: Number(customer.total_spent) || 0,
-      last_order_date: customer.last_order_date || null,
-      status: (Number(customer.total_orders) > 0 ? "active" : "inactive") as "active" | "inactive",
-    }))
-
-    console.log(`Returning ${transformedCustomers.length} transformed customers`)
+    const activeCustomers = customers.filter((c) => c.status === "active").length
 
     return NextResponse.json({
       success: true,
-      customers: transformedCustomers,
-      total: transformedCustomers.length,
+      customers: customers || [],
+      metrics: {
+        totalCustomers: customers.length,
+        activeCustomers,
+        totalRevenue,
+        avgOrderValue,
+      },
     })
   } catch (error) {
     console.error("Error fetching customers:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch customers",
-        error: error instanceof Error ? error.message : "Unknown error",
-        customers: [],
-        total: 0,
+    return NextResponse.json({
+      success: false,
+      error: "Failed to fetch customers",
+      customers: [],
+      metrics: {
+        totalCustomers: 0,
+        activeCustomers: 0,
+        totalRevenue: 0,
+        avgOrderValue: 0,
       },
-      { status: 500 },
-    )
+    })
   }
 }

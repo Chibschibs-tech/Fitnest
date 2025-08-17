@@ -1,17 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Play, Pause, X, Eye } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Search, Users, UserCheck, DollarSign, Calendar, RefreshCw } from "lucide-react"
 
 interface Subscription {
-  id: number
-  user_id: number
+  id: string
   customer_name: string
   customer_email: string
   plan_name: string
@@ -21,90 +18,101 @@ interface Subscription {
   next_delivery: string
   total_orders: number
   total_spent: number
-  pause_reason?: string
-  created_at: string
 }
 
-export function SubscriptionsContent() {
+export default function SubscriptionsContent() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-
-  useEffect(() => {
-    fetchSubscriptions()
-  }, [])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchSubscriptions = async () => {
     try {
       setLoading(true)
+      setError(null)
       const response = await fetch("/api/admin/subscriptions")
-      if (!response.ok) {
-        throw new Error("Failed to fetch subscriptions")
-      }
       const data = await response.json()
-      setSubscriptions(data.subscriptions || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch subscriptions")
+
+      if (data.success) {
+        setSubscriptions(data.subscriptions || [])
+      } else {
+        setError(data.error || "Failed to fetch subscriptions")
+        setSubscriptions([])
+      }
+    } catch (error) {
+      console.error("Error fetching subscriptions:", error)
+      setError("Failed to fetch subscriptions")
+      setSubscriptions([])
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredSubscriptions = subscriptions.filter((subscription) => {
-    const matchesSearch =
-      subscription.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subscription.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subscription.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || subscription.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  useEffect(() => {
+    fetchSubscriptions()
+  }, [])
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "active":
-        return "default"
-      case "paused":
-        return "secondary"
-      case "cancelled":
-        return "destructive"
-      default:
-        return "outline"
-    }
+  const filteredSubscriptions = subscriptions.filter(
+    (subscription) =>
+      subscription.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subscription.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subscription.plan_name?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const activeSubscriptions = subscriptions.filter((s) => s.status === "active").length
+  const pausedSubscriptions = subscriptions.filter((s) => s.status === "paused").length
+  const totalRevenue = subscriptions.reduce((sum, s) => sum + Number(s.total_spent || 0), 0)
+
+  const formatCurrency = (amount: number) => {
+    return `${amount.toFixed(2)} MAD`
   }
 
-  const handleStatusUpdate = async (subscriptionId: number, newStatus: string) => {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString()
+  }
+
+  const updateSubscriptionStatus = async (id: string, status: string) => {
     try {
-      const response = await fetch(`/api/admin/subscriptions/${subscriptionId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+      const response = await fetch(`/api/admin/subscriptions/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
       })
 
       if (response.ok) {
-        setSubscriptions((prev) =>
-          prev.map((sub) => (sub.id === subscriptionId ? { ...sub, status: newStatus as any } : sub)),
-        )
+        fetchSubscriptions() // Refresh the data
+      } else {
+        console.error("Failed to update subscription status")
       }
-    } catch (err) {
-      console.error("Failed to update status:", err)
+    } catch (error) {
+      console.error("Error updating subscription status:", error)
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Subscription Management</h1>
+            <p className="text-muted-foreground">Manage customer subscriptions</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">-</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
     )
   }
 
@@ -112,169 +120,175 @@ export function SubscriptionsContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Subscription Management</h1>
-          <p className="text-gray-600">Manage customer meal plan subscriptions</p>
+          <h1 className="text-3xl font-bold">Subscription Management</h1>
+          <p className="text-muted-foreground">Manage customer subscriptions</p>
         </div>
+        <Button onClick={fetchSubscriptions} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Active</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {subscriptions.filter((s) => s.status === "active").length}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-red-600">{error}</p>
+              <Button onClick={fetchSubscriptions} variant="outline" size="sm">
+                Retry
+              </Button>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Paused</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Subscriptions</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {subscriptions.filter((s) => s.status === "paused").length}
-            </div>
+            <div className="text-2xl font-bold">{subscriptions.length}</div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Cancelled</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {subscriptions.filter((s) => s.status === "cancelled").length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{activeSubscriptions}</div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Monthly Revenue</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Paused Subscriptions</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {(
-                subscriptions.filter((s) => s.status === "active").reduce((sum, s) => sum + s.weekly_price, 0) * 4
-              ).toFixed(2)}{" "}
-              MAD
-            </div>
+            <div className="text-2xl font-bold text-yellow-600">{pausedSubscriptions}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Search */}
       <Card>
-        <CardHeader>
-          <CardTitle>Search and Filter</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by customer name, email, or plan..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search subscriptions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </CardContent>
       </Card>
 
+      {/* Subscriptions Table */}
       <Card>
         <CardHeader>
           <CardTitle>Subscriptions ({filteredSubscriptions.length})</CardTitle>
+          <p className="text-sm text-muted-foreground">Manage customer subscriptions and their delivery schedules</p>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Weekly Price</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>Next Delivery</TableHead>
-                <TableHead>Total Orders</TableHead>
-                <TableHead>Total Spent</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSubscriptions.map((subscription) => (
-                <TableRow key={subscription.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{subscription.customer_name}</div>
-                      <div className="text-sm text-gray-500">{subscription.customer_email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{subscription.plan_name}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(subscription.status)}>{subscription.status}</Badge>
-                  </TableCell>
-                  <TableCell>{subscription.weekly_price} MAD</TableCell>
-                  <TableCell>{new Date(subscription.start_date).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    {subscription.next_delivery ? new Date(subscription.next_delivery).toLocaleDateString() : "N/A"}
-                  </TableCell>
-                  <TableCell>{subscription.total_orders}</TableCell>
-                  <TableCell>{subscription.total_spent.toFixed(2)} MAD</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {subscription.status === "active" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleStatusUpdate(subscription.id, "paused")}
-                        >
-                          <Pause className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {subscription.status === "paused" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleStatusUpdate(subscription.id, "active")}
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {subscription.status !== "cancelled" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleStatusUpdate(subscription.id, "cancelled")}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {filteredSubscriptions.length === 0 && (
+          {filteredSubscriptions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No subscriptions found</p>
+              <p className="text-muted-foreground">
+                {searchTerm ? "No subscriptions found matching your criteria." : "No subscriptions found."}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium">Customer</th>
+                    <th className="text-left py-3 px-4 font-medium">Plan</th>
+                    <th className="text-left py-3 px-4 font-medium">Status</th>
+                    <th className="text-left py-3 px-4 font-medium">Weekly Price</th>
+                    <th className="text-left py-3 px-4 font-medium">Next Delivery</th>
+                    <th className="text-left py-3 px-4 font-medium">Total Spent</th>
+                    <th className="text-left py-3 px-4 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSubscriptions.map((subscription) => (
+                    <tr key={subscription.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <div className="font-medium">{subscription.customer_name}</div>
+                          <div className="text-sm text-muted-foreground">{subscription.customer_email}</div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium">{subscription.plan_name}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          variant={
+                            subscription.status === "active"
+                              ? "default"
+                              : subscription.status === "paused"
+                                ? "secondary"
+                                : "destructive"
+                          }
+                        >
+                          {subscription.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium">{formatCurrency(Number(subscription.weekly_price))}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm">{formatDate(subscription.next_delivery)}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium">{formatCurrency(Number(subscription.total_spent))}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-2">
+                          {subscription.status === "active" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateSubscriptionStatus(subscription.id, "paused")}
+                            >
+                              Pause
+                            </Button>
+                          ) : subscription.status === "paused" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateSubscriptionStatus(subscription.id, "active")}
+                            >
+                              Resume
+                            </Button>
+                          ) : null}
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
