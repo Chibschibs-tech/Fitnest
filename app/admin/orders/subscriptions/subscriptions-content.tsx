@@ -83,11 +83,13 @@ export default function SubscriptionsContent() {
   })
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A"
     return new Date(dateString).toLocaleDateString()
   }
 
-  const formatCurrency = (amount: number) => {
-    return `${amount.toFixed(2)} MAD`
+  const formatCurrency = (amount: number | string | undefined) => {
+    const numAmount = Number(amount) || 0
+    return `${numAmount.toFixed(2)} MAD`
   }
 
   const getStatusBadge = (status: string) => {
@@ -131,7 +133,7 @@ export default function SubscriptionsContent() {
   const totalSubscriptions = subscriptions.length
   const activeSubscriptions = subscriptions.filter((sub) => sub.status === "active").length
   const pausedSubscriptions = subscriptions.filter((sub) => sub.status === "paused").length
-  const totalRevenue = subscriptions.reduce((sum, sub) => sum + Number(sub.total_spent || 0), 0)
+  const totalRevenue = subscriptions.reduce((sum, sub) => sum + (Number(sub.total_spent) || 0), 0)
 
   return (
     <div className="space-y-6">
@@ -267,12 +269,14 @@ export default function SubscriptionsContent() {
                     <tr key={subscription.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-4">
                         <div>
-                          <div className="font-medium">{subscription.customer_name}</div>
-                          <div className="text-sm text-muted-foreground">{subscription.customer_email}</div>
+                          <div className="font-medium">{subscription.customer_name || "Unknown"}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {subscription.customer_email || "No email"}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-medium">{subscription.plan_name}</div>
+                        <div className="font-medium">{subscription.plan_name || "Standard Plan"}</div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-medium">{formatCurrency(subscription.weekly_price)}</div>

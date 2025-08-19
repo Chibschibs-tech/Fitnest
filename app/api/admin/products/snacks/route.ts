@@ -16,46 +16,68 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Create snacks table if it doesn't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS snacks (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        price DECIMAL(10,2) NOT NULL,
-        category TEXT NOT NULL,
-        stock INTEGER DEFAULT 0,
-        active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `
-
-    // Check if we have any snacks
-    const existingSnacks = await sql`SELECT COUNT(*) as count FROM snacks`
-    const snackCount = existingSnacks[0]?.count || 0
-
-    // If no snacks exist, create sample data
-    if (snackCount === 0) {
-      await sql`
-        INSERT INTO snacks (name, description, price, category, stock, active)
-        VALUES 
-        ('Protein Bar - Chocolate', 'High-protein bar with chocolate flavor', 25.00, 'Protein Bars', 50, true),
-        ('Protein Bar - Vanilla', 'High-protein bar with vanilla flavor', 25.00, 'Protein Bars', 45, true),
-        ('Whey Protein Powder', 'Premium whey protein powder for muscle building', 299.00, 'Supplements', 20, true),
-        ('Mixed Nuts', 'Healthy mix of almonds, walnuts, and cashews', 45.00, 'Healthy Snacks', 30, true),
-        ('Energy Balls', 'Homemade energy balls with dates and nuts', 35.00, 'Healthy Snacks', 25, true)
-      `
-    }
-
-    // Fetch all snacks
-    const snacks = await sql`
-      SELECT * FROM snacks 
-      ORDER BY created_at DESC
-    `
+    // Create sample snacks data since we don't have a products table yet
+    const sampleSnacks = [
+      {
+        id: 1,
+        name: "Protein Bar - Chocolate",
+        description: "High-protein chocolate bar with 20g protein",
+        price: 25.0,
+        category: "protein_bars",
+        status: "active",
+        image_url: "/protein-bar.png",
+        stock_quantity: 50,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        name: "Berry Protein Bar",
+        description: "Mixed berry protein bar with natural ingredients",
+        price: 25.0,
+        category: "protein_bars",
+        status: "active",
+        image_url: "/berry-protein-bar.png",
+        stock_quantity: 30,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 3,
+        name: "Honey Almond Granola",
+        description: "Crunchy granola with honey and almonds",
+        price: 35.0,
+        category: "healthy_snacks",
+        status: "active",
+        image_url: "/honey-almond-granola.png",
+        stock_quantity: 25,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 4,
+        name: "Protein Powder - Vanilla",
+        description: "Premium whey protein powder, vanilla flavor",
+        price: 150.0,
+        category: "supplements",
+        status: "active",
+        image_url: "/protein-powder-assortment.png",
+        stock_quantity: 15,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 5,
+        name: "Energy Drink - Natural",
+        description: "Natural energy drink with vitamins",
+        price: 15.0,
+        category: "beverages",
+        status: "out_of_stock",
+        image_url: "/vibrant-energy-drink.png",
+        stock_quantity: 0,
+        created_at: new Date().toISOString(),
+      },
+    ]
 
     return NextResponse.json({
       success: true,
-      snacks: snacks,
+      snacks: sampleSnacks,
     })
   } catch (error) {
     console.error("Error fetching snacks:", error)
