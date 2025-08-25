@@ -22,11 +22,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       SELECT 
         sp.*,
         p.name as product_name,
-        p.slug as product_slug,
-        p.description as product_description,
-        p.featured_image_url
+        p.slug as product_slug
       FROM subscription_plans sp
-      JOIN products p ON sp.product_id = p.id
+      LEFT JOIN products p ON sp.product_id = p.id
       WHERE sp.id = ${planId}
     `
 
@@ -39,12 +37,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         spi.*,
         p.name as product_name,
         p.slug as product_slug,
-        p.base_price,
-        p.featured_image_url,
+        p.base_price as product_price,
         p.nutritional_info,
         p.dietary_tags
       FROM subscription_plan_items spi
-      JOIN products p ON spi.product_id = p.id
+      LEFT JOIN products p ON spi.product_id = p.id
       WHERE spi.plan_id = ${planId}
       ORDER BY spi.sort_order, spi.id
     `
@@ -52,7 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ plan, items })
   } catch (error) {
     console.error("Error fetching subscription plan:", error)
-    return NextResponse.json({ error: "Failed to fetch subscription plan" }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
   }
 }
 
@@ -70,23 +67,30 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const planId = Number.parseInt(params.id)
     const body = await request.json()
+    const {
+      name,
+      description,
+      billing_period,
+      billing_interval,
+      price,
+      trial_period_days,
+      delivery_frequency,
+      items_per_delivery,
+      is_active,
+    } = body
 
     const [plan] = await sql`
-      UPDATE subscription_plans 
-      SET 
-        name = ${body.name},
-        description = ${body.description},
-        billing_period = ${body.billing_period},
-        billing_interval = ${body.billing_interval || 1},
-        price = ${body.price},
-        setup_fee = ${body.setup_fee || 0},
-        trial_period_days = ${body.trial_period_days || 0},
-        trial_price = ${body.trial_price || 0},
-        max_subscribers = ${body.max_subscribers},
-        subscription_length = ${body.subscription_length},
-        delivery_frequency = ${body.delivery_frequency},
-        items_per_delivery = ${body.items_per_delivery},
-        is_active = ${body.is_active !== undefined ? body.is_active : true}
+      UPDATE subscription_plans SET
+        name = ${name},
+        description = ${description},
+        billing_period = ${billing_period},
+        billing_interval = ${billing_interval},
+        price = ${price},
+        trial_period_days = ${trial_period_days},
+        delivery_frequency = ${delivery_frequency},
+        items_per_delivery = ${items_per_delivery},
+        is_active = ${is_active},
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ${planId}
       RETURNING *
     `
@@ -94,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ plan })
   } catch (error) {
     console.error("Error updating subscription plan:", error)
-    return NextResponse.json({ error: "Failed to update subscription plan" }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
   }
 }
 
@@ -128,6 +132,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting subscription plan:", error)
-    return NextResponse.json({ error: "Failed to delete subscription plan" }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
   }
 }
