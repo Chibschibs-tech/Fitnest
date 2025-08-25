@@ -1,10 +1,10 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getSessionUser } from "@/lib/simple-auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const sessionId = request.cookies.get("session-id")?.value
     if (!sessionId) {
@@ -16,42 +16,57 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    console.log("Fetching subscriptions...")
-
-    // Get all users who have made orders (these are our subscribers)
-    const subscriptions = await sql`
-      SELECT DISTINCT
-        u.id as customer_id,
-        u.name as customer_name,
-        u.email as customer_email,
-        'active' as status,
-        299.00 as weekly_price,
-        'Weight Loss Plan' as plan_name,
-        u.created_at as start_date,
-        (u.created_at + INTERVAL '30 days') as next_delivery,
-        u.created_at,
-        1 as total_orders,
-        299.00 as total_spent
-      FROM users u
-      WHERE (u.role = 'customer' OR u.role IS NULL) AND u.role != 'admin'
-      ORDER BY u.created_at DESC
-      LIMIT 50
+    // Get subscription statistics
+    const stats = await sql`
+      SELECT 
+        COUNT(*) as total_subscriptions,
+        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_subscriptions,
+        COUNT(CASE WHEN status = 'paused' THEN 1 END) as paused_subscriptions,
+        COALESCE(SUM(CASE WHEN status = 'active' THEN billing_amount ELSE 0 END), 0) as total_revenue
+      FROM active_subscriptions
     `
 
-    console.log(`Found ${subscriptions.length} subscriptions`)
+    // Get detailed subscription data
+    const subscriptions = await sql`
+      SELECT 
+        s.id,
+        s.status,
+        s.billing_amount,
+        s.next_billing_date,
+        s.next_delivery_date,
+        s.created_at,
+        c.first_name,
+        c.last_name,
+        c.email,
+        sp.name as plan_name,
+        sp.billing_period
+      FROM active_subscriptions s
+      JOIN customers c ON s.customer_id = c.id
+      JOIN subscription_plans sp ON s.plan_id = sp.id
+      ORDER BY s.created_at DESC
+      LIMIT 100
+    `
 
-    // Ensure all numeric fields are properly formatted
-    const formattedSubscriptions = subscriptions.map((sub) => ({
-      ...sub,
-      id: sub.customer_id,
-      weekly_price: Number(sub.weekly_price) || 299.0,
-      total_spent: Number(sub.total_spent) || 299.0,
-      total_orders: Number(sub.total_orders) || 1,
-    }))
+    const statsData = stats[0] || {
+      total_subscriptions: 0,
+      active_subscriptions: 0,
+      paused_subscriptions: 0,
+      total_revenue: 0,
+    }
 
     return NextResponse.json({
       success: true,
-      subscriptions: formattedSubscriptions,
+      stats: {
+        total: Number.parseInt(statsData.total_subscriptions || "0"),
+        active: Number.parseInt(statsData.active_subscriptions || "0"),
+        paused: Number.parseInt(statsData.paused_subscriptions || "0"),
+        revenue: Number.parseFloat(statsData.total_revenue || "0"),
+      },
+      subscriptions: subscriptions.map((sub: any) => ({
+        ...sub,
+        billing_amount: Number.parseFloat(sub.billing_amount || "0"),
+        customer_name: `${sub.first_name || ""} ${sub.last_name || ""}`.trim() || "Unknown",
+      })),
     })
   } catch (error) {
     console.error("Error fetching subscriptions:", error)
@@ -59,6 +74,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Failed to fetch subscriptions",
+        stats: { total: 0, active: 0, paused: 0, revenue: 0 },
         subscriptions: [],
       },
       { status: 500 },
