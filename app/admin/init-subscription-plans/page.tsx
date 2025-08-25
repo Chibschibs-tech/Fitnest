@@ -4,11 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { CheckCircle, AlertCircle, Loader2, Info } from "lucide-react"
 
 export default function InitSubscriptionPlansPage() {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ success: boolean; message: string; plans?: any[] } | null>(null)
+  const [result, setResult] = useState<any>(null)
 
   const initializePlans = async () => {
     setLoading(true)
@@ -57,7 +57,7 @@ export default function InitSubscriptionPlansPage() {
               <div>
                 <h3 className="font-semibold mb-2">Plan Contents:</h3>
                 <ul className="text-sm space-y-1">
-                  <li>• 3 main meals per delivery</li>
+                  <li>• 3-4 meals per delivery</li>
                   <li>• Optional breakfast items</li>
                   <li>• Optional snack add-ons</li>
                   <li>• Weekly delivery schedule</li>
@@ -69,12 +69,26 @@ export default function InitSubscriptionPlansPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Prerequisites</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Make sure you have created the subscription tables first using the "Create Subscription Tables" page.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Initialize Plans</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600">
-              This will create subscription plans based on your existing meal plan products and populate them with
-              sample meals.
+              This will create subscription plans based on your existing meal plan products. Safe to run multiple times
+              - existing plans will be skipped.
             </p>
 
             <Button onClick={initializePlans} disabled={loading} className="w-full">
@@ -97,20 +111,19 @@ export default function InitSubscriptionPlansPage() {
                 )}
                 <AlertDescription className={result.success ? "text-green-800" : "text-red-800"}>
                   {result.message}
+                  {result.details && (
+                    <div className="mt-2 text-xs">
+                      <pre className="whitespace-pre-wrap">{JSON.stringify(result.details, null, 2)}</pre>
+                    </div>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
 
-            {result?.success && result.plans && (
+            {result?.success && (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold text-blue-800 mb-2">Created Plans:</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  {result.plans.map((plan: any) => (
-                    <li key={plan.id}>• {plan.name}</li>
-                  ))}
-                </ul>
-                <p className="text-sm text-blue-800 mt-3">
-                  <strong>Next step:</strong> Visit the subscription plans management page to view and edit your plans.
+                <p className="text-sm text-blue-800">
+                  <strong>Next step:</strong> Visit the Subscription Plans page to view and manage your created plans.
                 </p>
               </div>
             )}

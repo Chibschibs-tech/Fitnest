@@ -26,7 +26,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       SELECT 
         sp.*,
         p.name as product_name,
-        p.base_price as product_price
+        p.slug as product_slug,
+        p.featured_image
       FROM subscription_plans sp
       LEFT JOIN products p ON sp.product_id = p.id
       WHERE sp.id = ${planId}
@@ -41,8 +42,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       SELECT 
         spi.*,
         p.name as product_name,
-        p.base_price as product_price,
-        p.image_url as product_image
+        p.base_price,
+        p.featured_image
       FROM subscription_plan_items spi
       LEFT JOIN products p ON spi.product_id = p.id
       WHERE spi.plan_id = ${planId}
@@ -50,12 +51,26 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     `
 
     return NextResponse.json({
-      plan: plan[0],
-      items: items,
+      success: true,
+      plan: {
+        ...plan[0],
+        price: Number.parseFloat(plan[0].price || 0),
+        items: items.map((item) => ({
+          ...item,
+          additional_price: Number.parseFloat(item.additional_price || 0),
+          base_price: Number.parseFloat(item.base_price || 0),
+        })),
+      },
     })
   } catch (error) {
     console.error("Get subscription plan error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -88,12 +103,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       is_active,
     } = body
 
-    // Update subscription plan
+    // Update the subscription plan
     const result = await sql`
       UPDATE subscription_plans SET
         name = ${name},
         description = ${description || ""},
-        billing_period = ${billing_period},
+        billing_period = ${billing_period || "weekly"},
         price = ${price},
         trial_period_days = ${trial_period_days || 0},
         delivery_frequency = ${delivery_frequency || "weekly"},
@@ -108,10 +123,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Plan not found" }, { status: 404 })
     }
 
-    return NextResponse.json({ plan: result[0] })
+    return NextResponse.json({
+      success: true,
+      plan: {
+        ...result[0],
+        price: Number.parseFloat(result[0].price),
+      },
+    })
   } catch (error) {
     console.error("Update subscription plan error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -140,23 +167,38 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     `
 
     if (Number.parseInt(activeSubscriptions[0].count) > 0) {
-      return NextResponse.json({ error: "Cannot delete plan with active subscriptions" }, { status: 400 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Cannot delete plan with active subscriptions. Please cancel all subscriptions first.",
+        },
+        { status: 409 },
+      )
     }
 
-    // Delete subscription plan (items will be deleted due to CASCADE)
+    // Delete the plan (cascade will handle plan items)
     const result = await sql`
       DELETE FROM subscription_plans 
       WHERE id = ${planId}
-      RETURNING *
+      RETURNING id
     `
 
     if (result.length === 0) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 })
     }
 
-    return NextResponse.json({ message: "Plan deleted successfully" })
+    return NextResponse.json({
+      success: true,
+      message: "Subscription plan deleted successfully",
+    })
   } catch (error) {
     console.error("Delete subscription plan error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }

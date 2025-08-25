@@ -3,80 +3,64 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import {
-  LayoutDashboard,
-  Users,
-  Package,
-  ShoppingCart,
-  Truck,
-  BarChart3,
-  Mail,
-  Database,
-  RefreshCw,
-  Utensils,
-  Coffee,
-  Dumbbell,
-  Gift,
-  CreditCard,
-} from "lucide-react"
+import { LayoutDashboard, Users, Package, ShoppingCart, Truck, Database, Mail, Repeat } from "lucide-react"
 
-const menuItems = [
+const navigation = [
   {
-    title: "Dashboard",
+    name: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
   },
   {
-    title: "Customers",
+    name: "Customers",
     href: "/admin/customers",
     icon: Users,
   },
   {
-    title: "Products",
+    name: "Products",
     icon: Package,
     children: [
-      { title: "Meals", href: "/admin/products/meals", icon: Utensils },
-      { title: "Meal Plans", href: "/admin/products/meal-plans", icon: Dumbbell },
-      { title: "Snacks", href: "/admin/products/snacks", icon: Coffee },
-      { title: "Express Shop", href: "/admin/products/express-shop", icon: ShoppingCart },
-      { title: "Accessories", href: "/admin/products/accessories", icon: Gift },
+      { name: "Meals", href: "/admin/products/meals" },
+      { name: "Meal Plans", href: "/admin/products/meal-plans" },
+      { name: "Snacks", href: "/admin/products/snacks" },
+      { name: "Express Shop", href: "/admin/products/express-shop" },
+      { name: "Accessories", href: "/admin/products/accessories" },
     ],
   },
   {
-    title: "Subscriptions",
-    icon: RefreshCw,
-    children: [
-      { title: "Subscription Plans", href: "/admin/subscription-plans", icon: CreditCard },
-      { title: "Active", href: "/admin/subscriptions/active", icon: RefreshCw },
-      { title: "Paused", href: "/admin/subscriptions/paused", icon: RefreshCw },
-    ],
-  },
-  {
-    title: "Orders",
+    name: "Orders",
     icon: ShoppingCart,
     children: [
-      { title: "All Orders", href: "/admin/orders/orders", icon: ShoppingCart },
-      { title: "Subscriptions", href: "/admin/orders/subscriptions", icon: RefreshCw },
+      { name: "All Orders", href: "/admin/orders/orders" },
+      { name: "Subscriptions", href: "/admin/orders/subscriptions" },
     ],
   },
   {
-    title: "Deliveries",
+    name: "Subscription Plans",
+    icon: Repeat,
+    children: [
+      { name: "Manage Plans", href: "/admin/subscription-plans" },
+      { name: "Create Plan", href: "/admin/subscription-plans/create" },
+      { name: "Initialize Plans", href: "/admin/init-subscription-plans" },
+    ],
+  },
+  {
+    name: "Deliveries",
     href: "/admin/deliveries",
     icon: Truck,
   },
   {
-    title: "Waitlist",
+    name: "Waitlist",
     href: "/admin/waitlist",
     icon: Mail,
   },
   {
-    title: "System",
+    name: "System",
     icon: Database,
     children: [
-      { title: "Create Subscription Tables", href: "/admin/create-subscription-tables", icon: Database },
-      { title: "Initialize Plans", href: "/admin/init-subscription-plans", icon: RefreshCw },
-      { title: "System Diagnostic", href: "/admin/system-diagnostic", icon: BarChart3 },
-      { title: "Debug Database", href: "/admin/debug-database", icon: Database },
+      { name: "Create Tables", href: "/admin/create-subscription-tables" },
+      { name: "System Diagnostic", href: "/admin/system-diagnostic" },
+      { name: "Debug Database", href: "/admin/debug-database" },
     ],
   },
 ]
@@ -87,17 +71,17 @@ export default function AdminSidebar() {
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-full overflow-y-auto">
       <div className="p-6">
-        <h2 className="text-xl font-bold text-gray-800">Admin Panel</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
       </div>
       <nav className="px-4 pb-4">
         <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.title}>
-              {item.children ? (
-                <div>
+          {navigation.map((item) => {
+            if (item.children) {
+              return (
+                <li key={item.name}>
                   <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-700">
                     <item.icon className="mr-3 h-4 w-4" />
-                    {item.title}
+                    {item.name}
                   </div>
                   <ul className="ml-6 space-y-1">
                     {item.children.map((child) => (
@@ -105,35 +89,38 @@ export default function AdminSidebar() {
                         <Link
                           href={child.href}
                           className={cn(
-                            "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
+                            "block px-3 py-2 text-sm rounded-md transition-colors",
                             pathname === child.href
-                              ? "bg-blue-100 text-blue-700"
-                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                              ? "bg-blue-50 text-blue-700 font-medium"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                           )}
                         >
-                          <child.icon className="mr-3 h-4 w-4" />
-                          {child.title}
+                          {child.name}
                         </Link>
                       </li>
                     ))}
                   </ul>
-                </div>
-              ) : (
+                </li>
+              )
+            }
+
+            return (
+              <li key={item.name}>
                 <Link
                   href={item.href}
                   className={cn(
                     "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                     pathname === item.href
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900",
                   )}
                 >
                   <item.icon className="mr-3 h-4 w-4" />
-                  {item.title}
+                  {item.name}
                 </Link>
-              )}
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       </nav>
     </div>

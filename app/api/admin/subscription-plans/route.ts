@@ -21,22 +21,37 @@ export async function GET(request: NextRequest) {
       SELECT 
         sp.*,
         p.name as product_name,
-        p.base_price as product_price,
+        p.slug as product_slug,
+        p.featured_image,
         COUNT(DISTINCT spi.id) as item_count,
         COUNT(DISTINCT asub.id) as subscriber_count,
-        COALESCE(SUM(asub.billing_amount), 0) as total_revenue
+        COALESCE(SUM(asub.billing_amount), 0) as monthly_revenue
       FROM subscription_plans sp
       LEFT JOIN products p ON sp.product_id = p.id
       LEFT JOIN subscription_plan_items spi ON sp.id = spi.plan_id
       LEFT JOIN active_subscriptions asub ON sp.id = asub.plan_id AND asub.status = 'active'
-      GROUP BY sp.id, p.name, p.base_price
+      WHERE sp.is_active = true
+      GROUP BY sp.id, p.name, p.slug, p.featured_image
       ORDER BY sp.created_at DESC
     `
 
-    return NextResponse.json({ plans })
+    return NextResponse.json({
+      success: true,
+      plans: plans.map((plan) => ({
+        ...plan,
+        monthly_revenue: Number.parseFloat(plan.monthly_revenue || 0),
+        price: Number.parseFloat(plan.price || 0),
+      })),
+    })
   } catch (error) {
     console.error("Get subscription plans error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -65,28 +80,57 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!product_id || !name || !billing_period || !price) {
+    if (!product_id || !name || !price) {
       return NextResponse.json(
-        { error: "Missing required fields: product_id, name, billing_period, price" },
+        {
+          success: false,
+          error: "Missing required fields: product_id, name, price",
+        },
         { status: 400 },
       )
     }
 
-    // Create subscription plan
+    // Check if plan already exists for this product
+    const existingPlan = await sql`
+      SELECT id FROM subscription_plans WHERE product_id = ${product_id}
+    `
+
+    if (existingPlan.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "A subscription plan already exists for this product",
+        },
+        { status: 409 },
+      )
+    }
+
+    // Create the subscription plan
     const result = await sql`
       INSERT INTO subscription_plans (
         product_id, name, description, billing_period, price,
         trial_period_days, delivery_frequency, items_per_delivery, is_active
       ) VALUES (
-        ${product_id}, ${name}, ${description || ""}, ${billing_period}, ${price},
-        ${trial_period_days || 0}, ${delivery_frequency || "weekly"}, 
-        ${items_per_delivery || 1}, true
+        ${product_id}, ${name}, ${description || ""}, ${billing_period || "weekly"}, ${price},
+        ${trial_period_days || 0}, ${delivery_frequency || "weekly"}, ${items_per_delivery || 1}, true
       ) RETURNING *
     `
 
-    return NextResponse.json({ plan: result[0] })
+    return NextResponse.json({
+      success: true,
+      plan: {
+        ...result[0],
+        price: Number.parseFloat(result[0].price),
+      },
+    })
   } catch (error) {
     console.error("Create subscription plan error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }

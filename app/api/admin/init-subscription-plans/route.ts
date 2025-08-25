@@ -18,65 +18,93 @@ export async function POST(request: NextRequest) {
 
     console.log("Initializing subscription plans...")
 
-    // First, check if subscription_plans table exists
-    const tableExists = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'subscription_plans'
-      )
+    // First check if tables exist
+    const tablesCheck = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('subscription_plans', 'subscription_plan_items', 'products')
     `
 
-    if (!tableExists[0].exists) {
+    const tableNames = tablesCheck.map((row) => row.table_name)
+    if (!tableNames.includes("subscription_plans") || !tableNames.includes("subscription_plan_items")) {
       return NextResponse.json(
         {
           success: false,
           error: "Subscription tables don't exist. Please create them first.",
+          missingTables: ["subscription_plans", "subscription_plan_items"].filter((t) => !tableNames.includes(t)),
+        },
+        { status: 400 },
+      )
+    }
+
+    if (!tableNames.includes("products")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Products table doesn't exist. Please ensure your database is properly initialized.",
         },
         { status: 400 },
       )
     }
 
     // Get existing meal plan products
-    const mealPlans = await sql`
+    const mealPlanProducts = await sql`
       SELECT id, name, base_price 
       FROM products 
-      WHERE product_type = 'subscription' 
-      OR name ILIKE '%plan%'
+      WHERE name ILIKE '%plan%' 
+      OR name ILIKE '%vegan%' 
+      OR name ILIKE '%keto%' 
+      OR name ILIKE '%muscle%' 
+      OR name ILIKE '%weight%'
       ORDER BY name
     `
 
-    if (mealPlans.length === 0) {
+    if (mealPlanProducts.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "No meal plan products found. Please create meal plan products first.",
+          error: "No meal plan products found. Please ensure you have meal plans in your products table.",
         },
         { status: 400 },
       )
     }
 
-    // Get some sample meals for each plan
-    const meals = await sql`
-      SELECT id, name, base_price, category
+    // Get some sample meals for plan items
+    const sampleMeals = await sql`
+      SELECT id, name, base_price 
       FROM products 
       WHERE product_type = 'simple' 
-      AND (name ILIKE '%chicken%' OR name ILIKE '%salmon%' OR name ILIKE '%quinoa%' OR name ILIKE '%bowl%')
+      AND name NOT ILIKE '%plan%'
       LIMIT 20
     `
 
-    // Create subscription plans for each meal plan product
-    const createdPlans = []
+    let createdPlans = 0
+    let createdItems = 0
 
-    for (const mealPlan of mealPlans) {
+    // Create subscription plans for each meal plan product
+    for (const product of mealPlanProducts) {
       // Check if plan already exists
       const existingPlan = await sql`
-        SELECT id FROM subscription_plans WHERE product_id = ${mealPlan.id}
+        SELECT id FROM subscription_plans WHERE product_id = ${product.id}
       `
 
       if (existingPlan.length > 0) {
-        console.log(`Plan for product ${mealPlan.name} already exists, skipping...`)
+        console.log(`Plan for product ${product.name} already exists, skipping...`)
         continue
+      }
+
+      // Determine plan details based on product name
+      const billingPeriod = "weekly"
+      const deliveryFrequency = "weekly"
+      let itemsPerDelivery = 3
+      let price = product.base_price || 299
+
+      if (product.name.toLowerCase().includes("muscle")) {
+        price = 399
+        itemsPerDelivery = 4
+      } else if (product.name.toLowerCase().includes("keto")) {
+        price = 349
       }
 
       // Create subscription plan
@@ -85,73 +113,50 @@ export async function POST(request: NextRequest) {
           product_id, name, description, billing_period, price, 
           delivery_frequency, items_per_delivery, is_active
         ) VALUES (
-          ${mealPlan.id},
-          ${mealPlan.name},
-          ${"Weekly meal plan with fresh, healthy meals delivered to your door"},
-          'weekly',
-          ${mealPlan.base_price || 299},
-          'weekly',
-          3,
+          ${product.id}, 
+          ${product.name}, 
+          ${"Weekly meal plan with " + itemsPerDelivery + " meals per delivery"}, 
+          ${billingPeriod}, 
+          ${price}, 
+          ${deliveryFrequency}, 
+          ${itemsPerDelivery}, 
           true
-        ) RETURNING id, name
+        ) RETURNING id
       `
 
       const planId = planResult[0].id
-      createdPlans.push(planResult[0])
+      createdPlans++
 
-      // Add sample meals to this plan
-      const planMeals = meals.slice(0, 6) // Take first 6 meals for each plan
+      // Add sample meals to the plan
+      const mealsToAdd = sampleMeals.slice(0, Math.min(8, sampleMeals.length))
 
-      for (let i = 0; i < planMeals.length; i++) {
-        const meal = planMeals[i]
+      for (let i = 0; i < mealsToAdd.length; i++) {
+        const meal = mealsToAdd[i]
+
         await sql`
           INSERT INTO subscription_plan_items (
             plan_id, product_id, quantity, is_optional, sort_order
           ) VALUES (
-            ${planId},
-            ${meal.id},
-            1,
-            ${i >= 3}, -- First 3 meals required, rest optional
+            ${planId}, 
+            ${meal.id}, 
+            1, 
+            ${i >= itemsPerDelivery}, 
             ${i}
           )
         `
-      }
-    }
-
-    // Get some snack products to add as optional items
-    const snacks = await sql`
-      SELECT id, name, base_price
-      FROM products 
-      WHERE product_type = 'simple' 
-      AND (name ILIKE '%bar%' OR name ILIKE '%snack%' OR name ILIKE '%granola%')
-      LIMIT 5
-    `
-
-    // Add snacks as optional items to all plans
-    for (const plan of createdPlans) {
-      const planId = await sql`SELECT id FROM subscription_plans WHERE name = ${plan.name}`
-
-      for (const snack of snacks) {
-        await sql`
-          INSERT INTO subscription_plan_items (
-            plan_id, product_id, quantity, is_optional, additional_price, sort_order
-          ) VALUES (
-            ${planId[0].id},
-            ${snack.id},
-            1,
-            true,
-            ${snack.base_price || 25},
-            100
-          )
-          ON CONFLICT DO NOTHING
-        `
+        createdItems++
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully created ${createdPlans.length} subscription plans`,
-      plans: createdPlans,
+      message: `Successfully created ${createdPlans} subscription plans with ${createdItems} plan items`,
+      details: {
+        plansCreated: createdPlans,
+        itemsCreated: createdItems,
+        mealPlanProducts: mealPlanProducts.length,
+        sampleMeals: sampleMeals.length,
+      },
     })
   } catch (error) {
     console.error("Init subscription plans error:", error)
@@ -159,6 +164,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )
