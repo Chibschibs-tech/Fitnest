@@ -56,6 +56,16 @@ const sidebarItems = [
     href: "/admin/system-diagnostic",
     icon: Settings,
   },
+  {
+    title: "Subscription Plans",
+    href: "/admin/subscription-plans",
+    icon: Package,
+  },
+  {
+    title: "Initialize Plans",
+    href: "/admin/init-subscription-plans",
+    icon: Settings,
+  },
 ]
 
 export function AdminSidebar() {
