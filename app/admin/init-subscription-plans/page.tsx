@@ -8,9 +8,9 @@ import { CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 
 export default function InitSubscriptionPlansPage() {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [result, setResult] = useState<{ success: boolean; message: string; plans?: any[] } | null>(null)
 
-  const initializeSubscriptionPlans = async () => {
+  const initializePlans = async () => {
     setLoading(true)
     setResult(null)
 
@@ -35,7 +35,7 @@ export default function InitSubscriptionPlansPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Initialize Subscription Plans</h1>
-        <p className="text-gray-600">Set up the subscription plans system with your meal plans and associated meals.</p>
+        <p className="text-gray-600">Create subscription plans based on your existing meal plan products.</p>
       </div>
 
       <div className="grid gap-6">
@@ -55,13 +55,12 @@ export default function InitSubscriptionPlansPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">For Each Plan:</h3>
+                <h3 className="font-semibold mb-2">Plan Contents:</h3>
                 <ul className="text-sm space-y-1">
-                  <li>• Main meals (2-3 per plan)</li>
+                  <li>• 3 main meals per delivery</li>
                   <li>• Optional breakfast items</li>
-                  <li>• Optional snack items</li>
-                  <li>• Weekly billing cycle</li>
-                  <li>• 7-day trial period</li>
+                  <li>• Optional snack add-ons</li>
+                  <li>• Weekly delivery schedule</li>
                 </ul>
               </div>
             </div>
@@ -70,19 +69,19 @@ export default function InitSubscriptionPlansPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Initialize System</CardTitle>
+            <CardTitle>Initialize Plans</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600">
-              This will create the subscription plans structure and populate it with your current meal plans. This is
-              safe to run multiple times - it will update existing data without duplicating.
+              This will create subscription plans based on your existing meal plan products and populate them with
+              sample meals.
             </p>
 
-            <Button onClick={initializeSubscriptionPlans} disabled={loading} className="w-full">
+            <Button onClick={initializePlans} disabled={loading} className="w-full">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Initializing...
+                  Initializing Plans...
                 </>
               ) : (
                 "Initialize Subscription Plans"
@@ -101,29 +100,22 @@ export default function InitSubscriptionPlansPage() {
                 </AlertDescription>
               </Alert>
             )}
+
+            {result?.success && result.plans && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Created Plans:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  {result.plans.map((plan: any) => (
+                    <li key={plan.id}>• {plan.name}</li>
+                  ))}
+                </ul>
+                <p className="text-sm text-blue-800 mt-3">
+                  <strong>Next step:</strong> Visit the subscription plans management page to view and edit your plans.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {result?.success && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Next Steps</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm">Now you can:</p>
-                <ul className="text-sm space-y-1 ml-4">
-                  <li>
-                    • Visit <strong>/admin/subscription-plans</strong> to manage your plans
-                  </li>
-                  <li>• Edit plan contents and pricing</li>
-                  <li>• Add more meals to existing plans</li>
-                  <li>• Create new subscription plans</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   )

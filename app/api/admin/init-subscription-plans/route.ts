@@ -18,131 +18,131 @@ export async function POST(request: NextRequest) {
 
     console.log("Initializing subscription plans...")
 
-    // First, create the meal plan products if they don't exist
-    await sql`
-      INSERT INTO products (name, slug, description, product_type, base_price, stock_quantity, nutritional_info, dietary_tags, status) VALUES
-      ('Stay Fit Plan', 'stay-fit-plan', 'Balanced meals for maintaining fitness and health', 'subscription', 299.00, 999, '{"calories": 1600, "protein": 120, "carbs": 160, "fat": 60}', ARRAY['balanced', 'maintenance'], 'active'),
-      ('Weight Loss Plan', 'weight-loss-plan', 'Calorie-controlled meals designed for healthy weight loss', 'subscription', 299.00, 999, '{"calories": 1400, "protein": 120, "carbs": 140, "fat": 45}', ARRAY['low-calorie', 'weight-loss'], 'active'),
-      ('Muscle Gain Plan', 'muscle-gain-plan', 'High-protein meals for muscle building and strength', 'subscription', 399.00, 999, '{"calories": 2200, "protein": 180, "carbs": 220, "fat": 80}', ARRAY['high-protein', 'muscle-gain'], 'active'),
-      ('Keto Plan', 'keto-plan', 'Low-carb, high-fat ketogenic meals', 'subscription', 349.00, 999, '{"calories": 1800, "protein": 120, "carbs": 30, "fat": 140}', ARRAY['keto', 'low-carb'], 'active')
-      ON CONFLICT (slug) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        base_price = EXCLUDED.base_price,
-        nutritional_info = EXCLUDED.nutritional_info,
-        dietary_tags = EXCLUDED.dietary_tags
+    // First, check if subscription_plans table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'subscription_plans'
+      )
+    `
+
+    if (!tableExists[0].exists) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Subscription tables don't exist. Please create them first.",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Get existing meal plan products
+    const mealPlans = await sql`
+      SELECT id, name, base_price 
+      FROM products 
+      WHERE product_type = 'subscription' 
+      OR name ILIKE '%plan%'
+      ORDER BY name
+    `
+
+    if (mealPlans.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No meal plan products found. Please create meal plan products first.",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Get some sample meals for each plan
+    const meals = await sql`
+      SELECT id, name, base_price, category
+      FROM products 
+      WHERE product_type = 'simple' 
+      AND (name ILIKE '%chicken%' OR name ILIKE '%salmon%' OR name ILIKE '%quinoa%' OR name ILIKE '%bowl%')
+      LIMIT 20
     `
 
     // Create subscription plans for each meal plan product
-    await sql`
-      INSERT INTO subscription_plans (product_id, name, description, billing_period, billing_interval, price, trial_period_days, delivery_frequency, items_per_delivery, is_active)
-      SELECT 
-        p.id,
-        p.name,
-        p.description,
-        'weekly',
-        1,
-        p.base_price,
-        7,
-        'weekly',
-        CASE 
-          WHEN p.slug = 'muscle-gain-plan' THEN 3
-          ELSE 2
-        END,
-        true
-      FROM products p 
-      WHERE p.product_type = 'subscription' 
-      AND p.slug IN ('stay-fit-plan', 'weight-loss-plan', 'muscle-gain-plan', 'keto-plan')
-      ON CONFLICT DO NOTHING
-    `
+    const createdPlans = []
 
-    // Create sample meals for each plan type
-    await sql`
-      INSERT INTO products (name, slug, description, product_type, base_price, stock_quantity, nutritional_info, dietary_tags, status) VALUES
-      -- Stay Fit meals
-      ('Grilled Chicken Mediterranean Bowl', 'grilled-chicken-mediterranean-bowl', 'Grilled chicken with quinoa, vegetables and Mediterranean herbs', 'simple', 45.00, 50, '{"calories": 520, "protein": 35, "carbs": 45, "fat": 18}', ARRAY['high-protein', 'balanced'], 'active'),
-      ('Salmon Teriyaki with Brown Rice', 'salmon-teriyaki-brown-rice', 'Fresh salmon with teriyaki glaze and brown rice', 'simple', 55.00, 40, '{"calories": 580, "protein": 40, "carbs": 50, "fat": 22}', ARRAY['high-protein', 'omega-3'], 'active'),
-      
-      -- Weight Loss meals
-      ('Lean Turkey Salad Bowl', 'lean-turkey-salad-bowl', 'Lean turkey with mixed greens and light dressing', 'simple', 42.00, 45, '{"calories": 380, "protein": 32, "carbs": 25, "fat": 15}', ARRAY['low-calorie', 'high-protein'], 'active'),
-      ('Grilled Fish with Steamed Vegetables', 'grilled-fish-steamed-vegetables', 'White fish with steamed broccoli and carrots', 'simple', 48.00, 35, '{"calories": 350, "protein": 35, "carbs": 20, "fat": 12}', ARRAY['low-calorie', 'lean'], 'active'),
-      
-      -- Muscle Gain meals
-      ('High-Protein Beef Bowl', 'high-protein-beef-bowl', 'Lean beef with sweet potato and protein-rich sides', 'simple', 65.00, 30, '{"calories": 750, "protein": 55, "carbs": 60, "fat": 25}', ARRAY['high-protein', 'muscle-gain'], 'active'),
-      ('Chicken Power Bowl', 'chicken-power-bowl', 'Double chicken breast with quinoa and nuts', 'simple', 60.00, 35, '{"calories": 720, "protein": 50, "carbs": 55, "fat": 22}', ARRAY['high-protein', 'muscle-gain'], 'active'),
-      
-      -- Keto meals
-      ('Keto Salmon Avocado Bowl', 'keto-salmon-avocado-bowl', 'Salmon with avocado and low-carb vegetables', 'simple', 58.00, 25, '{"calories": 650, "protein": 35, "carbs": 8, "fat": 52}', ARRAY['keto', 'high-fat'], 'active'),
-      ('Keto Chicken Cauliflower Rice', 'keto-chicken-cauliflower-rice', 'Chicken thighs with cauliflower rice and cheese', 'simple', 52.00, 30, '{"calories": 620, "protein": 40, "carbs": 10, "fat": 48}', ARRAY['keto', 'low-carb'], 'active'),
-      
-      -- Breakfast options
-      ('Protein Pancakes', 'protein-pancakes', 'High-protein pancakes with berries', 'simple', 35.00, 50, '{"calories": 320, "protein": 25, "carbs": 30, "fat": 8}', ARRAY['breakfast', 'high-protein'], 'active'),
-      ('Keto Avocado Eggs', 'keto-avocado-eggs', 'Scrambled eggs with avocado and cheese', 'simple', 32.00, 45, '{"calories": 380, "protein": 20, "carbs": 6, "fat": 32}', ARRAY['breakfast', 'keto'], 'active'),
-      
-      -- Snacks
-      ('Protein Bar - Chocolate', 'protein-bar-chocolate', 'High-protein chocolate bar', 'simple', 25.00, 100, '{"calories": 250, "protein": 20, "carbs": 25, "fat": 8}', ARRAY['snack', 'high-protein'], 'active'),
-      ('Mixed Nuts Pack', 'mixed-nuts-pack', 'Premium mix of almonds, walnuts, and cashews', 'simple', 30.00, 80, '{"calories": 180, "protein": 6, "carbs": 6, "fat": 16}', ARRAY['snack', 'keto'], 'active')
-      ON CONFLICT (slug) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        base_price = EXCLUDED.base_price,
-        nutritional_info = EXCLUDED.nutritional_info,
-        dietary_tags = EXCLUDED.dietary_tags
-    `
-
-    // Link meals to subscription plans
-    const planMealMappings = [
-      // Stay Fit Plan meals
-      { planSlug: "stay-fit-plan", mealSlugs: ["grilled-chicken-mediterranean-bowl", "salmon-teriyaki-brown-rice"] },
-      // Weight Loss Plan meals
-      { planSlug: "weight-loss-plan", mealSlugs: ["lean-turkey-salad-bowl", "grilled-fish-steamed-vegetables"] },
-      // Muscle Gain Plan meals
-      {
-        planSlug: "muscle-gain-plan",
-        mealSlugs: ["high-protein-beef-bowl", "chicken-power-bowl", "grilled-chicken-mediterranean-bowl"],
-      },
-      // Keto Plan meals
-      { planSlug: "keto-plan", mealSlugs: ["keto-salmon-avocado-bowl", "keto-chicken-cauliflower-rice"] },
-    ]
-
-    for (const mapping of planMealMappings) {
-      // Get the subscription plan ID
-      const [plan] = await sql`
-        SELECT sp.id 
-        FROM subscription_plans sp
-        JOIN products p ON sp.product_id = p.id
-        WHERE p.slug = ${mapping.planSlug}
+    for (const mealPlan of mealPlans) {
+      // Check if plan already exists
+      const existingPlan = await sql`
+        SELECT id FROM subscription_plans WHERE product_id = ${mealPlan.id}
       `
 
-      if (plan) {
-        // Add main meals to the plan
-        for (let i = 0; i < mapping.mealSlugs.length; i++) {
-          await sql`
-            INSERT INTO subscription_plan_items (plan_id, product_id, quantity, is_optional, sort_order)
-            SELECT ${plan.id}, p.id, 1, false, ${i + 1}
-            FROM products p 
-            WHERE p.slug = ${mapping.mealSlugs[i]}
-            ON CONFLICT DO NOTHING
-          `
-        }
+      if (existingPlan.length > 0) {
+        console.log(`Plan for product ${mealPlan.name} already exists, skipping...`)
+        continue
+      }
 
-        // Add breakfast options (optional)
-        const breakfastSlug = mapping.planSlug === "keto-plan" ? "keto-avocado-eggs" : "protein-pancakes"
+      // Create subscription plan
+      const planResult = await sql`
+        INSERT INTO subscription_plans (
+          product_id, name, description, billing_period, price, 
+          delivery_frequency, items_per_delivery, is_active
+        ) VALUES (
+          ${mealPlan.id},
+          ${mealPlan.name},
+          ${"Weekly meal plan with fresh, healthy meals delivered to your door"},
+          'weekly',
+          ${mealPlan.base_price || 299},
+          'weekly',
+          3,
+          true
+        ) RETURNING id, name
+      `
+
+      const planId = planResult[0].id
+      createdPlans.push(planResult[0])
+
+      // Add sample meals to this plan
+      const planMeals = meals.slice(0, 6) // Take first 6 meals for each plan
+
+      for (let i = 0; i < planMeals.length; i++) {
+        const meal = planMeals[i]
         await sql`
-          INSERT INTO subscription_plan_items (plan_id, product_id, quantity, is_optional, additional_price, sort_order)
-          SELECT ${plan.id}, p.id, 1, true, 0, 100
-          FROM products p 
-          WHERE p.slug = ${breakfastSlug}
-          ON CONFLICT DO NOTHING
+          INSERT INTO subscription_plan_items (
+            plan_id, product_id, quantity, is_optional, sort_order
+          ) VALUES (
+            ${planId},
+            ${meal.id},
+            1,
+            ${i >= 3}, -- First 3 meals required, rest optional
+            ${i}
+          )
         `
+      }
+    }
 
-        // Add snack options (optional)
-        const snackSlug = mapping.planSlug === "keto-plan" ? "mixed-nuts-pack" : "protein-bar-chocolate"
+    // Get some snack products to add as optional items
+    const snacks = await sql`
+      SELECT id, name, base_price
+      FROM products 
+      WHERE product_type = 'simple' 
+      AND (name ILIKE '%bar%' OR name ILIKE '%snack%' OR name ILIKE '%granola%')
+      LIMIT 5
+    `
+
+    // Add snacks as optional items to all plans
+    for (const plan of createdPlans) {
+      const planId = await sql`SELECT id FROM subscription_plans WHERE name = ${plan.name}`
+
+      for (const snack of snacks) {
         await sql`
-          INSERT INTO subscription_plan_items (plan_id, product_id, quantity, is_optional, additional_price, sort_order)
-          SELECT ${plan.id}, p.id, 1, true, 0, 200
-          FROM products p 
-          WHERE p.slug = ${snackSlug}
+          INSERT INTO subscription_plan_items (
+            plan_id, product_id, quantity, is_optional, additional_price, sort_order
+          ) VALUES (
+            ${planId[0].id},
+            ${snack.id},
+            1,
+            true,
+            ${snack.base_price || 25},
+            100
+          )
           ON CONFLICT DO NOTHING
         `
       }
@@ -150,10 +150,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Subscription plans initialized successfully with meals and options",
+      message: `Successfully created ${createdPlans.length} subscription plans`,
+      plans: createdPlans,
     })
   } catch (error) {
-    console.error("Subscription plans initialization error:", error)
+    console.error("Init subscription plans error:", error)
     return NextResponse.json(
       {
         success: false,

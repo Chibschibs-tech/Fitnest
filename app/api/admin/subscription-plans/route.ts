@@ -16,25 +16,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
+    // Get subscription plans with related data
     const plans = await sql`
       SELECT 
         sp.*,
         p.name as product_name,
-        p.slug as product_slug,
+        p.base_price as product_price,
         COUNT(DISTINCT spi.id) as item_count,
-        COUNT(DISTINCT as_sub.id) as subscriber_count,
-        COALESCE(SUM(as_sub.billing_amount), 0) as monthly_revenue
+        COUNT(DISTINCT asub.id) as subscriber_count,
+        COALESCE(SUM(asub.billing_amount), 0) as total_revenue
       FROM subscription_plans sp
       LEFT JOIN products p ON sp.product_id = p.id
       LEFT JOIN subscription_plan_items spi ON sp.id = spi.plan_id
-      LEFT JOIN active_subscriptions as_sub ON sp.id = as_sub.plan_id AND as_sub.status = 'active'
-      GROUP BY sp.id, p.name, p.slug
+      LEFT JOIN active_subscriptions asub ON sp.id = asub.plan_id AND asub.status = 'active'
+      GROUP BY sp.id, p.name, p.base_price
       ORDER BY sp.created_at DESC
     `
 
     return NextResponse.json({ plans })
   } catch (error) {
-    console.error("Error fetching subscription plans:", error)
+    console.error("Get subscription plans error:", error)
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
   }
 }
@@ -57,26 +58,35 @@ export async function POST(request: NextRequest) {
       name,
       description,
       billing_period,
-      billing_interval,
       price,
       trial_period_days,
       delivery_frequency,
       items_per_delivery,
     } = body
 
-    const [plan] = await sql`
+    // Validate required fields
+    if (!product_id || !name || !billing_period || !price) {
+      return NextResponse.json(
+        { error: "Missing required fields: product_id, name, billing_period, price" },
+        { status: 400 },
+      )
+    }
+
+    // Create subscription plan
+    const result = await sql`
       INSERT INTO subscription_plans (
-        product_id, name, description, billing_period, billing_interval,
-        price, trial_period_days, delivery_frequency, items_per_delivery
+        product_id, name, description, billing_period, price,
+        trial_period_days, delivery_frequency, items_per_delivery, is_active
       ) VALUES (
-        ${product_id}, ${name}, ${description}, ${billing_period}, ${billing_interval},
-        ${price}, ${trial_period_days}, ${delivery_frequency}, ${items_per_delivery}
+        ${product_id}, ${name}, ${description || ""}, ${billing_period}, ${price},
+        ${trial_period_days || 0}, ${delivery_frequency || "weekly"}, 
+        ${items_per_delivery || 1}, true
       ) RETURNING *
     `
 
-    return NextResponse.json({ plan })
+    return NextResponse.json({ plan: result[0] })
   } catch (error) {
-    console.error("Error creating subscription plan:", error)
+    console.error("Create subscription plan error:", error)
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
   }
 }
