@@ -59,13 +59,16 @@ export async function POST(request: NextRequest) {
     const columnNames = productsColumns.map((col) => col.column_name)
     console.log("Available product columns:", columnNames)
 
-    const priceColumn = columnNames.includes("base_price")
-      ? "base_price"
-      : columnNames.includes("price")
-        ? "price"
-        : columnNames.includes("weekly_price")
-          ? "weekly_price"
-          : null
+    // Find a suitable price column
+    let priceColumn = null
+    const possiblePriceColumns = ["price", "base_price", "weekly_price", "sale_price"]
+
+    for (const col of possiblePriceColumns) {
+      if (columnNames.includes(col)) {
+        priceColumn = col
+        break
+      }
+    }
 
     if (!priceColumn) {
       return NextResponse.json(
@@ -74,23 +77,26 @@ export async function POST(request: NextRequest) {
           error: "No price column found in products table.",
           details: {
             availableColumns: columnNames,
-            expectedColumns: ["base_price", "price", "weekly_price"],
+            expectedColumns: possiblePriceColumns,
           },
         },
         { status: 400 },
       )
     }
 
+    console.log("Using price column:", priceColumn)
+
     // Get existing meal plan products - look for products that could be meal plans
     const mealPlanProducts = await sql`
-      SELECT id, name, ${sql(priceColumn)} as price 
+      SELECT id, name, description, ${sql.unsafe(priceColumn)} as price 
       FROM products 
-      WHERE name ILIKE '%plan%' 
+      WHERE (name ILIKE '%plan%' 
       OR name ILIKE '%vegan%' 
       OR name ILIKE '%keto%' 
       OR name ILIKE '%muscle%' 
       OR name ILIKE '%weight%'
-      OR name ILIKE '%fit%'
+      OR name ILIKE '%fit%')
+      AND ${sql.unsafe(priceColumn)} IS NOT NULL
       ORDER BY name
     `
 
@@ -99,10 +105,10 @@ export async function POST(request: NextRequest) {
     if (mealPlanProducts.length === 0) {
       // Create some default meal plan products if none exist
       const defaultPlans = [
-        { name: "Stay Fit Plan", price: 299 },
-        { name: "Weight Loss Plan", price: 299 },
-        { name: "Muscle Gain Plan", price: 399 },
-        { name: "Keto Plan", price: 349 },
+        { name: "Stay Fit Plan", price: 299, description: "Balanced meals for maintaining fitness" },
+        { name: "Weight Loss Plan", price: 299, description: "Calorie-controlled meals for weight management" },
+        { name: "Muscle Gain Plan", price: 399, description: "High-protein meals for muscle building" },
+        { name: "Keto Plan", price: 349, description: "Low-carb, high-fat ketogenic meals" },
       ]
 
       console.log("Creating default meal plan products...")
@@ -110,19 +116,35 @@ export async function POST(request: NextRequest) {
       for (const plan of defaultPlans) {
         const slug = plan.name.toLowerCase().replace(/\s+/g, "-")
         try {
-          await sql`
-            INSERT INTO products (name, slug, description, product_type, ${sql(priceColumn)}, stock_quantity, is_active)
-            VALUES (
-              ${plan.name},
-              ${slug},
-              ${"Weekly meal plan with fresh, healthy meals"},
-              'subscription',
-              ${plan.price},
-              999,
-              true
-            )
+          // Check if required columns exist for product creation
+          const requiredColumns = ["name", "slug", "description", priceColumn]
+          const optionalColumns = ["product_type", "stock_quantity", "is_active"]
+
+          // Build insert query dynamically based on available columns
+          const insertColumns = requiredColumns.filter((col) => columnNames.includes(col))
+          const insertValues = [plan.name, slug, plan.description, plan.price]
+
+          // Add optional columns if they exist
+          if (columnNames.includes("product_type")) {
+            insertColumns.push("product_type")
+            insertValues.push("subscription")
+          }
+          if (columnNames.includes("stock_quantity")) {
+            insertColumns.push("stock_quantity")
+            insertValues.push(999)
+          }
+          if (columnNames.includes("is_active")) {
+            insertColumns.push("is_active")
+            insertValues.push(true)
+          }
+
+          const insertQuery = `
+            INSERT INTO products (${insertColumns.join(", ")})
+            VALUES (${insertColumns.map((_, i) => `$${i + 1}`).join(", ")})
             ON CONFLICT (slug) DO NOTHING
           `
+
+          await sql.unsafe(insertQuery, insertValues)
           console.log(`Created product: ${plan.name}`)
         } catch (error) {
           console.error(`Error creating product ${plan.name}:`, error)
@@ -131,9 +153,10 @@ export async function POST(request: NextRequest) {
 
       // Re-fetch the products we just created
       const newMealPlans = await sql`
-        SELECT id, name, ${sql(priceColumn)} as price 
+        SELECT id, name, description, ${sql.unsafe(priceColumn)} as price 
         FROM products 
         WHERE name IN ('Stay Fit Plan', 'Weight Loss Plan', 'Muscle Gain Plan', 'Keto Plan')
+        AND ${sql.unsafe(priceColumn)} IS NOT NULL
       `
       mealPlanProducts.push(...newMealPlans)
       console.log("Total meal plan products after creation:", mealPlanProducts.length)
@@ -141,10 +164,10 @@ export async function POST(request: NextRequest) {
 
     // Get some sample meals for plan items
     const sampleMeals = await sql`
-      SELECT id, name, ${sql(priceColumn)} as price 
+      SELECT id, name, ${sql.unsafe(priceColumn)} as price 
       FROM products 
-      WHERE product_type = 'simple' 
-      AND name NOT ILIKE '%plan%'
+      WHERE name NOT ILIKE '%plan%'
+      AND ${sql.unsafe(priceColumn)} IS NOT NULL
       LIMIT 20
     `
 
@@ -171,7 +194,7 @@ export async function POST(request: NextRequest) {
       const billingPeriod = "weekly"
       const deliveryFrequency = "weekly"
       let itemsPerDelivery = 3
-      let price = product.price || 299
+      let price = Number(product.price) || 299
 
       if (product.name.toLowerCase().includes("muscle")) {
         price = 399
@@ -189,7 +212,7 @@ export async function POST(request: NextRequest) {
           ) VALUES (
             ${product.id}, 
             ${product.name}, 
-            ${"Weekly meal plan with " + itemsPerDelivery + " meals per delivery"}, 
+            ${product.description || "Weekly meal plan with " + itemsPerDelivery + " meals per delivery"}, 
             ${billingPeriod}, 
             ${price}, 
             ${deliveryFrequency}, 

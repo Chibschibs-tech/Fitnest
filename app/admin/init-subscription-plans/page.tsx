@@ -82,7 +82,7 @@ export default function InitSubscriptionPlansPage() {
               <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
                 <li>Subscription tables must be created first</li>
                 <li>Products table must exist with meal data</li>
-                <li>At least one price column (base_price, price, or weekly_price)</li>
+                <li>At least one price column (price, base_price, weekly_price, or sale_price)</li>
               </ul>
             </div>
 
