@@ -16,6 +16,7 @@ interface InitResult {
     sampleMeals: number
     priceColumnUsed: string
     availableColumns: string[]
+    expectedColumns?: string[]
   }
   error?: string
   missingTables?: string[]
@@ -132,13 +133,18 @@ export default function InitSubscriptionPlansPage() {
                             <strong>Price Column Used:</strong> {result.details.priceColumnUsed}
                           </div>
                           <div className="text-xs text-gray-600 mt-1">
-                            Available columns: {result.details.availableColumns.join(", ")}
+                            Available columns: {result.details.availableColumns?.join(", ") || "None found"}
                           </div>
+                          {result.details.expectedColumns && (
+                            <div className="text-xs text-gray-600">
+                              Expected columns: {result.details.expectedColumns.join(", ")}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
 
-                    {result.missingTables && (
+                    {result.missingTables && result.missingTables.length > 0 && (
                       <div className="mt-2 text-sm text-red-600">
                         <strong>Missing tables:</strong> {result.missingTables.join(", ")}
                       </div>
