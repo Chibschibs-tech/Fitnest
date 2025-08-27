@@ -86,23 +86,7 @@ export async function POST(request: NextRequest) {
 
     console.log("Using price column:", priceColumn)
 
-    // Get existing meal plan products - look for products that could be meal plans
-    const mealPlanProducts = await sql`
-      SELECT id, name, description, ${sql.unsafe(priceColumn)} as price 
-      FROM products 
-      WHERE (name ILIKE '%plan%' 
-      OR name ILIKE '%vegan%' 
-      OR name ILIKE '%keto%' 
-      OR name ILIKE '%muscle%' 
-      OR name ILIKE '%weight%'
-      OR name ILIKE '%fit%')
-      AND ${sql.unsafe(priceColumn)} IS NOT NULL
-      ORDER BY name
-    `
-
-    console.log("Found meal plan products:", mealPlanProducts.length)
-
-    // Always create default meal plan products since none were found
+    // Create default meal plan products
     const defaultPlans = [
       { name: "Stay Fit Plan", price: 299, description: "Balanced meals for maintaining fitness and health" },
       {
@@ -118,55 +102,60 @@ export async function POST(request: NextRequest) {
       { name: "Keto Plan", price: 349, description: "Low-carb, high-fat ketogenic meals for metabolic health" },
     ]
 
-    console.log("Creating default meal plan products...")
+    console.log("Creating meal plan products...")
+    const mealPlanProducts = []
 
     for (const plan of defaultPlans) {
       const slug = plan.name.toLowerCase().replace(/\s+/g, "-")
       try {
-        // Build insert query based on available columns
-        const baseColumns = ["name", "slug", "description", priceColumn]
-        const baseValues = [plan.name, slug, plan.description, plan.price]
+        console.log(`Creating product: ${plan.name}`)
 
-        // Add optional columns if they exist
-        const optionalMappings = [
-          { column: "category", value: "meal-plans" },
-          { column: "stock", value: 999 },
-          { column: "isactive", value: true },
-          { column: "tags", value: "subscription,meal-plan,healthy" },
-        ]
+        // Check if slug column exists
+        const hasSlug = columnNames.includes("slug")
 
-        const finalColumns = [...baseColumns]
-        const finalValues = [...baseValues]
-
-        for (const mapping of optionalMappings) {
-          if (columnNames.includes(mapping.column)) {
-            finalColumns.push(mapping.column)
-            finalValues.push(mapping.value)
-          }
+        let insertResult
+        if (hasSlug) {
+          insertResult = await sql`
+            INSERT INTO products (name, slug, description, ${sql.unsafe(priceColumn)}, category, stock, isactive)
+            VALUES (${plan.name}, ${slug}, ${plan.description}, ${plan.price}, 'meal-plans', 999, true)
+            ON CONFLICT (slug) DO UPDATE SET
+              name = EXCLUDED.name,
+              description = EXCLUDED.description,
+              ${sql.unsafe(priceColumn)} = EXCLUDED.${sql.unsafe(priceColumn)}
+            RETURNING id, name, ${sql.unsafe(priceColumn)} as price
+          `
+        } else {
+          insertResult = await sql`
+            INSERT INTO products (name, description, ${sql.unsafe(priceColumn)}, category, stock, isactive)
+            VALUES (${plan.name}, ${plan.description}, ${plan.price}, 'meal-plans', 999, true)
+            RETURNING id, name, ${sql.unsafe(priceColumn)} as price
+          `
         }
 
-        const placeholders = finalColumns.map((_, i) => `$${i + 1}`).join(", ")
-        const insertQuery = `
-          INSERT INTO products (${finalColumns.join(", ")})
-          VALUES (${placeholders})
-          ON CONFLICT (slug) DO UPDATE SET
-            name = EXCLUDED.name,
-            description = EXCLUDED.description,
-            ${priceColumn} = EXCLUDED.${priceColumn}
-          RETURNING id, name, ${priceColumn} as price
-        `
-
-        const result = await sql.unsafe(insertQuery, finalValues)
-        if (result.length > 0) {
-          mealPlanProducts.push(result[0])
-          console.log(`Created/updated product: ${plan.name} (ID: ${result[0].id})`)
+        if (insertResult.length > 0) {
+          mealPlanProducts.push(insertResult[0])
+          console.log(`Successfully created product: ${plan.name} (ID: ${insertResult[0].id})`)
         }
       } catch (error) {
         console.error(`Error creating product ${plan.name}:`, error)
+        // Try without optional columns
+        try {
+          const basicResult = await sql`
+            INSERT INTO products (name, description, ${sql.unsafe(priceColumn)})
+            VALUES (${plan.name}, ${plan.description}, ${plan.price})
+            RETURNING id, name, ${sql.unsafe(priceColumn)} as price
+          `
+          if (basicResult.length > 0) {
+            mealPlanProducts.push(basicResult[0])
+            console.log(`Created basic product: ${plan.name} (ID: ${basicResult[0].id})`)
+          }
+        } catch (basicError) {
+          console.error(`Failed to create basic product ${plan.name}:`, basicError)
+        }
       }
     }
 
-    console.log("Total meal plan products after creation:", mealPlanProducts.length)
+    console.log("Total meal plan products created:", mealPlanProducts.length)
 
     // Get some sample meals for plan items
     const sampleMeals = await sql`
@@ -219,7 +208,7 @@ export async function POST(request: NextRequest) {
           ) VALUES (
             ${product.id}, 
             ${product.name}, 
-            ${product.description || "Weekly meal plan with " + itemsPerDelivery + " meals per delivery"}, 
+            ${"Weekly meal plan with " + itemsPerDelivery + " meals per delivery"}, 
             ${billingPeriod}, 
             ${price}, 
             ${deliveryFrequency}, 
@@ -273,6 +262,7 @@ export async function POST(request: NextRequest) {
         sampleMeals: sampleMeals.length,
         priceColumnUsed: priceColumn,
         availableColumns: columnNames || [],
+        createdProducts: mealPlanProducts.map((p) => ({ id: p.id, name: p.name, price: p.price })),
       },
     })
   } catch (error) {
