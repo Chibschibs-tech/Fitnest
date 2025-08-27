@@ -72,11 +72,11 @@ export async function POST(request: NextRequest) {
       )
     `
 
-    // Create deliveries table
+    // Create deliveries table - FIXED: Use active_subscriptions instead of subscription_id
     await sql`
       CREATE TABLE IF NOT EXISTS deliveries (
         id SERIAL PRIMARY KEY,
-        subscription_id INTEGER REFERENCES active_subscriptions(id),
+        active_subscription_id INTEGER REFERENCES active_subscriptions(id),
         order_id INTEGER REFERENCES orders(id),
         status TEXT DEFAULT 'scheduled',
         scheduled_date DATE,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     await sql`CREATE INDEX IF NOT EXISTS idx_active_subscriptions_customer_id ON active_subscriptions(customer_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_active_subscriptions_plan_id ON active_subscriptions(plan_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_active_subscriptions_status ON active_subscriptions(status)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_subscription_id ON deliveries(subscription_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_active_subscription_id ON deliveries(active_subscription_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_order_id ON deliveries(order_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status)`
 

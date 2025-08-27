@@ -4,33 +4,66 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { CheckCircle, XCircle, Loader2, Database, Table } from "lucide-react"
+
+interface TableInfo {
+  structure: Array<{
+    column_name: string
+    data_type: string
+    is_nullable: string
+    column_default: string | null
+  }>
+  count: number
+}
+
+interface CheckResult {
+  success: boolean
+  existingTables: string[]
+  missingTables: string[]
+  productsStructure: Array<{
+    column_name: string
+    data_type: string
+    is_nullable: string
+    column_default: string | null
+  }>
+  sampleProducts: Array<{
+    id: number
+    name: string
+    price: string
+    product_type: string
+  }>
+  subscriptionTablesInfo: Record<string, TableInfo>
+  error?: string
+}
 
 export default function CheckSubscriptionTablesPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [data, setData] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<CheckResult | null>(null)
 
   useEffect(() => {
-    const checkTables = async () => {
-      try {
-        const response = await fetch("/api/admin/check-subscription-tables")
-        const result = await response.json()
-
-        if (result.success) {
-          setData(result)
-        } else {
-          setError(result.error)
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     checkTables()
   }, [])
+
+  const checkTables = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/admin/check-subscription-tables")
+      const data = await response.json()
+      setResult(data)
+    } catch (error) {
+      setResult({
+        success: false,
+        existingTables: [],
+        missingTables: [],
+        productsStructure: [],
+        sampleProducts: [],
+        subscriptionTablesInfo: {},
+        error: error instanceof Error ? error.message : "Unknown error",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -43,14 +76,12 @@ export default function CheckSubscriptionTablesPage() {
     )
   }
 
-  if (error) {
+  if (!result) {
     return (
       <div className="container mx-auto py-8">
-        <Alert className="border-red-500">
-          <XCircle className="h-4 w-4 text-red-500" />
-          <AlertDescription>
-            <strong>Error:</strong> {error}
-          </AlertDescription>
+        <Alert className="border-red-200 bg-red-50">
+          <XCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription>Failed to check database tables</AlertDescription>
         </Alert>
       </div>
     )
@@ -59,88 +90,129 @@ export default function CheckSubscriptionTablesPage() {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Database Tables Status</h1>
+        <h1 className="text-3xl font-bold mb-6">Database Tables Status</h1>
 
-        {/* Subscription Tables Status */}
+        {/* Tables Overview */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Subscription Tables</CardTitle>
-            <CardDescription>Status of subscription-related database tables</CardDescription>
+            <CardTitle className="flex items-center">
+              <Database className="mr-2 h-5 w-5" />
+              Tables Overview
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(data.tableStats).map(([tableName, stats]: [string, any]) => (
-                <div key={tableName} className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <div className="font-medium">{tableName}</div>
-                    <div className="text-sm text-gray-500">
-                      {stats.exists ? `${stats.count} rows` : "Table missing"}
-                    </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold text-green-700 mb-2">Existing Tables</h3>
+                {result.existingTables.length > 0 ? (
+                  <div className="space-y-1">
+                    {result.existingTables.map((table) => (
+                      <Badge key={table} variant="outline" className="mr-2 border-green-200 text-green-700">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        {table}
+                      </Badge>
+                    ))}
                   </div>
-                  <Badge variant={stats.exists ? "default" : "destructive"}>
-                    {stats.exists ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-                    {stats.exists ? "Exists" : "Missing"}
-                  </Badge>
-                </div>
-              ))}
+                ) : (
+                  <p className="text-gray-500">No tables found</p>
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-700 mb-2">Missing Tables</h3>
+                {result.missingTables.length > 0 ? (
+                  <div className="space-y-1">
+                    {result.missingTables.map((table) => (
+                      <Badge key={table} variant="outline" className="mr-2 border-red-200 text-red-700">
+                        <XCircle className="mr-1 h-3 w-3" />
+                        {table}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-green-600">All required tables exist!</p>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Products Table Structure */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Products Table Structure</CardTitle>
-            <CardDescription>Column information for the products table</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {data.productsColumns.map((col: any) => (
-                <div key={col.name} className="flex items-center justify-between p-2 border rounded">
-                  <div>
-                    <span className="font-medium">{col.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">({col.type})</span>
-                  </div>
-                  <Badge variant={col.nullable ? "secondary" : "default"}>
-                    {col.nullable ? "Nullable" : "Required"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sample Product Data */}
-        {data.sampleProducts && (
-          <Card>
+        {/* Products Table */}
+        {result.existingTables.includes("products") && (
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Sample Product Data</CardTitle>
-              <CardDescription>Example product from your database</CardDescription>
+              <CardTitle className="flex items-center">
+                <Table className="mr-2 h-5 w-5" />
+                Products Table Structure
+              </CardTitle>
+              <CardDescription>Current structure and sample data from your products table</CardDescription>
             </CardHeader>
             <CardContent>
-              <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
-                {JSON.stringify(data.sampleProducts, null, 2)}
-              </pre>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-3">Table Structure</h4>
+                  <div className="space-y-2">
+                    {result.productsStructure.map((column) => (
+                      <div key={column.column_name} className="flex justify-between text-sm">
+                        <span className="font-mono">{column.column_name}</span>
+                        <span className="text-gray-500">{column.data_type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-3">Sample Products</h4>
+                  <div className="space-y-2">
+                    {result.sampleProducts.map((product) => (
+                      <div key={product.id} className="text-sm border rounded p-2">
+                        <div className="font-semibold">{product.name}</div>
+                        <div className="text-gray-500">
+                          Price: {product.price} | Type: {product.product_type || "N/A"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* All Existing Tables */}
-        <Card>
-          <CardHeader>
-            <CardTitle>All Database Tables</CardTitle>
-            <CardDescription>Complete list of tables in your database</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {data.tables.map((table: string) => (
-                <Badge key={table} variant="outline">
-                  {table}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Subscription Tables */}
+        {Object.keys(result.subscriptionTablesInfo).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Tables</CardTitle>
+              <CardDescription>Structure and data counts for subscription-related tables</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(result.subscriptionTablesInfo).map(([tableName, info]) => (
+                  <div key={tableName} className="border rounded p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold">{tableName}</h4>
+                      <Badge variant="outline">{info.count} rows</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+                      {info.structure.map((column) => (
+                        <div key={column.column_name} className="font-mono text-xs">
+                          {column.column_name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Error Display */}
+        {result.error && (
+          <Alert className="border-red-200 bg-red-50">
+            <XCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription>Error: {result.error}</AlertDescription>
+          </Alert>
+        )}
       </div>
     </div>
   )
