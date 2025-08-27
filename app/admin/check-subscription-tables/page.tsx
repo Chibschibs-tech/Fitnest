@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, Loader2, Database, Table } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CheckCircle, XCircle, Loader2, Database, Table, RefreshCw } from "lucide-react"
 
 interface TableInfo {
   structure: Array<{
@@ -14,6 +15,7 @@ interface TableInfo {
     column_default: string | null
   }>
   count: number
+  error?: string
 }
 
 interface CheckResult {
@@ -40,10 +42,6 @@ export default function CheckSubscriptionTablesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [result, setResult] = useState<CheckResult | null>(null)
 
-  useEffect(() => {
-    checkTables()
-  }, [])
-
   const checkTables = async () => {
     setIsLoading(true)
     try {
@@ -64,6 +62,10 @@ export default function CheckSubscriptionTablesPage() {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    checkTables()
+  }, [])
 
   if (isLoading) {
     return (
@@ -90,7 +92,13 @@ export default function CheckSubscriptionTablesPage() {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Database Tables Status</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Database Tables Status</h1>
+          <Button onClick={checkTables} disabled={isLoading} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
 
         {/* Tables Overview */}
         <Card className="mb-6">
@@ -101,16 +109,18 @@ export default function CheckSubscriptionTablesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-green-700 mb-2">Existing Tables</h3>
+                <h3 className="font-semibold text-green-700 mb-3">Existing Tables ({result.existingTables.length})</h3>
                 {result.existingTables.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {result.existingTables.map((table) => (
-                      <Badge key={table} variant="outline" className="mr-2 border-green-200 text-green-700">
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                        {table}
-                      </Badge>
+                      <div key={table} className="flex items-center">
+                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                        <Badge variant="outline" className="border-green-200 text-green-700">
+                          {table}
+                        </Badge>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -118,18 +128,23 @@ export default function CheckSubscriptionTablesPage() {
                 )}
               </div>
               <div>
-                <h3 className="font-semibold text-red-700 mb-2">Missing Tables</h3>
+                <h3 className="font-semibold text-red-700 mb-3">Missing Tables ({result.missingTables.length})</h3>
                 {result.missingTables.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {result.missingTables.map((table) => (
-                      <Badge key={table} variant="outline" className="mr-2 border-red-200 text-red-700">
-                        <XCircle className="mr-1 h-3 w-3" />
-                        {table}
-                      </Badge>
+                      <div key={table} className="flex items-center">
+                        <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                        <Badge variant="outline" className="border-red-200 text-red-700">
+                          {table}
+                        </Badge>
+                      </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-green-600">All required tables exist!</p>
+                  <div className="flex items-center text-green-600">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <span>All required tables exist!</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -149,24 +164,34 @@ export default function CheckSubscriptionTablesPage() {
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold mb-3">Table Structure</h4>
-                  <div className="space-y-2">
+                  <h4 className="font-semibold mb-3">Table Structure ({result.productsStructure.length} columns)</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
                     {result.productsStructure.map((column) => (
-                      <div key={column.column_name} className="flex justify-between text-sm">
-                        <span className="font-mono">{column.column_name}</span>
-                        <span className="text-gray-500">{column.data_type}</span>
+                      <div
+                        key={column.column_name}
+                        className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded"
+                      >
+                        <span className="font-mono font-medium">{column.column_name}</span>
+                        <div className="text-right">
+                          <div className="text-gray-600">{column.data_type}</div>
+                          <div className="text-xs text-gray-500">
+                            {column.is_nullable === "YES" ? "nullable" : "required"}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-3">Sample Products</h4>
-                  <div className="space-y-2">
+                  <h4 className="font-semibold mb-3">Sample Products ({result.sampleProducts.length})</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
                     {result.sampleProducts.map((product) => (
-                      <div key={product.id} className="text-sm border rounded p-2">
-                        <div className="font-semibold">{product.name}</div>
-                        <div className="text-gray-500">
-                          Price: {product.price} | Type: {product.product_type || "N/A"}
+                      <div key={product.id} className="text-sm border rounded p-3">
+                        <div className="font-semibold truncate">{product.name}</div>
+                        <div className="text-gray-600 text-xs mt-1">
+                          <div>ID: {product.id}</div>
+                          <div>Price: {product.price}</div>
+                          <div>Type: {product.product_type || "N/A"}</div>
                         </div>
                       </div>
                     ))}
@@ -188,17 +213,25 @@ export default function CheckSubscriptionTablesPage() {
               <div className="space-y-4">
                 {Object.entries(result.subscriptionTablesInfo).map(([tableName, info]) => (
                   <div key={tableName} className="border rounded p-4">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-3">
                       <h4 className="font-semibold">{tableName}</h4>
-                      <Badge variant="outline">{info.count} rows</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{info.count} rows</Badge>
+                        {info.error && <Badge variant="destructive">Error</Badge>}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                      {info.structure.map((column) => (
-                        <div key={column.column_name} className="font-mono text-xs">
-                          {column.column_name}
-                        </div>
-                      ))}
-                    </div>
+                    {info.error ? (
+                      <div className="text-sm text-red-600">Error: {info.error}</div>
+                    ) : (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                        {info.structure.map((column) => (
+                          <div key={column.column_name} className="text-xs font-mono bg-gray-50 p-2 rounded">
+                            <div className="font-semibold">{column.column_name}</div>
+                            <div className="text-gray-600">{column.data_type}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -212,6 +245,15 @@ export default function CheckSubscriptionTablesPage() {
             <XCircle className="h-4 w-4 text-red-600" />
             <AlertDescription>Error: {result.error}</AlertDescription>
           </Alert>
+        )}
+
+        {/* Action Buttons */}
+        {result.missingTables.length > 0 && (
+          <div className="flex justify-center">
+            <Button onClick={() => (window.location.href = "/admin/create-subscription-tables")}>
+              Create Missing Tables
+            </Button>
+          </div>
         )}
       </div>
     </div>

@@ -98,11 +98,12 @@ export async function POST(request: NextRequest) {
       ]
 
       for (const plan of defaultPlans) {
+        const slug = plan.name.toLowerCase().replace(/\s+/g, "-")
         await sql`
           INSERT INTO products (name, slug, description, product_type, ${sql(priceColumn)}, stock_quantity, is_active)
           VALUES (
             ${plan.name},
-            ${plan.name.toLowerCase().replace(/\s+/g, "-")},
+            ${slug},
             ${"Weekly meal plan with fresh, healthy meals"},
             'subscription',
             ${plan.price},

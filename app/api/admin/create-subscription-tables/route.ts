@@ -18,9 +18,15 @@ export async function POST(request: NextRequest) {
 
     console.log("Creating subscription tables...")
 
+    // Drop existing tables if they exist to recreate with correct structure
+    await sql`DROP TABLE IF EXISTS deliveries CASCADE`
+    await sql`DROP TABLE IF EXISTS subscription_plan_items CASCADE`
+    await sql`DROP TABLE IF EXISTS active_subscriptions CASCADE`
+    await sql`DROP TABLE IF EXISTS subscription_plans CASCADE`
+
     // Create subscription_plans table
     await sql`
-      CREATE TABLE IF NOT EXISTS subscription_plans (
+      CREATE TABLE subscription_plans (
         id SERIAL PRIMARY KEY,
         product_id INTEGER REFERENCES products(id),
         name TEXT NOT NULL,
@@ -39,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Create subscription_plan_items table
     await sql`
-      CREATE TABLE IF NOT EXISTS subscription_plan_items (
+      CREATE TABLE subscription_plan_items (
         id SERIAL PRIMARY KEY,
         plan_id INTEGER REFERENCES subscription_plans(id) ON DELETE CASCADE,
         product_id INTEGER REFERENCES products(id),
@@ -49,14 +55,13 @@ export async function POST(request: NextRequest) {
         delivery_week INTEGER,
         delivery_day INTEGER,
         sort_order INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(plan_id, product_id)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `
 
     // Create active_subscriptions table
     await sql`
-      CREATE TABLE IF NOT EXISTS active_subscriptions (
+      CREATE TABLE active_subscriptions (
         id SERIAL PRIMARY KEY,
         customer_id INTEGER REFERENCES users(id),
         plan_id INTEGER REFERENCES subscription_plans(id),
@@ -72,11 +77,11 @@ export async function POST(request: NextRequest) {
       )
     `
 
-    // Create deliveries table - FIXED: Use active_subscriptions instead of subscription_id
+    // Create deliveries table with correct column name
     await sql`
-      CREATE TABLE IF NOT EXISTS deliveries (
+      CREATE TABLE deliveries (
         id SERIAL PRIMARY KEY,
-        active_subscription_id INTEGER REFERENCES active_subscriptions(id),
+        subscription_id INTEGER REFERENCES active_subscriptions(id),
         order_id INTEGER REFERENCES orders(id),
         status TEXT DEFAULT 'scheduled',
         scheduled_date DATE,
@@ -96,15 +101,15 @@ export async function POST(request: NextRequest) {
     `
 
     // Create indexes for performance
-    await sql`CREATE INDEX IF NOT EXISTS idx_subscription_plans_product_id ON subscription_plans(product_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_subscription_plan_items_plan_id ON subscription_plan_items(plan_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_subscription_plan_items_product_id ON subscription_plan_items(product_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_active_subscriptions_customer_id ON active_subscriptions(customer_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_active_subscriptions_plan_id ON active_subscriptions(plan_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_active_subscriptions_status ON active_subscriptions(status)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_active_subscription_id ON deliveries(active_subscription_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_order_id ON deliveries(order_id)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status)`
+    await sql`CREATE INDEX idx_subscription_plans_product_id ON subscription_plans(product_id)`
+    await sql`CREATE INDEX idx_subscription_plan_items_plan_id ON subscription_plan_items(plan_id)`
+    await sql`CREATE INDEX idx_subscription_plan_items_product_id ON subscription_plan_items(product_id)`
+    await sql`CREATE INDEX idx_active_subscriptions_customer_id ON active_subscriptions(customer_id)`
+    await sql`CREATE INDEX idx_active_subscriptions_plan_id ON active_subscriptions(plan_id)`
+    await sql`CREATE INDEX idx_active_subscriptions_status ON active_subscriptions(status)`
+    await sql`CREATE INDEX idx_deliveries_subscription_id ON deliveries(subscription_id)`
+    await sql`CREATE INDEX idx_deliveries_order_id ON deliveries(order_id)`
+    await sql`CREATE INDEX idx_deliveries_status ON deliveries(status)`
 
     return NextResponse.json({
       success: true,

@@ -39,18 +39,31 @@ export async function GET(request: NextRequest) {
         ORDER BY ordinal_position
       `
 
-      sampleProducts = await sql`
-        SELECT id, name, 
-               CASE 
-                 WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'base_price') THEN base_price::text
-                 WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'price') THEN price::text
-                 WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'weekly_price') THEN weekly_price::text
-                 ELSE 'No price column found'
-               END as price,
-               product_type
-        FROM products 
-        LIMIT 10
-      `
+      // Get sample products with dynamic price column detection
+      const priceColumns = ["base_price", "price", "weekly_price"]
+      let priceColumn = null
+
+      for (const col of priceColumns) {
+        const columnExists = productsStructure.some((c) => c.column_name === col)
+        if (columnExists) {
+          priceColumn = col
+          break
+        }
+      }
+
+      if (priceColumn) {
+        sampleProducts = await sql`
+          SELECT id, name, ${sql(priceColumn)} as price, product_type
+          FROM products 
+          LIMIT 10
+        `
+      } else {
+        sampleProducts = await sql`
+          SELECT id, name, 'No price column' as price, product_type
+          FROM products 
+          LIMIT 10
+        `
+      }
     }
 
     // Check subscription tables structure if they exist
@@ -59,19 +72,27 @@ export async function GET(request: NextRequest) {
 
     for (const tableName of subscriptionTables) {
       if (existingTables.includes(tableName)) {
-        const structure = await sql`
-          SELECT column_name, data_type, is_nullable, column_default
-          FROM information_schema.columns 
-          WHERE table_schema = 'public' 
-          AND table_name = ${tableName}
-          ORDER BY ordinal_position
-        `
+        try {
+          const structure = await sql`
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = ${tableName}
+            ORDER BY ordinal_position
+          `
 
-        const count = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
+          const count = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
 
-        subscriptionTablesInfo[tableName] = {
-          structure,
-          count: count[0].count,
+          subscriptionTablesInfo[tableName] = {
+            structure,
+            count: Number.parseInt(count[0].count),
+          }
+        } catch (error) {
+          subscriptionTablesInfo[tableName] = {
+            structure: [],
+            count: 0,
+            error: error instanceof Error ? error.message : "Unknown error",
+          }
         }
       }
     }

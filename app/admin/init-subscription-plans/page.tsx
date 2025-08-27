@@ -65,15 +65,25 @@ export default function InitSubscriptionPlansPage() {
             <Alert className="border-blue-200 bg-blue-50">
               <Info className="h-4 w-4 text-blue-600" />
               <AlertDescription>
-                <div className="font-semibold">What this will do:</div>
-                <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                  <li>Find existing meal plan products in your database</li>
-                  <li>Create subscription plans for each meal plan</li>
+                <div className="font-semibold text-blue-800">What this will do:</div>
+                <ul className="list-disc list-inside text-sm mt-2 space-y-1 text-blue-700">
+                  <li>Search for existing meal plan products in your database</li>
+                  <li>Create default plans (Stay Fit, Weight Loss, Muscle Gain, Keto) if none exist</li>
+                  <li>Create subscription plan templates with proper pricing</li>
                   <li>Link sample meals to each subscription plan</li>
-                  <li>Set up proper pricing and delivery schedules</li>
+                  <li>Set up weekly delivery schedules and billing cycles</li>
                 </ul>
               </AlertDescription>
             </Alert>
+
+            <div className="space-y-2">
+              <h3 className="font-semibold">Prerequisites:</h3>
+              <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                <li>Subscription tables must be created first</li>
+                <li>Products table must exist with meal data</li>
+                <li>At least one price column (base_price, price, or weekly_price)</li>
+              </ul>
+            </div>
 
             <Button onClick={initializePlans} disabled={isLoading} className="w-full">
               {isLoading ? (
@@ -100,14 +110,28 @@ export default function InitSubscriptionPlansPage() {
                     {result.details && (
                       <div className="mt-3 space-y-2">
                         <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>Plans Created: {result.details.plansCreated}</div>
-                          <div>Items Created: {result.details.itemsCreated}</div>
-                          <div>Meal Products: {result.details.mealPlanProducts}</div>
-                          <div>Sample Meals: {result.details.sampleMeals}</div>
+                          <div className="space-y-1">
+                            <div>
+                              <strong>Plans Created:</strong> {result.details.plansCreated}
+                            </div>
+                            <div>
+                              <strong>Items Created:</strong> {result.details.itemsCreated}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div>
+                              <strong>Meal Products:</strong> {result.details.mealPlanProducts}
+                            </div>
+                            <div>
+                              <strong>Sample Meals:</strong> {result.details.sampleMeals}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm">
-                          <div className="font-semibold">Price Column Used: {result.details.priceColumnUsed}</div>
-                          <div className="text-xs text-gray-600">
+                        <div className="text-sm border-t pt-2">
+                          <div>
+                            <strong>Price Column Used:</strong> {result.details.priceColumnUsed}
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
                             Available columns: {result.details.availableColumns.join(", ")}
                           </div>
                         </div>
@@ -115,23 +139,31 @@ export default function InitSubscriptionPlansPage() {
                     )}
 
                     {result.missingTables && (
-                      <div className="mt-2 text-sm text-red-600">Missing tables: {result.missingTables.join(", ")}</div>
+                      <div className="mt-2 text-sm text-red-600">
+                        <strong>Missing tables:</strong> {result.missingTables.join(", ")}
+                      </div>
                     )}
 
-                    {result.error && <div className="mt-2 text-sm text-red-600">Error: {result.error}</div>}
+                    {result.error && (
+                      <div className="mt-2 text-sm text-red-600">
+                        <strong>Error:</strong> {result.error}
+                      </div>
+                    )}
                   </AlertDescription>
                 </div>
               </Alert>
             )}
 
             {result?.success && (
-              <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold text-green-900">Success! Next Steps:</h4>
-                <ol className="list-decimal list-inside text-sm text-green-800 mt-2 space-y-1">
-                  <li>Visit "Subscription Plans" to view and manage your plans</li>
+              <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="font-semibold text-green-900 mb-2">🎉 Success! Next Steps:</h4>
+                <ol className="list-decimal list-inside text-sm text-green-800 space-y-1">
+                  <li>
+                    Visit <strong>Subscription Plans</strong> to view and manage your plans
+                  </li>
                   <li>Edit plan contents and add more meals as needed</li>
-                  <li>Test the subscription system with your order flow</li>
                   <li>Configure pricing and delivery schedules</li>
+                  <li>Test the subscription system with your order flow</li>
                 </ol>
               </div>
             )}
