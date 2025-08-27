@@ -48,31 +48,83 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get existing meal plan products
+    // Check what columns exist in products table
+    const productsColumns = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'products'
+    `
+
+    const columnNames = productsColumns.map((col) => col.column_name)
+    const priceColumn = columnNames.includes("base_price")
+      ? "base_price"
+      : columnNames.includes("price")
+        ? "price"
+        : columnNames.includes("weekly_price")
+          ? "weekly_price"
+          : null
+
+    if (!priceColumn) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No price column found in products table. Available columns: " + columnNames.join(", "),
+        },
+        { status: 400 },
+      )
+    }
+
+    // Get existing meal plan products - look for products that could be meal plans
     const mealPlanProducts = await sql`
-      SELECT id, name, base_price 
+      SELECT id, name, ${sql(priceColumn)} as price 
       FROM products 
       WHERE name ILIKE '%plan%' 
       OR name ILIKE '%vegan%' 
       OR name ILIKE '%keto%' 
       OR name ILIKE '%muscle%' 
       OR name ILIKE '%weight%'
+      OR name ILIKE '%fit%'
       ORDER BY name
     `
 
     if (mealPlanProducts.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "No meal plan products found. Please ensure you have meal plans in your products table.",
-        },
-        { status: 400 },
-      )
+      // Create some default meal plan products if none exist
+      const defaultPlans = [
+        { name: "Stay Fit Plan", price: 299 },
+        { name: "Weight Loss Plan", price: 299 },
+        { name: "Muscle Gain Plan", price: 399 },
+        { name: "Keto Plan", price: 349 },
+      ]
+
+      for (const plan of defaultPlans) {
+        await sql`
+          INSERT INTO products (name, slug, description, product_type, ${sql(priceColumn)}, stock_quantity, is_active)
+          VALUES (
+            ${plan.name},
+            ${plan.name.toLowerCase().replace(/\s+/g, "-")},
+            ${"Weekly meal plan with fresh, healthy meals"},
+            'subscription',
+            ${plan.price},
+            999,
+            true
+          )
+          ON CONFLICT (slug) DO NOTHING
+        `
+      }
+
+      // Re-fetch the products we just created
+      const newMealPlans = await sql`
+        SELECT id, name, ${sql(priceColumn)} as price 
+        FROM products 
+        WHERE name IN ('Stay Fit Plan', 'Weight Loss Plan', 'Muscle Gain Plan', 'Keto Plan')
+      `
+      mealPlanProducts.push(...newMealPlans)
     }
 
     // Get some sample meals for plan items
     const sampleMeals = await sql`
-      SELECT id, name, base_price 
+      SELECT id, name, ${sql(priceColumn)} as price 
       FROM products 
       WHERE product_type = 'simple' 
       AND name NOT ILIKE '%plan%'
@@ -98,7 +150,7 @@ export async function POST(request: NextRequest) {
       const billingPeriod = "weekly"
       const deliveryFrequency = "weekly"
       let itemsPerDelivery = 3
-      let price = product.base_price || 299
+      let price = product.price || 299
 
       if (product.name.toLowerCase().includes("muscle")) {
         price = 399
@@ -127,24 +179,26 @@ export async function POST(request: NextRequest) {
       const planId = planResult[0].id
       createdPlans++
 
-      // Add sample meals to the plan
-      const mealsToAdd = sampleMeals.slice(0, Math.min(8, sampleMeals.length))
+      // Add sample meals to the plan if we have any
+      if (sampleMeals.length > 0) {
+        const mealsToAdd = sampleMeals.slice(0, Math.min(8, sampleMeals.length))
 
-      for (let i = 0; i < mealsToAdd.length; i++) {
-        const meal = mealsToAdd[i]
+        for (let i = 0; i < mealsToAdd.length; i++) {
+          const meal = mealsToAdd[i]
 
-        await sql`
-          INSERT INTO subscription_plan_items (
-            plan_id, product_id, quantity, is_optional, sort_order
-          ) VALUES (
-            ${planId}, 
-            ${meal.id}, 
-            1, 
-            ${i >= itemsPerDelivery}, 
-            ${i}
-          )
-        `
-        createdItems++
+          await sql`
+            INSERT INTO subscription_plan_items (
+              plan_id, product_id, quantity, is_optional, sort_order
+            ) VALUES (
+              ${planId}, 
+              ${meal.id}, 
+              1, 
+              ${i >= itemsPerDelivery}, 
+              ${i}
+            )
+          `
+          createdItems++
+        }
       }
     }
 
@@ -156,6 +210,8 @@ export async function POST(request: NextRequest) {
         itemsCreated: createdItems,
         mealPlanProducts: mealPlanProducts.length,
         sampleMeals: sampleMeals.length,
+        priceColumnUsed: priceColumn,
+        availableColumns: columnNames,
       },
     })
   } catch (error) {

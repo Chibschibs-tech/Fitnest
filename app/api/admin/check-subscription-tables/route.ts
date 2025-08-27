@@ -16,48 +16,66 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Check if subscription tables exist
-    const tablesCheck = await sql`
-      SELECT table_name, column_name, data_type
-      FROM information_schema.columns 
+    // Check which tables exist
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('subscription_plans', 'subscription_plan_items', 'active_subscriptions', 'deliveries')
-      ORDER BY table_name, ordinal_position
+      AND table_name IN ('subscription_plans', 'subscription_plan_items', 'active_subscriptions', 'deliveries', 'products', 'users')
+      ORDER BY table_name
     `
 
-    const tableStructure: Record<string, any[]> = {}
-    tablesCheck.forEach((row) => {
-      if (!tableStructure[row.table_name]) {
-        tableStructure[row.table_name] = []
-      }
-      tableStructure[row.table_name].push({
-        column: row.column_name,
-        type: row.data_type,
-      })
-    })
+    // Check products table structure to see what columns exist
+    const productsColumns = await sql`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'products'
+      ORDER BY ordinal_position
+    `
 
-    const requiredTables = ["subscription_plans", "subscription_plan_items", "active_subscriptions", "deliveries"]
-    const existingTables = Object.keys(tableStructure)
-    const missingTables = requiredTables.filter((table) => !existingTables.includes(table))
+    // Get sample products to see the data structure
+    const sampleProducts = await sql`
+      SELECT * FROM products LIMIT 3
+    `
 
-    // Check for existing data
-    const dataCount = {}
-    for (const table of existingTables) {
-      try {
-        const count = await sql`SELECT COUNT(*) as count FROM ${sql(table)}`
-        dataCount[table] = Number.parseInt(count[0].count)
-      } catch (error) {
-        dataCount[table] = "Error"
+    // Check if subscription tables exist and get their row counts
+    const tableStats = {}
+    const existingTables = tables.map((t) => t.table_name)
+
+    for (const tableName of ["subscription_plans", "subscription_plan_items", "active_subscriptions", "deliveries"]) {
+      if (existingTables.includes(tableName)) {
+        try {
+          const count = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
+          tableStats[tableName] = {
+            exists: true,
+            count: Number.parseInt(count[0].count),
+          }
+        } catch (error) {
+          tableStats[tableName] = {
+            exists: true,
+            count: "Error getting count",
+            error: error instanceof Error ? error.message : "Unknown error",
+          }
+        }
+      } else {
+        tableStats[tableName] = {
+          exists: false,
+          count: 0,
+        }
       }
     }
 
     return NextResponse.json({
       success: true,
-      tableStructure,
-      existingTables,
-      missingTables,
-      dataCount,
-      allTablesExist: missingTables.length === 0,
+      tables: existingTables,
+      tableStats,
+      productsColumns: productsColumns.map((col) => ({
+        name: col.column_name,
+        type: col.data_type,
+        nullable: col.is_nullable === "YES",
+      })),
+      sampleProducts: sampleProducts.length > 0 ? sampleProducts[0] : null,
     })
   } catch (error) {
     console.error("Check subscription tables error:", error)

@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
         delivery_week INTEGER,
         delivery_day INTEGER,
         sort_order INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(plan_id, product_id)
       )
     `
 
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
       )
     `
 
-    // Add indexes
+    // Create indexes for performance
     await sql`CREATE INDEX IF NOT EXISTS idx_subscription_plans_product_id ON subscription_plans(product_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_subscription_plan_items_plan_id ON subscription_plan_items(plan_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_subscription_plan_items_product_id ON subscription_plan_items(product_id)`
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Subscription tables created successfully",
+      tables: ["subscription_plans", "subscription_plan_items", "active_subscriptions", "deliveries"],
     })
   } catch (error) {
     console.error("Create subscription tables error:", error)

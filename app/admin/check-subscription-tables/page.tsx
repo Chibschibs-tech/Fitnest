@@ -1,144 +1,147 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, AlertCircle, Loader2, Database, RefreshCw } from "lucide-react"
+import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 
 export default function CheckSubscriptionTablesPage() {
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const checkTables = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetch("/api/admin/check-subscription-tables")
-      const result = await response.json()
-
-      if (result.success) {
-        setData(result)
-      } else {
-        setError(result.error || "Failed to check tables")
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    const checkTables = async () => {
+      try {
+        const response = await fetch("/api/admin/check-subscription-tables")
+        const result = await response.json()
+
+        if (result.success) {
+          setData(result)
+        } else {
+          setError(result.error)
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     checkTables()
   }, [])
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="flex items-center justify-center h-64">
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Checking database tables...</span>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Check Subscription Tables</h1>
-          <p className="text-gray-600">Verify the subscription system database structure.</p>
-        </div>
-        <Button onClick={checkTables} disabled={loading}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
-
-      {error && (
-        <Alert className="mb-6 border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">{error}</AlertDescription>
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <Alert className="border-red-500">
+          <XCircle className="h-4 w-4 text-red-500" />
+          <AlertDescription>
+            <strong>Error:</strong> {error}
+          </AlertDescription>
         </Alert>
-      )}
+      </div>
+    )
+  }
 
-      {data && (
-        <div className="grid gap-6">
+  return (
+    <div className="container mx-auto py-8 space-y-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Database Tables Status</h1>
+
+        {/* Subscription Tables Status */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Subscription Tables</CardTitle>
+            <CardDescription>Status of subscription-related database tables</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(data.tableStats).map(([tableName, stats]: [string, any]) => (
+                <div key={tableName} className="flex items-center justify-between p-3 border rounded">
+                  <div>
+                    <div className="font-medium">{tableName}</div>
+                    <div className="text-sm text-gray-500">
+                      {stats.exists ? `${stats.count} rows` : "Table missing"}
+                    </div>
+                  </div>
+                  <Badge variant={stats.exists ? "default" : "destructive"}>
+                    {stats.exists ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                    {stats.exists ? "Exists" : "Missing"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Products Table Structure */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Products Table Structure</CardTitle>
+            <CardDescription>Column information for the products table</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {data.productsColumns.map((col: any) => (
+                <div key={col.name} className="flex items-center justify-between p-2 border rounded">
+                  <div>
+                    <span className="font-medium">{col.name}</span>
+                    <span className="text-sm text-gray-500 ml-2">({col.type})</span>
+                  </div>
+                  <Badge variant={col.nullable ? "secondary" : "default"}>
+                    {col.nullable ? "Nullable" : "Required"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sample Product Data */}
+        {data.sampleProducts && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Table Status
-                {data.allTablesExist ? (
-                  <Badge className="bg-green-100 text-green-800">All Tables Exist</Badge>
-                ) : (
-                  <Badge variant="destructive">Missing Tables</Badge>
-                )}
-              </CardTitle>
+              <CardTitle>Sample Product Data</CardTitle>
+              <CardDescription>Example product from your database</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold mb-2 text-green-700">Existing Tables:</h3>
-                  <ul className="space-y-1">
-                    {data.existingTables.map((table: string) => (
-                      <li key={table} className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span>{table}</span>
-                        <Badge variant="outline">{data.dataCount[table]} rows</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {data.missingTables.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2 text-red-700">Missing Tables:</h3>
-                    <ul className="space-y-1">
-                      {data.missingTables.map((table: string) => (
-                        <li key={table} className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-red-600" />
-                          <span>{table}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
+                {JSON.stringify(data.sampleProducts, null, 2)}
+              </pre>
             </CardContent>
           </Card>
+        )}
 
-          {Object.keys(data.tableStructure).map((tableName) => (
-            <Card key={tableName}>
-              <CardHeader>
-                <CardTitle>{tableName}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-2">
-                  {data.tableStructure[tableName].map((column: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span className="font-medium">{column.column}</span>
-                      <Badge variant="outline">{column.type}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {!data.allTablesExist && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Some subscription tables are missing. Please create them using the "Create Subscription Tables" page.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-      )}
+        {/* All Existing Tables */}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Database Tables</CardTitle>
+            <CardDescription>Complete list of tables in your database</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {data.tables.map((table: string) => (
+                <Badge key={table} variant="outline">
+                  {table}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

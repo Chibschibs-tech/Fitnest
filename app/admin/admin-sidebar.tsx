@@ -3,13 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Package, ShoppingCart, Truck, Database, Mail, Repeat } from "lucide-react"
+import { Users, Package, ShoppingCart, Truck, BarChart3, Database, Calendar, FileText } from "lucide-react"
 
 const navigation = [
   {
     name: "Dashboard",
     href: "/admin",
-    icon: LayoutDashboard,
+    icon: BarChart3,
   },
   {
     name: "Customers",
@@ -37,11 +37,10 @@ const navigation = [
   },
   {
     name: "Subscription Plans",
-    icon: Repeat,
+    icon: Calendar,
     children: [
       { name: "Manage Plans", href: "/admin/subscription-plans" },
       { name: "Create Plan", href: "/admin/subscription-plans/create" },
-      { name: "Initialize Plans", href: "/admin/init-subscription-plans" },
     ],
   },
   {
@@ -52,14 +51,15 @@ const navigation = [
   {
     name: "Waitlist",
     href: "/admin/waitlist",
-    icon: Mail,
+    icon: FileText,
   },
   {
     name: "System",
     icon: Database,
     children: [
+      { name: "Check Tables", href: "/admin/check-subscription-tables" },
       { name: "Create Tables", href: "/admin/create-subscription-tables" },
-      { name: "System Diagnostic", href: "/admin/system-diagnostic" },
+      { name: "Initialize Plans", href: "/admin/init-subscription-plans" },
       { name: "Debug Database", href: "/admin/debug-database" },
     ],
   },
@@ -69,59 +69,55 @@ export default function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-full overflow-y-auto">
+    <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
       <div className="p-6">
         <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
       </div>
-      <nav className="px-4 pb-4">
-        <ul className="space-y-2">
-          {navigation.map((item) => {
-            if (item.children) {
-              return (
-                <li key={item.name}>
-                  <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-700">
-                    <item.icon className="mr-3 h-4 w-4" />
-                    {item.name}
-                  </div>
-                  <ul className="ml-6 space-y-1">
-                    {item.children.map((child) => (
-                      <li key={child.href}>
-                        <Link
-                          href={child.href}
-                          className={cn(
-                            "block px-3 py-2 text-sm rounded-md transition-colors",
-                            pathname === child.href
-                              ? "bg-blue-50 text-blue-700 font-medium"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                          )}
-                        >
-                          {child.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              )
-            }
-
+      <nav className="px-4 space-y-2">
+        {navigation.map((item) => {
+          if (item.children) {
             return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    pathname === item.href
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900",
-                  )}
-                >
+              <div key={item.name} className="space-y-1">
+                <div className="flex items-center px-2 py-2 text-sm font-medium text-gray-600">
                   <item.icon className="mr-3 h-4 w-4" />
                   {item.name}
-                </Link>
-              </li>
+                </div>
+                <div className="ml-6 space-y-1">
+                  {item.children.map((child) => (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      className={cn(
+                        "block px-2 py-1 text-sm rounded-md",
+                        pathname === child.href
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                      )}
+                    >
+                      {child.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )
-          })}
-        </ul>
+          }
+
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                "flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                pathname === item.href
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+              )}
+            >
+              <item.icon className="mr-3 h-4 w-4" />
+              {item.name}
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )
