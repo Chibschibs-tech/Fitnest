@@ -16,13 +16,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Get subscription plans with related data
+    // Get subscription plans with related data - removed p.slug reference
     const plans = await sql`
       SELECT 
         sp.*,
         p.name as product_name,
-        p.slug as product_slug,
-        p.featured_image,
+        p.imageurl as featured_image,
         COUNT(DISTINCT spi.id) as item_count,
         COUNT(DISTINCT asub.id) as subscriber_count,
         COALESCE(SUM(asub.billing_amount), 0) as monthly_revenue
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN subscription_plan_items spi ON sp.id = spi.plan_id
       LEFT JOIN active_subscriptions asub ON sp.id = asub.plan_id AND asub.status = 'active'
       WHERE sp.is_active = true
-      GROUP BY sp.id, p.name, p.slug, p.featured_image
+      GROUP BY sp.id, p.name, p.imageurl
       ORDER BY sp.created_at DESC
     `
 

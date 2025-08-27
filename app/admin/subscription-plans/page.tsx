@@ -18,6 +18,7 @@ interface SubscriptionPlan {
   items_per_delivery: number
   is_active: boolean
   product_name: string
+  featured_image: string
   item_count: number
   subscriber_count: number
   monthly_revenue: number
@@ -129,6 +130,7 @@ export default function SubscriptionPlansPage() {
                       </Badge>
                     </CardTitle>
                     <p className="text-gray-600 mt-1">{plan.description}</p>
+                    {plan.product_name && <p className="text-sm text-gray-500 mt-1">Product: {plan.product_name}</p>}
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm">
