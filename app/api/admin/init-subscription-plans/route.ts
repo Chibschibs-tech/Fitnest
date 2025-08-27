@@ -102,65 +102,71 @@ export async function POST(request: NextRequest) {
 
     console.log("Found meal plan products:", mealPlanProducts.length)
 
-    if (mealPlanProducts.length === 0) {
-      // Create some default meal plan products if none exist
-      const defaultPlans = [
-        { name: "Stay Fit Plan", price: 299, description: "Balanced meals for maintaining fitness" },
-        { name: "Weight Loss Plan", price: 299, description: "Calorie-controlled meals for weight management" },
-        { name: "Muscle Gain Plan", price: 399, description: "High-protein meals for muscle building" },
-        { name: "Keto Plan", price: 349, description: "Low-carb, high-fat ketogenic meals" },
-      ]
+    // Always create default meal plan products since none were found
+    const defaultPlans = [
+      { name: "Stay Fit Plan", price: 299, description: "Balanced meals for maintaining fitness and health" },
+      {
+        name: "Weight Loss Plan",
+        price: 299,
+        description: "Calorie-controlled meals designed for healthy weight management",
+      },
+      {
+        name: "Muscle Gain Plan",
+        price: 399,
+        description: "High-protein meals optimized for muscle building and recovery",
+      },
+      { name: "Keto Plan", price: 349, description: "Low-carb, high-fat ketogenic meals for metabolic health" },
+    ]
 
-      console.log("Creating default meal plan products...")
+    console.log("Creating default meal plan products...")
 
-      for (const plan of defaultPlans) {
-        const slug = plan.name.toLowerCase().replace(/\s+/g, "-")
-        try {
-          // Check if required columns exist for product creation
-          const requiredColumns = ["name", "slug", "description", priceColumn]
-          const optionalColumns = ["product_type", "stock_quantity", "is_active"]
+    for (const plan of defaultPlans) {
+      const slug = plan.name.toLowerCase().replace(/\s+/g, "-")
+      try {
+        // Build insert query based on available columns
+        const baseColumns = ["name", "slug", "description", priceColumn]
+        const baseValues = [plan.name, slug, plan.description, plan.price]
 
-          // Build insert query dynamically based on available columns
-          const insertColumns = requiredColumns.filter((col) => columnNames.includes(col))
-          const insertValues = [plan.name, slug, plan.description, plan.price]
+        // Add optional columns if they exist
+        const optionalMappings = [
+          { column: "category", value: "meal-plans" },
+          { column: "stock", value: 999 },
+          { column: "isactive", value: true },
+          { column: "tags", value: "subscription,meal-plan,healthy" },
+        ]
 
-          // Add optional columns if they exist
-          if (columnNames.includes("product_type")) {
-            insertColumns.push("product_type")
-            insertValues.push("subscription")
+        const finalColumns = [...baseColumns]
+        const finalValues = [...baseValues]
+
+        for (const mapping of optionalMappings) {
+          if (columnNames.includes(mapping.column)) {
+            finalColumns.push(mapping.column)
+            finalValues.push(mapping.value)
           }
-          if (columnNames.includes("stock_quantity")) {
-            insertColumns.push("stock_quantity")
-            insertValues.push(999)
-          }
-          if (columnNames.includes("is_active")) {
-            insertColumns.push("is_active")
-            insertValues.push(true)
-          }
-
-          const insertQuery = `
-            INSERT INTO products (${insertColumns.join(", ")})
-            VALUES (${insertColumns.map((_, i) => `$${i + 1}`).join(", ")})
-            ON CONFLICT (slug) DO NOTHING
-          `
-
-          await sql.unsafe(insertQuery, insertValues)
-          console.log(`Created product: ${plan.name}`)
-        } catch (error) {
-          console.error(`Error creating product ${plan.name}:`, error)
         }
-      }
 
-      // Re-fetch the products we just created
-      const newMealPlans = await sql`
-        SELECT id, name, description, ${sql.unsafe(priceColumn)} as price 
-        FROM products 
-        WHERE name IN ('Stay Fit Plan', 'Weight Loss Plan', 'Muscle Gain Plan', 'Keto Plan')
-        AND ${sql.unsafe(priceColumn)} IS NOT NULL
-      `
-      mealPlanProducts.push(...newMealPlans)
-      console.log("Total meal plan products after creation:", mealPlanProducts.length)
+        const placeholders = finalColumns.map((_, i) => `$${i + 1}`).join(", ")
+        const insertQuery = `
+          INSERT INTO products (${finalColumns.join(", ")})
+          VALUES (${placeholders})
+          ON CONFLICT (slug) DO UPDATE SET
+            name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            ${priceColumn} = EXCLUDED.${priceColumn}
+          RETURNING id, name, ${priceColumn} as price
+        `
+
+        const result = await sql.unsafe(insertQuery, finalValues)
+        if (result.length > 0) {
+          mealPlanProducts.push(result[0])
+          console.log(`Created/updated product: ${plan.name} (ID: ${result[0].id})`)
+        }
+      } catch (error) {
+        console.error(`Error creating product ${plan.name}:`, error)
+      }
     }
+
+    console.log("Total meal plan products after creation:", mealPlanProducts.length)
 
     // Get some sample meals for plan items
     const sampleMeals = await sql`
@@ -168,6 +174,7 @@ export async function POST(request: NextRequest) {
       FROM products 
       WHERE name NOT ILIKE '%plan%'
       AND ${sql.unsafe(priceColumn)} IS NOT NULL
+      AND ${sql.unsafe(priceColumn)} > 0
       LIMIT 20
     `
 
