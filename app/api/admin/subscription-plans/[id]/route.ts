@@ -21,45 +21,33 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 })
     }
 
-    // Get subscription plan with items
-    const plan = await sql`
+    // Get specific subscription plan
+    const plans = await sql`
       SELECT 
         sp.*,
         p.name as product_name,
-        p.slug as product_slug,
-        p.featured_image
+        p.imageurl as featured_image,
+        COUNT(DISTINCT spi.id) as item_count,
+        COUNT(DISTINCT asub.id) as subscriber_count,
+        COALESCE(SUM(asub.billing_amount), 0) as monthly_revenue
       FROM subscription_plans sp
       LEFT JOIN products p ON sp.product_id = p.id
+      LEFT JOIN subscription_plan_items spi ON sp.id = spi.plan_id
+      LEFT JOIN active_subscriptions asub ON sp.id = asub.plan_id AND asub.status = 'active'
       WHERE sp.id = ${planId}
+      GROUP BY sp.id, p.name, p.imageurl
     `
 
-    if (plan.length === 0) {
+    if (plans.length === 0) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 })
     }
-
-    // Get plan items
-    const items = await sql`
-      SELECT 
-        spi.*,
-        p.name as product_name,
-        p.base_price,
-        p.featured_image
-      FROM subscription_plan_items spi
-      LEFT JOIN products p ON spi.product_id = p.id
-      WHERE spi.plan_id = ${planId}
-      ORDER BY spi.sort_order, spi.id
-    `
 
     return NextResponse.json({
       success: true,
       plan: {
-        ...plan[0],
-        price: Number.parseFloat(plan[0].price || 0),
-        items: items.map((item) => ({
-          ...item,
-          additional_price: Number.parseFloat(item.additional_price || 0),
-          base_price: Number.parseFloat(item.base_price || 0),
-        })),
+        ...plans[0],
+        monthly_revenue: Number.parseFloat(plans[0].monthly_revenue || 0),
+        price: Number.parseFloat(plans[0].price || 0),
       },
     })
   } catch (error) {
@@ -114,7 +102,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         delivery_frequency = ${delivery_frequency || "weekly"},
         items_per_delivery = ${items_per_delivery || 1},
         is_active = ${is_active !== undefined ? is_active : true},
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = NOW()
       WHERE id = ${planId}
       RETURNING *
     `
@@ -161,27 +149,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Check if plan has active subscriptions
     const activeSubscriptions = await sql`
-      SELECT COUNT(*) as count 
-      FROM active_subscriptions 
+      SELECT COUNT(*) as count FROM active_subscriptions 
       WHERE plan_id = ${planId} AND status = 'active'
     `
 
     if (Number.parseInt(activeSubscriptions[0].count) > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Cannot delete plan with active subscriptions. Please cancel all subscriptions first.",
-        },
-        { status: 409 },
-      )
+      return NextResponse.json({ error: "Cannot delete plan with active subscriptions" }, { status: 400 })
     }
 
-    // Delete the plan (cascade will handle plan items)
-    const result = await sql`
-      DELETE FROM subscription_plans 
-      WHERE id = ${planId}
-      RETURNING id
-    `
+    // Delete plan items first
+    await sql`DELETE FROM subscription_plan_items WHERE plan_id = ${planId}`
+
+    // Delete the plan
+    const result = await sql`DELETE FROM subscription_plans WHERE id = ${planId} RETURNING *`
 
     if (result.length === 0) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 })
@@ -189,7 +169,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return NextResponse.json({
       success: true,
-      message: "Subscription plan deleted successfully",
+      message: "Plan deleted successfully",
     })
   } catch (error) {
     console.error("Delete subscription plan error:", error)

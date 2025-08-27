@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Loader2, Plus, Edit, Trash2, Users, DollarSign, Package } from "lucide-react"
+import { AlertCircle, Loader2, Plus, Edit, Trash2, Users, DollarSign, Package, Settings, Eye } from "lucide-react"
 
 interface SubscriptionPlan {
   id: number
@@ -26,9 +27,11 @@ interface SubscriptionPlan {
 }
 
 export default function SubscriptionPlansPage() {
+  const router = useRouter()
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false)
 
   const fetchPlans = async () => {
     try {
@@ -46,6 +49,28 @@ export default function SubscriptionPlansPage() {
       setError(err instanceof Error ? err.message : "Unknown error")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cleanDuplicates = async () => {
+    try {
+      setCleaningDuplicates(true)
+      const response = await fetch("/api/admin/clean-duplicate-plans", {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(`Cleaned ${data.deletedCount} duplicate plans`)
+        await fetchPlans() // Refresh the list
+      } else {
+        alert(data.error || "Failed to clean duplicates")
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Unknown error")
+    } finally {
+      setCleaningDuplicates(false)
     }
   }
 
@@ -85,6 +110,10 @@ export default function SubscriptionPlansPage() {
     )
   }
 
+  // Check for duplicates
+  const planNames = plans.map((p) => p.name)
+  const hasDuplicates = planNames.length !== new Set(planNames).size
+
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8 flex justify-between items-center">
@@ -92,16 +121,33 @@ export default function SubscriptionPlansPage() {
           <h1 className="text-3xl font-bold mb-2">Subscription Plans</h1>
           <p className="text-gray-600">Manage your subscription plans and their contents.</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Plan
-        </Button>
+        <div className="flex gap-2">
+          {hasDuplicates && (
+            <Button variant="outline" onClick={cleanDuplicates} disabled={cleaningDuplicates}>
+              {cleaningDuplicates && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Clean Duplicates
+            </Button>
+          )}
+          <Button onClick={() => router.push("/admin/subscription-plans/create")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Plan
+          </Button>
+        </div>
       </div>
 
       {error && (
         <Alert className="mb-6 border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {hasDuplicates && (
+        <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-800">
+            Duplicate plans detected. Click "Clean Duplicates" to remove them.
+          </AlertDescription>
         </Alert>
       )}
 
@@ -113,7 +159,7 @@ export default function SubscriptionPlansPage() {
             <p className="text-gray-600 mb-4">
               You haven't created any subscription plans yet. Initialize them from your meal plans.
             </p>
-            <Button onClick={() => (window.location.href = "/admin/init-subscription-plans")}>Initialize Plans</Button>
+            <Button onClick={() => router.push("/admin/init-subscription-plans")}>Initialize Plans</Button>
           </CardContent>
         </Card>
       ) : (
@@ -133,7 +179,11 @@ export default function SubscriptionPlansPage() {
                     {plan.product_name && <p className="text-sm text-gray-500 mt-1">Product: {plan.product_name}</p>}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/admin/subscription-plans/${plan.id}/edit`)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
@@ -181,10 +231,20 @@ export default function SubscriptionPlansPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/subscription-plans/${plan.id}/items`)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
                     Manage Items
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/subscription-plans/${plan.id}/subscribers`)}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
                     View Subscribers
                   </Button>
                 </div>
