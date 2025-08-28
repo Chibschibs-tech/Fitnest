@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     let finalWeekly = grossWeekly
     const discountsApplied: DiscountApplied[] = []
 
-    // Apply days_per_week discount (only one, highest applicable)
+    // Apply days_per_week discount (only one, exact match)
     const daysDiscount = discountRules.find(
       (rule) => rule.discount_type === "days_per_week" && rule.condition_value === days,
     )
@@ -96,10 +96,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Apply duration discount (highest applicable)
-    const durationDiscount = discountRules
+    // Apply duration discount (highest applicable that's <= duration)
+    const applicableDurationDiscounts = discountRules
       .filter((rule) => rule.discount_type === "duration_weeks" && rule.condition_value <= duration)
-      .sort((a, b) => b.condition_value - a.condition_value)[0]
+      .sort((a, b) => b.condition_value - a.condition_value)
+
+    const durationDiscount = applicableDurationDiscounts[0]
 
     if (durationDiscount && durationDiscount.stackable) {
       const discountAmount = finalWeekly * Number(durationDiscount.discount_percentage)

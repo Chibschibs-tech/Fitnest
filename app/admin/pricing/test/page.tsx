@@ -40,7 +40,7 @@ const testCases: TestCase[] = [
       days: 5,
       duration: 4,
     },
-    expectedTotal: 1659, // Expected with discounts
+    expectedTotal: 1746, // Corrected: (45+55)*5*0.97*0.90*4 = 1746 MAD
   },
   {
     name: "Maximum Discounts",

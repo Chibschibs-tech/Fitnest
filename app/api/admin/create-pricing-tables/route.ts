@@ -7,17 +7,17 @@ export async function POST() {
   try {
     console.log("Creating pricing tables...")
 
-    // Execute the SQL script
+    // Execute the SQL script to create tables and seed data
     await sql`
-      -- Create pricing tables for dynamic pricing engine
+      -- Drop existing tables if they exist
       DROP TABLE IF EXISTS discount_rules CASCADE;
       DROP TABLE IF EXISTS meal_type_prices CASCADE;
 
-      -- Table for meal type prices
+      -- Create meal_type_prices table
       CREATE TABLE meal_type_prices (
         id SERIAL PRIMARY KEY,
-        plan_name TEXT NOT NULL,     -- Weight Loss | Stay Fit | Muscle Gain | extensible
-        meal_type TEXT NOT NULL,     -- Breakfast | Lunch | Dinner | extensible
+        plan_name TEXT NOT NULL,
+        meal_type TEXT NOT NULL,
         base_price_mad NUMERIC(10,2) NOT NULL,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW(),
@@ -25,12 +25,12 @@ export async function POST() {
         UNIQUE(plan_name, meal_type)
       );
 
-      -- Table for discount rules
+      -- Create discount_rules table
       CREATE TABLE discount_rules (
         id SERIAL PRIMARY KEY,
-        discount_type TEXT NOT NULL,    -- duration_weeks | days_per_week | special_offer
-        condition_value INT NOT NULL,   -- ex: 4 (semaines) ou 6 (jours)
-        discount_percentage NUMERIC(5,4) NOT NULL, -- 0.10 = 10%
+        discount_type TEXT NOT NULL,
+        condition_value INT NOT NULL,
+        discount_percentage NUMERIC(5,4) NOT NULL,
         stackable BOOLEAN DEFAULT true,
         is_active BOOLEAN DEFAULT true,
         valid_from TIMESTAMP NULL,
@@ -40,35 +40,30 @@ export async function POST() {
       );
     `
 
-    // Seed meal type prices
+    // Insert seed data for meal prices
     await sql`
       INSERT INTO meal_type_prices (plan_name, meal_type, base_price_mad) VALUES
-      -- Weight Loss Plan
       ('Weight Loss', 'Breakfast', 45.00),
       ('Weight Loss', 'Lunch', 55.00),
       ('Weight Loss', 'Dinner', 50.00),
-      -- Stay Fit Plan
       ('Stay Fit', 'Breakfast', 50.00),
       ('Stay Fit', 'Lunch', 60.00),
       ('Stay Fit', 'Dinner', 55.00),
-      -- Muscle Gain Plan
       ('Muscle Gain', 'Breakfast', 55.00),
       ('Muscle Gain', 'Lunch', 70.00),
       ('Muscle Gain', 'Dinner', 65.00);
     `
 
-    // Seed discount rules
+    // Insert seed data for discount rules
     await sql`
       INSERT INTO discount_rules (discount_type, condition_value, discount_percentage, stackable) VALUES
-      -- Days per week discounts
-      ('days_per_week', 5, 0.0300, true),  -- 5 days = 3%
-      ('days_per_week', 6, 0.0500, true),  -- 6 days = 5%
-      ('days_per_week', 7, 0.0700, true),  -- 7 days = 7%
-      -- Duration discounts
-      ('duration_weeks', 2, 0.0500, true), -- 2 weeks = 5%
-      ('duration_weeks', 4, 0.1000, true), -- 4 weeks = 10%
-      ('duration_weeks', 8, 0.1500, true), -- 8 weeks = 15%
-      ('duration_weeks', 12, 0.2000, true); -- 12 weeks = 20%
+      ('days_per_week', 5, 0.0300, true),
+      ('days_per_week', 6, 0.0500, true),
+      ('days_per_week', 7, 0.0700, true),
+      ('duration_weeks', 2, 0.0500, true),
+      ('duration_weeks', 4, 0.1000, true),
+      ('duration_weeks', 8, 0.1500, true),
+      ('duration_weeks', 12, 0.2000, true);
     `
 
     // Create indexes
@@ -102,16 +97,22 @@ export async function POST() {
     console.log("Pricing tables created successfully")
 
     return NextResponse.json({
-      success: true,
-      message: "Pricing tables created and seeded successfully",
-      tables: ["meal_type_prices", "discount_rules"],
-      seedData: {
-        mealPrices: 9,
-        discountRules: 7,
+      message: "Pricing tables created successfully",
+      details: {
+        mealPricesCreated: 9,
+        discountRulesCreated: 7,
+        indexesCreated: 5,
+        triggersCreated: 2,
       },
     })
   } catch (error) {
     console.error("Error creating pricing tables:", error)
-    return NextResponse.json({ error: "Failed to create pricing tables", details: error }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to create pricing tables",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
