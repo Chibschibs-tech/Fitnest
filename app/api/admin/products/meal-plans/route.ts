@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { sql } from "@neondatabase/serverless"
+import { sql } from '@/lib/db'
+
 
 export async function GET(request: NextRequest) {
   try {
