@@ -2,7 +2,7 @@
  * Prisma stub implementation using Neon directly
  */
 
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 
 // Create a connection to the database
 const sql = neon(process.env.DATABASE_URL || "")

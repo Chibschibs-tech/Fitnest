@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import crypto from "crypto"
 import { v4 as uuidv4 } from "uuid"
 

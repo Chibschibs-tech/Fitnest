@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/simple-auth"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { cookies } from "next/headers"
 
 export const dynamic = "force-dynamic"

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 

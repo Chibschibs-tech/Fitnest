@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 
 export async function GET(request: Request) {
   try {

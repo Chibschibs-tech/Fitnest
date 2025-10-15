@@ -1,5 +1,5 @@
 import { CartContent } from "./cart-content"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { cookies } from "next/headers"
 
 export const dynamic = "force-dynamic"

@@ -20,8 +20,6 @@ sql.transaction = (...args: any[]) => getNeon().transaction?.(...args)
 // Drizzle reçoit la fonction, pas d'appel DB au top-level
 export const db = drizzle(sql)
 
-
-// Define the schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -87,32 +85,3 @@ export const orders = pgTable("orders", {
 
 export const notificationPreferences = pgTable("notification_preferences", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  emailNotifications: boolean("email_notifications").default(true),
-  smsNotifications: boolean("sms_notifications").default(false),
-  pushNotifications: boolean("push_notifications").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-})
-
-export const mealPreferences = pgTable("meal_preferences", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  dietaryRestrictions: text("dietary_restrictions"),
-  allergies: text("allergies"),
-  preferredCuisines: text("preferred_cuisines"),
-  dislikedIngredients: text("disliked_ingredients"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-})
-
-export const waitlist = pgTable("waitlist", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone"),
-  mealPlanPreference: text("meal_plan_preference"),
-  city: text("city"),
-  notifications: boolean("notifications").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-})

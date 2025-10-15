@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 

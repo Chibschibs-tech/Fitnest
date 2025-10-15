@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import Link from "next/link"
 import Image from "next/image"
 

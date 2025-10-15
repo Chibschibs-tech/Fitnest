@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { initCustomersTable, createCustomerProfile } from "@/lib/customer-management"
 
 const sql = neon(process.env.DATABASE_URL!)

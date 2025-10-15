@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { cookies } from "next/headers"
 
 export async function GET() {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 
 // Force dynamic to prevent caching issues
 export const dynamic = "force-dynamic"

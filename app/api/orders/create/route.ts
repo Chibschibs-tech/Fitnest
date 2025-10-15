@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { sendOrderConfirmationEmail } from "@/lib/email-utils"
 
 // Map meal plan IDs to database plan IDs

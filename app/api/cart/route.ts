@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { sql, db } from "@/lib/db"
 import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
 
