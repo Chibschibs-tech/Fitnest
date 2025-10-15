@@ -2,8 +2,24 @@ import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
 import { pgTable, serial, text, integer, boolean, timestamp, decimal, jsonb } from "drizzle-orm/pg-core"
 
-const sql = neon(process.env.DATABASE_URL!)
+// --- Lazy Neon init: évite l'appel au build ---
+let _neon: ReturnType<typeof neon> | null = null
+function getNeon() {
+  if (_neon) return _neon
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error("DATABASE_URL is missing")
+  _neon = neon(url)
+  return _neon
+}
+
+// Exporte un tag `sql` compatible (avec .array / .transaction)
+export const sql: any = ((...args: any[]) => getNeon()(...args)) as any
+sql.array = (...args: any[]) => getNeon().array(...args)
+sql.transaction = (...args: any[]) => getNeon().transaction?.(...args)
+
+// Drizzle reçoit la fonction, pas d'appel DB au top-level
 export const db = drizzle(sql)
+
 
 // Define the schema
 export const users = pgTable("users", {
