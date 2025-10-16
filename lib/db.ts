@@ -1,5 +1,4 @@
 // lib/db.ts
-import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 
 // Lazy init pour éviter toute connexion pendant le build

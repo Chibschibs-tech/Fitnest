@@ -9,7 +9,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 // Test database connection
 export async function testDatabaseConnection() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const result = await sql`SELECT 1 as connection_test`
     return {
       success: true,
@@ -28,7 +27,6 @@ export async function testDatabaseConnection() {
 // Check if products table exists and has data
 export async function checkProductsTable() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check if table exists
     const tables = await sql`
@@ -67,7 +65,6 @@ export async function checkProductsTable() {
 // Check if cart table exists
 export async function checkCartTable() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check if table exists
     const tables = await sql`

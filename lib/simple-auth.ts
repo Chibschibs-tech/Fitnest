@@ -2,7 +2,6 @@ import { sql, db } from "@/lib/db"
 import crypto from "crypto"
 import { v4 as uuidv4 } from "uuid"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 // Simple hash function using built-in crypto only
 function simpleHash(password: string): string {

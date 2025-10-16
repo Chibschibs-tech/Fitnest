@@ -1,6 +1,5 @@
 import { sql, db } from "@/lib/db"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 // =============================================
 // PRODUCT MANAGEMENT
