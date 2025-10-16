@@ -1,53 +1,5 @@
 import { NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
-
-const sql = neon(process.env.DATABASE_URL!)
-
-export async function POST() {
-  try {
-    // Create meal_type_prices table
-    await sql`
-      CREATE TABLE IF NOT EXISTS meal_type_prices (
-        id SERIAL PRIMARY KEY,
-        plan_name TEXT NOT NULL,
-        meal_type TEXT NOT NULL,
-        base_price_mad NUMERIC(10,2) NOT NULL,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(plan_name, meal_type)
-      )
-    `
-
-    // Create discount_rules table
-    await sql`
-      CREATE TABLE IF NOT EXISTS discount_rules (
-        id SERIAL PRIMARY KEY,
-        discount_type TEXT NOT NULL,
-        condition_value INT NOT NULL,
-        discount_percentage NUMERIC(5,4) NOT NULL,
-        stackable BOOLEAN DEFAULT true,
-        is_active BOOLEAN DEFAULT true,
-        valid_from TIMESTAMP NULL,
-        valid_to TIMESTAMP NULL,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `
-
-    // Create indexes
-    await sql`CREATE INDEX IF NOT EXISTS idx_meal_type_prices_plan ON meal_type_prices(plan_name)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_meal_type_prices_active ON meal_type_prices(is_active)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_discount_rules_type ON discount_rules(discount_type)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_discount_rules_active ON discount_rules(is_active)`
-    await sql`CREATE INDEX IF NOT EXISTS idx_discount_rules_dates ON discount_rules(valid_from, valid_to)`
-
-    // Create or replace update function
-    await sql`
-      CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
-      BEGIN
-          NEW.updated_at = NOW();
           RETURN NEW;
       END;
       $$ language 'plpgsql'

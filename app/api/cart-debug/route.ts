@@ -4,14 +4,6 @@ import { sql, db } from "@/lib/db"
 export async function GET() {
   try {
     // Initialize the Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
-
-    // Check if cart_items table exists
-    const tableExists = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'cart_items'
-      );
     `
 
     // Get the table structure if it exists
