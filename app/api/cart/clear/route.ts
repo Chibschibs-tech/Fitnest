@@ -3,7 +3,6 @@ import { sql, db } from "@/lib/db"
 
 export async function POST(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get cart ID from cookies
     const cartId = request.headers

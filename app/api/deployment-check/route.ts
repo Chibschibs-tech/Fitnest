@@ -13,7 +13,6 @@ export async function GET() {
     // Test database connection
     let dbStatus = "unknown"
     try {
-      const sql = neon(process.env.DATABASE_URL!)
       await sql`SELECT 1`
       dbStatus = "connected"
     } catch (dbError) {

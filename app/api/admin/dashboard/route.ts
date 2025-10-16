@@ -3,7 +3,6 @@ import { cookies } from "next/headers"
 import { getSessionUser } from "@/lib/simple-auth"
 import { sql, db } from "@/lib/db"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 export const dynamic = "force-dynamic"
 

@@ -18,7 +18,6 @@ export default async function ExpressShop() {
 
   try {
     console.log("Connecting to database")
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Simple query to get products with the correct column names
     console.log("Fetching products")

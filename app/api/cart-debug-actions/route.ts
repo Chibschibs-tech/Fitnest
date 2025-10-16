@@ -4,7 +4,6 @@ import { cookies } from "next/headers"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const cookieStore = cookies()
     const cartId = cookieStore.get("cartId")?.value
 

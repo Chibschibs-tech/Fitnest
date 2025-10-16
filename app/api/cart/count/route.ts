@@ -13,7 +13,6 @@ export async function GET() {
       return NextResponse.json({ count: 0 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get cart count using the cart table
     const result = await sql`

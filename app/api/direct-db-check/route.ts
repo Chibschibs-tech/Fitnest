@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check database connection
     const connectionTest = await sql`SELECT 1 as connection_test`

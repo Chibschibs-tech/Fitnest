@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -195,7 +194,6 @@ async function seedProducts(sql, columnNames) {
 
 export async function POST(request: NextRequest) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const data = await request.json()
 
     // Validate required fields

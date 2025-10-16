@@ -14,7 +14,6 @@ export async function GET() {
     const nextAuthCsrfToken = cookieStore.get("next-auth.csrf-token")?.value
     const jwtToken = cookieStore.get("session")?.value
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     let user = null
     let isAuthenticated = false

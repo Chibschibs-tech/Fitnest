@@ -20,7 +20,6 @@ export async function GET() {
       })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Use the cart table (which exists and has data)
     const cartItems = await sql`
@@ -97,7 +96,6 @@ export async function POST(request: Request) {
       console.log("Generated new cart ID:", cartId)
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Convert productId to integer (products table uses integer IDs)
     const productIdInt = Number.parseInt(productId)
@@ -175,7 +173,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "No cart found" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
     const productIdInt = Number.parseInt(productId)
 
     if (quantity <= 0) {
@@ -223,7 +220,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "No cart found" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
     const productIdInt = Number.parseInt(productId)
 
     await sql`

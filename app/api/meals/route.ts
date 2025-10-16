@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
       throw new Error("No database URL found in environment variables")
     }
 
-    const sql = neon(databaseUrl)
     const { searchParams } = new URL(request.url)
     const mealType = searchParams.get("type")
 

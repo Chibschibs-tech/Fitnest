@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic"
 
 async function getProducts() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     const products = await sql`
       SELECT 

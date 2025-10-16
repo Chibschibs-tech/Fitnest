@@ -11,7 +11,6 @@ async function getUserId() {
   const nextAuthToken = cookieStore.get("next-auth.session-token")?.value
   const jwtToken = cookieStore.get("session")?.value
 
-  const sql = neon(process.env.DATABASE_URL!)
 
   // Try NextAuth first
   if (nextAuthToken) {
@@ -75,7 +74,6 @@ export async function GET() {
       })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // First, check if the cart_items table exists
     const tables = await sql`

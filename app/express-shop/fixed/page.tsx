@@ -12,7 +12,6 @@ export default async function FixedExpressShop() {
 
   try {
     // Connect directly to the database
-    const sql = neon(process.env.DATABASE_URL!)
     debugInfo.dbConnected = true
 
     // Check if products table exists

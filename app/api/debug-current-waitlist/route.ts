@@ -5,7 +5,6 @@ import { cookies } from "next/headers"
 
 export const dynamic = "force-dynamic"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
   try {

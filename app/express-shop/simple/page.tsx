@@ -15,7 +15,6 @@ export default async function SimpleExpressShop() {
   let error = null
 
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Simple query to get products
     const result = await sql`

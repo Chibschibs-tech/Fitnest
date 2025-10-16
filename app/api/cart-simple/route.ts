@@ -30,7 +30,6 @@ export async function POST(request: Request) {
     }
 
     // Initialize Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Ensure cart table exists
     await sql`
@@ -98,7 +97,6 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Simple query to test database connection
     const result = await sql`SELECT NOW() as time`

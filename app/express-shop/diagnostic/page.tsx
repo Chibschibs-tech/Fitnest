@@ -9,7 +9,6 @@ export default async function ExpressShopDiagnostic() {
   let error = null
 
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Test database connection
     const connectionTest = await sql`SELECT 1 as connection_test`

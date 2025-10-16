@@ -12,7 +12,6 @@ export async function GET() {
     // Check database connection
     let dbConnection = "✗ Failed"
     try {
-      const sql = neon(process.env.DATABASE_URL!)
       const result = await sql`SELECT 1 as test`
       if (result[0]?.test === 1) {
         dbConnection = "✓ Connected"
@@ -24,7 +23,6 @@ export async function GET() {
     // Check dependencies
     const dependencies = {
       next: "✓ Available",
-      "@neondatabase/serverless": "✓ Available",
       crypto: "✓ Built-in Node.js module",
       uuid: "✓ Available",
     }

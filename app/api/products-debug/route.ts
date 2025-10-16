@@ -4,7 +4,6 @@ import { sql, db } from "@/lib/db"
 export async function GET() {
   try {
     // Initialize the Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
 
     // First, check the table structure
     const tableInfo = await sql`

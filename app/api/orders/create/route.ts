@@ -15,7 +15,6 @@ const getPlanDatabaseId = (planId: string): number => {
 
 export async function POST(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const body = await request.json()
 
     console.log("=== ORDER CREATION START ===")

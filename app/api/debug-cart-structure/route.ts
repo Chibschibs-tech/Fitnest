@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get cart ID from headers
     const cartId = request.headers

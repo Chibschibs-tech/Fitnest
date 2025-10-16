@@ -15,7 +15,6 @@ export async function GET() {
 
   try {
     // Step 1: Check database connection
-    const sql = neon(process.env.DATABASE_URL!)
     await sql`SELECT 1`
     diagnosticInfo.databaseConnection = true
 

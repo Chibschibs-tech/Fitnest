@@ -18,7 +18,6 @@ export default async function ProductDetail({ params }: { params: { id: string }
   let error = null
 
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Query with the correct column names
     const result = await sql`

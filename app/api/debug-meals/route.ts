@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     const meals = await sql`SELECT id, name, category FROM meals ORDER BY id DESC LIMIT 10`
     const count = await sql`SELECT COUNT(*) as count FROM meals`

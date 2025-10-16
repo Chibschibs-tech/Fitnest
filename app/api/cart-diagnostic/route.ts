@@ -25,7 +25,6 @@ export async function GET() {
     }
 
     const userId = Number.parseInt(session.user.id as string)
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Step 2: Check database connection
     let dbConnectionStatus = "success"

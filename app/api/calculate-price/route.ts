@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
 import { z } from "zod"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 // Validation schema
 const PriceCalculationSchema = z.object({

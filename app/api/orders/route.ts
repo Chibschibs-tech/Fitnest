@@ -18,7 +18,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get("userId")
 
@@ -58,7 +57,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     const newOrder = await sql`
       INSERT INTO orders (user_id, plan_id, total_amount, delivery_address, delivery_date, status)

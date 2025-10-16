@@ -3,7 +3,6 @@ import { sql, db } from "@/lib/db"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "")
 
     // Simple test query
     const result = await sql`SELECT 1 as test`

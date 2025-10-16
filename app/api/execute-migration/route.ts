@@ -9,7 +9,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Migration must be confirmed" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     console.log(`=== EXECUTING MIGRATION PHASE: ${phase} ===`)
 

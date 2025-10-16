@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 // Mock data that matches the subscriptions list
 const mockOrders = {

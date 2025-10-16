@@ -4,7 +4,6 @@ import { sql, db } from "@/lib/db"
 export async function GET() {
   try {
     // Test database connection
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Simple query that should always work
     const result = await sql`SELECT 1 as test`

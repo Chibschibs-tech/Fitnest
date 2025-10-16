@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const logs = []
 
     logs.push("Starting database rebuild...")

@@ -7,7 +7,6 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   try {
     console.log("DB check API called")
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Test the connection with a simple query
     const result = await sql`SELECT NOW() as time`

@@ -9,7 +9,6 @@ export default async function MinimalExpressShop() {
   let error = null
 
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check if products table exists
     const tableExists = await sql`

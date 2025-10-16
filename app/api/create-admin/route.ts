@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
 import crypto from "crypto"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 // Simple hash function using built-in crypto only
 function simpleHash(password: string): string {

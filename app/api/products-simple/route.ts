@@ -7,7 +7,6 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   try {
     console.log("Simple products API called")
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check if table exists
     const tableExists = await sql`

@@ -3,7 +3,6 @@ import { sql, db } from "@/lib/db"
 
 export async function GET(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get cart ID from cookie
     const cartId = request.headers
@@ -53,7 +52,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const body = await request.json()
 
     console.log("=== CART FIX ACTION ===")

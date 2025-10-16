@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
 import { DeliveryService } from "@/lib/delivery-service"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST() {
   try {

@@ -3,7 +3,6 @@ import { sql, db } from "@/lib/db"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Create cart_items table if it doesn't exist
     await sql`

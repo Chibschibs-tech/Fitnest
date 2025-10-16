@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
 import { z } from "zod"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 const UpdateDiscountRuleSchema = z.object({
   discount_type: z.enum(["duration_weeks", "days_per_week", "special_offer"]).optional(),

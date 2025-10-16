@@ -18,7 +18,6 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get user's notifications
     const userNotifications = await sql`
@@ -57,7 +56,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Create notification
     const newNotification = await sql`
@@ -95,7 +93,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: "Missing notification ID" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Update notification
     await sql`

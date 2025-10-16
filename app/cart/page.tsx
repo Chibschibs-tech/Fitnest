@@ -14,7 +14,6 @@ export default async function Cart() {
   }
 
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Get cart items with product details using the cart table
     const cartItems = await sql`

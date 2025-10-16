@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { sql, db } from "@/lib/db"
 import { initCustomersTable, createCustomerProfile } from "@/lib/customer-management"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST() {
   try {

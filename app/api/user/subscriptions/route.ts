@@ -5,7 +5,6 @@ import { sql, db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
-const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
   try {

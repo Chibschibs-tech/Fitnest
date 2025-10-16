@@ -5,7 +5,6 @@ import { authOptions } from "../auth/[...nextauth]/route"
 
 // Helper function to get column names
 async function getTableColumns(tableName: string) {
-  const sql = neon(process.env.DATABASE_URL!)
 
   const columns = await sql`
     SELECT column_name 
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
     }
 
     // Initialize Neon SQL client
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Ensure cart table exists
     await sql`
@@ -128,7 +126,6 @@ export async function PUT(request: Request) {
 
     const userId = session.user.id
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Validate required fields
     if (!data.itemId || !data.quantity) {
@@ -185,7 +182,6 @@ export async function DELETE(request: Request) {
 
     const userId = session.user.id
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     if (clearAll === "true") {
       // Clear all items from the cart

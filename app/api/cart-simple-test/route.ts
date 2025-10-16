@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
     const cookieStore = cookies()
     const cartId = cookieStore.get("cartId")?.value
 
@@ -50,7 +49,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { action, productId, quantity } = body
 
-    const sql = neon(process.env.DATABASE_URL!)
     const cookieStore = cookies()
     const cartId = cookieStore.get("cartId")?.value
 

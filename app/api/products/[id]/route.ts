@@ -9,7 +9,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     const product = await sql`
       SELECT 
@@ -47,7 +46,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const data = await request.json()
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check if product exists
     const existingProduct = await sql`SELECT id FROM products WHERE id = ${id}`
@@ -150,7 +148,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
 
     // Check if product exists
     const existingProduct = await sql`SELECT id FROM products WHERE id = ${id}`
