@@ -1,41 +1,42 @@
-import { NextResponse } from "next/server"
-import { sql, db } from "@/lib/db"
-import { initCustomersTable, createCustomerProfile } from "@/lib/customer-management"
+// app/api/admin/init-customer-system/route.ts
+import { type NextRequest, NextResponse } from "next/server";
+import { initCustomersTable, createCustomerProfile } from "@/lib/customer-management";
 
+// Empêche toute évaluation/rendu statique pendant le build
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const revalidate = 0;
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    // Initialize customers table
-    await initCustomersTable()
+    const body = await req.json().catch(() => ({}));
+    // Initialise la table si besoin
+    await initCustomersTable();
 
-    // Migrate existing users to customers table
-    const existingUsers = await sql`
-      SELECT id, created_at, email 
-      FROM users 
-      WHERE role != 'admin' 
-      AND id NOT IN (SELECT user_id FROM customers WHERE user_id IS NOT NULL)
-    `
-
-    console.log(`Found ${existingUsers.length} users to migrate to customers`)
-
-    for (const user of existingUsers) {
-      await createCustomerProfile(user.id, {
-        acquisition_source: "existing_user",
-      })
+    // Optionnel : créer un client de test si précisé
+    if (body?.seed) {
+      const created = await createCustomerProfile({
+        userId: body.userId ?? null,
+        name: body.name ?? "Guest",
+        email: body.email ?? null,
+        phone: body.phone ?? null,
+        city: body.city ?? null,
+      });
+      return NextResponse.json({ ok: true, created });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Customer system initialized. Migrated ${existingUsers.length} existing users.`,
-    })
-  } catch (error) {
-    console.error("Error initializing customer system:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to initialize customer system",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: String(err?.message || err) }, { status: 500 });
+  }
+}
+
+// GET pratique pour vérifier depuis le navigateur
+export async function GET() {
+  try {
+    await initCustomersTable();
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: String(err?.message || err) }, { status: 500 });
   }
 }
