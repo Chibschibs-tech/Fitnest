@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { type NextRequest, NextResponse } from "next/server"
 
 // USDA FoodData Central API integration - EXCLUSIVE SOURCE

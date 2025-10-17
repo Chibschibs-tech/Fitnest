@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { sql, db } from "@/lib/db"
 import { NextResponse } from "next/server"
 

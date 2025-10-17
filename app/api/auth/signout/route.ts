@@ -1,15 +1,15 @@
-// app/api/auth/signout/route.ts
-import { NextResponse } from "next/server";
-import { getBaseUrl } from "@/lib/base-url";
+import { NextResponse } from 'next/server';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-export const runtime = "nodejs";
-export const prerender = false;
 
-export async function GET() {
-  // exemple minimal de signout sans NextAuth (si tu utilises NextAuth, garde sa logique ici)
-  const res = NextResponse.redirect(new URL("/", getBaseUrl()));
-  res.cookies.set("session", "", { expires: new Date(0), httpOnly: true, path: "/" });
+export async function GET(req: Request) {
+  const origin = new URL(req.url).origin;        // ← pas d'env requis
+  const redirectTo = new URL('/', origin);       // où tu veux rediriger
+
+  const res = NextResponse.redirect(redirectTo.toString(), 302);
+  // nettoie les cookies NextAuth si présents
+  res.cookies.delete('next-auth.session-token');
+  res.cookies.delete('__Secure-next-auth.session-token');
   return res;
 }
