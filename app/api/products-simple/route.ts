@@ -129,7 +129,7 @@ export async function GET() {
 
     query += ` LIMIT 100`
 
-    const result = await sql.query(query)
+    const result = await q(query)
     console.log(`Returning ${result.rows.length} products`)
 
     return NextResponse.json(result.rows)

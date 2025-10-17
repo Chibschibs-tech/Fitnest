@@ -98,7 +98,7 @@ export default async function FixedExpressShop() {
 
     // Use raw SQL query with the correct column names
     // This is the key fix - we're using the exact column names from your database
-    const result = await sql.query(`
+    const result = await q(`
       SELECT 
         id, 
         name, 

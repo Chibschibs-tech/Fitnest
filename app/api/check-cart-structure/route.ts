@@ -29,7 +29,7 @@ export async function GET() {
     const sampleData: any = {}
     for (const table of tables) {
       try {
-        const sample = await sql`SELECT * FROM ${sql(table.table_name)} LIMIT 3`
+        const sample = await sql`SELECT * FROM ${q(table.table_name)} LIMIT 3`
         sampleData[table.table_name] = sample
       } catch (e) {
         sampleData[table.table_name] = "Error reading table"

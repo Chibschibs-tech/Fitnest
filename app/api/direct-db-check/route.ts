@@ -73,7 +73,7 @@ export async function GET() {
           LIMIT 3
         `
 
-        const result = await sql.query(query)
+        const result = await q(query)
         directQueryResult = result.rows
       } catch (err) {
         directQueryError = err instanceof Error ? err.message : String(err)

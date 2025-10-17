@@ -42,7 +42,7 @@ export async function GET() {
     const counts = {}
     for (const tableName of Object.keys(tables)) {
       try {
-        const result = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
+        const result = await sql`SELECT COUNT(*) as count FROM ${q(tableName)}`
         counts[tableName] = result[0].count
       } catch (error) {
         counts[tableName] = "error"

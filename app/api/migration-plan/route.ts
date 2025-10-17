@@ -189,7 +189,7 @@ export async function GET() {
 
       // Check if table has data that needs backup
       try {
-        const count = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
+        const count = await sql`SELECT COUNT(*) as count FROM ${q(tableName)}`
         if (count[0].count > 0) {
           dataBackupNeeded.push({
             table: tableName,

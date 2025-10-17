@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
         // Get row count
         const countResult = await sql`
-          SELECT COUNT(*) as count FROM ${sql(tableName)}
+          SELECT COUNT(*) as count FROM ${q(tableName)}
         `
         const rowCount = Number(countResult[0].count)
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         let sampleData = []
         if (rowCount > 0) {
           sampleData = await sql`
-            SELECT * FROM ${sql(tableName)} 
+            SELECT * FROM ${q(tableName)} 
             ORDER BY 
               CASE 
                 WHEN ${tableName} = 'users' THEN created_at

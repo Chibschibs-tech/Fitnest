@@ -117,7 +117,7 @@ export async function getProducts(filters?: {
       ${limitClause} ${offsetClause}
     `
 
-    const result = await sql.query(query, params)
+    const result = await q(query, params)
     return result.rows as Product[]
   } catch (error) {
     console.error("Error fetching products:", error)
@@ -208,7 +208,7 @@ export async function getActiveSubscriptions(filters?: {
       ${limitClause}
     `
 
-    const result = await sql.query(query, params)
+    const result = await q(query, params)
     return result.rows as ActiveSubscription[]
   } catch (error) {
     console.error("Error fetching active subscriptions:", error)
@@ -250,7 +250,7 @@ export async function getCustomers(filters?: {
       ${limitClause} ${offsetClause}
     `
 
-    const result = await sql.query(query, params)
+    const result = await q(query, params)
     return result.rows as Customer[]
   } catch (error) {
     console.error("Error fetching customers:", error)
@@ -300,7 +300,7 @@ export async function getOrders(filters?: {
       ${limitClause} ${offsetClause}
     `
 
-    const result = await sql.query(query, params)
+    const result = await q(query, params)
     return result.rows as Order[]
   } catch (error) {
     console.error("Error fetching orders:", error)

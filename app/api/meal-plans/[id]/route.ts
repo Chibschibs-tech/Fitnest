@@ -10,7 +10,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     // Get meal plan details
-    const mealPlans = await sql(
+    const mealPlans = await sql.query(
       `
       SELECT 
         id,
@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     // Get meals in this plan
-    const planMeals = await sql(
+    const planMeals = await sql.query(
       `
       SELECT 
         mpi.portion_multiplier,

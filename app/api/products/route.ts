@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     console.log("Executing query:", query, "with params:", queryParams)
 
     // Execute query
-    const result = await sql.query(query, queryParams)
+    const result = await q(query, queryParams)
 
     console.log(`Query returned ${result.rows.length} products`)
 
@@ -188,7 +188,7 @@ async function seedProducts(sql, columnNames) {
       ON CONFLICT (id) DO NOTHING
     `
 
-    await sql.query(query, values)
+    await q(query, values)
   }
 }
 

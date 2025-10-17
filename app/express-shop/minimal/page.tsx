@@ -72,7 +72,7 @@ export default async function MinimalExpressShop() {
 
     query += ` LIMIT 12`
 
-    const result = await sql.query(query)
+    const result = await q(query)
     products = result.rows
   } catch (err) {
     console.error("Error fetching products:", err)

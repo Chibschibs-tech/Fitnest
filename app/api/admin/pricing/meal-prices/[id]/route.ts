@@ -81,7 +81,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       RETURNING id, plan_name, meal_type, base_price_mad, is_active, created_at, updated_at
     `
 
-    const result = await sql.query(query, values)
+    const result = await q(query, values)
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: "Meal price not found" }, { status: 404 })

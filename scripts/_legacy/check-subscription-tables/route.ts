@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
       if (priceColumn) {
         sampleProducts = await sql`
-          SELECT id, name, ${sql(priceColumn)} as price, product_type
+          SELECT id, name, ${q(priceColumn)} as price, product_type
           FROM products 
           LIMIT 10
         `
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             ORDER BY ordinal_position
           `
 
-          const count = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`
+          const count = await sql`SELECT COUNT(*) as count FROM ${q(tableName)}`
 
           subscriptionTablesInfo[tableName] = {
             structure,

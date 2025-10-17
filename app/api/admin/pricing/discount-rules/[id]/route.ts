@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
                 valid_from, valid_to, created_at, updated_at
     `
 
-    const result = await sql.query(query, values)
+    const result = await q(query, values)
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: "Discount rule not found" }, { status: 404 })

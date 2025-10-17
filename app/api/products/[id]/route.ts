@@ -113,7 +113,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     queryParams.push(id)
 
     // Execute update
-    const updatedProduct = await sql.query(query, queryParams)
+    const updatedProduct = await q(query, queryParams)
 
     if (updatedProduct.rows.length === 0) {
       return NextResponse.json({ error: "Failed to update product" }, { status: 500 })
