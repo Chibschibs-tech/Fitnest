@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Filter, Search, ChevronDown, Check } from "lucide-react"
+import { Search, ChevronDown, Check, X, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,126 +14,93 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
-} from "@/components/ui/sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MealCard } from "./components/meal-card"
 import { MealDetail } from "./components/meal-detail"
 
-export const dynamic = "force-dynamic"
 
-// Types
-interface Meal {
-  id: number
+export interface Meal {
+  id: string
   name: string
   description: string
-  mealType: string
-  ingredients: any
-  nutrition: any
-  imageUrl: string
-  tags: string[]
-  dietaryInfo: string[]
-  allergens: string[]
-  usdaVerified: boolean
-  isActive: boolean
+  image: string
+  sku: string
   calories: number
   protein: number
-  carbs: number
-  fat: number
-  fiber: number
-  sugar: number
-  sodium: number
-  createdAt: string
-  updatedAt: string
+  carbohydrates: number
+  fats: number
+  status: "active" | "inactive"
+  updated_at: string
+  created_at: string
 }
 
 export default function MealsPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const [meals, setMeals] = useState<Meal[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([])
-  const [selectedDiets, setSelectedDiets] = useState<string[]>([])
-  const [calorieRange, setCalorieRange] = useState<[number, number]>([0, 1200])
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [sortOption, setSortOption] = useState("popular")
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
 
-  // Get the tab from URL params, but only once during initial render
-  const initialTab = useMemo(() => {
-    const type = searchParams.get("type")
-    return type || "all"
-  }, [searchParams])
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
 
-  const [activeTab, setActiveTab] = useState(initialTab)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // Fetch meals data
-  useEffect(() => {
-    const fetchMeals = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch("/api/meals")
-        if (!response.ok) {
-          throw new Error("Failed to fetch meals")
-        }
-        const data = await response.json()
-        setMeals(data)
-      } catch (error) {
-        console.error("Error fetching meals:", error)
-      } finally {
-        setLoading(false)
+  const fetchMeals = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+      
+      const response = await fetch(`${API_BASE}/meals?status=active`, {
+        cache: 'no-store',
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load meals. Please try again.`)
       }
+      
+      const apiData = await response.json()
+      
+      // Handle different API response structures
+      const fetchedMeals: Meal[] = Array.isArray(apiData.data) ? apiData.data : apiData
+      
+      setMeals(fetchedMeals)
+    } catch (error) {
+      console.error("Error fetching meals:", error)
+      setError(error instanceof Error ? error.message : "An unexpected error occurred")
+      setMeals([])
+    } finally {
+      setLoading(false)
     }
-
-    fetchMeals()
   }, [])
 
-  // Filter and sort meals based on current filters
+  useEffect(() => {
+    fetchMeals()
+  }, [fetchMeals])
+
+  // Filter and sort meals based on search and sort
   const filteredMeals = useMemo(() => {
     if (meals.length === 0) return []
 
     let result = [...meals]
 
-    // Filter by tab (meal type)
-    if (activeTab !== "all") {
-      result = result.filter((meal) => meal.mealType === activeTab)
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
+    // Filter by debounced search query
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase().trim()
       result = result.filter(
         (meal) =>
           meal.name.toLowerCase().includes(query) ||
-          meal.description.toLowerCase().includes(query) ||
-          meal.tags.some((tag) => tag.toLowerCase().includes(query)),
+          meal.description.toLowerCase().includes(query),
       )
     }
-
-    // Filter by selected meal types
-    if (selectedMealTypes.length > 0) {
-      result = result.filter((meal) => selectedMealTypes.includes(meal.mealType))
-    }
-
-    // Filter by selected diets
-    if (selectedDiets.length > 0) {
-      result = result.filter((meal) => selectedDiets.some((diet) => meal.dietaryInfo.includes(diet)))
-    }
-
-    // Filter by calorie range
-    result = result.filter((meal) => meal.calories >= calorieRange[0] && meal.calories <= calorieRange[1])
 
     // Sort results
     if (sortOption === "calories-low") {
@@ -149,34 +114,24 @@ export default function MealsPage() {
     }
 
     return result
-  }, [meals, searchQuery, selectedMealTypes, selectedDiets, calorieRange, sortOption, activeTab])
+  }, [meals, debouncedSearchQuery, sortOption])
 
-  // Handle tab change
-  const handleTabChange = useCallback(
-    (value: string) => {
-      setActiveTab(value)
-      router.push(`/meals${value !== "all" ? `?type=${value}` : ""}`, { scroll: false })
-    },
-    [router],
-  )
-
-  // Toggle meal type filter
-  const toggleMealType = useCallback((type: string) => {
-    setSelectedMealTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]))
+  // Get sort option label
+  const getSortLabel = useCallback((option: string) => {
+    const labels: Record<string, string> = {
+      popular: "Most Popular",
+      "calories-low": "Calories: Low to High",
+      "calories-high": "Calories: High to Low",
+      "protein-high": "Highest Protein",
+      alphabetical: "Alphabetical",
+    }
+    return labels[option] || "Sort by"
   }, [])
 
-  // Toggle diet filter
-  const toggleDiet = useCallback((diet: string) => {
-    setSelectedDiets((prev) => (prev.includes(diet) ? prev.filter((d) => d !== diet) : [...prev, diet]))
-  }, [])
-
-  // Reset all filters
-  const resetFilters = useCallback(() => {
+  // Clear search
+  const clearSearch = useCallback(() => {
     setSearchQuery("")
-    setSelectedMealTypes([])
-    setSelectedDiets([])
-    setCalorieRange([0, 1200])
-    setSortOption("popular")
+    setDebouncedSearchQuery("")
   }, [])
 
   // Open meal detail
@@ -190,219 +145,115 @@ export default function MealsPage() {
   }, [])
 
   return (
-    <div className="container mx-auto px-4 py-12 md:px-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Explore Our Meals</h1>
-        <p className="text-gray-600 max-w-3xl">
+    <div className="container mx-auto px-4 py-8 md:py-12 md:px-6">
+      {/* Header */}
+      <div className="mb-8 md:mb-12">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">Explore Our Meals</h1>
+        <p className="text-gray-600 max-w-3xl text-base md:text-lg">
           Browse our selection of nutritious, chef-prepared meals designed to support your health and fitness goals.
         </p>
       </div>
 
-      {/* Tabs for meal types */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="all">All Meals</TabsTrigger>
-            <TabsTrigger value="breakfast">Breakfast</TabsTrigger>
-            <TabsTrigger value="main">Main Meals</TabsTrigger>
-            <TabsTrigger value="snack">Snacks</TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-2">
-            {/* Sort dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-1">
-                  Sort by
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setSortOption("popular")}>
-                    Most Popular
-                    {sortOption === "popular" && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("calories-low")}>
-                    Calories: Low to High
-                    {sortOption === "calories-low" && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("calories-high")}>
-                    Calories: High to Low
-                    {sortOption === "calories-high" && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("protein-high")}>
-                    Highest Protein
-                    {sortOption === "protein-high" && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("alphabetical")}>
-                    Alphabetical
-                    {sortOption === "alphabetical" && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Filter sheet */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-1">
-                  <Filter className="h-4 w-4 mr-1" />
-                  Filter
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[300px] sm:w-[400px] overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>Filter Meals</SheetTitle>
-                  <SheetDescription>Customize your meal search with these filters.</SheetDescription>
-                </SheetHeader>
-                <div className="py-4 space-y-6">
-                  {/* Meal Type Filter */}
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Meal Type</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {["breakfast", "main", "snack"].map((type) => (
-                        <div key={type} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`type-${type}`}
-                            checked={selectedMealTypes.includes(type)}
-                            onCheckedChange={() => toggleMealType(type)}
-                          />
-                          <Label htmlFor={`type-${type}`} className="capitalize">
-                            {type === "main" ? "Main Meals" : type}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Dietary Preferences */}
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Dietary Preferences</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {["vegetarian", "vegan", "gluten-free", "dairy-free"].map((diet) => (
-                        <div key={diet} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`diet-${diet}`}
-                            checked={selectedDiets.includes(diet)}
-                            onCheckedChange={() => toggleDiet(diet)}
-                          />
-                          <Label htmlFor={`diet-${diet}`} className="capitalize">
-                            {diet.replace("-", " ")}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Calorie Range */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">Calorie Range</h3>
-                      <span className="text-sm text-gray-500">
-                        {calorieRange[0]} - {calorieRange[1]} cal
-                      </span>
-                    </div>
-                    <div className="px-2">
-                      <div className="relative pt-1">
-                        <input
-                          type="range"
-                          min="0"
-                          max="1200"
-                          step="50"
-                          value={calorieRange[1]}
-                          onChange={(e) => setCalorieRange([calorieRange[0], Number.parseInt(e.target.value)])}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <SheetFooter className="flex-row justify-between sm:justify-between">
-                  <Button variant="outline" onClick={resetFilters}>
-                    Reset Filters
-                  </Button>
-                  <SheetClose asChild>
-                    <Button>Apply Filters</Button>
-                  </SheetClose>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-
-        {/* Search bar */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-          <Input
-            placeholder="Search meals by name, ingredients, or tags..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Active filters display */}
-        {(selectedMealTypes.length > 0 ||
-          selectedDiets.length > 0 ||
-          calorieRange[0] > 0 ||
-          calorieRange[1] < 1200) && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {selectedMealTypes.map((type) => (
-              <Badge key={type} variant="secondary" className="capitalize">
-                {type}
-                <button className="ml-1 text-gray-500 hover:text-gray-700" onClick={() => toggleMealType(type)}>
-                  ×
-                </button>
-              </Badge>
-            ))}
-            {selectedDiets.map((diet) => (
-              <Badge key={diet} variant="secondary" className="capitalize">
-                {diet.replace("-", " ")}
-                <button className="ml-1 text-gray-500 hover:text-gray-700" onClick={() => toggleDiet(diet)}>
-                  ×
-                </button>
-              </Badge>
-            ))}
-            {(calorieRange[0] > 0 || calorieRange[1] < 1200) && (
-              <Badge variant="secondary">
-                {calorieRange[0]}-{calorieRange[1]} calories
-                <button className="ml-1 text-gray-500 hover:text-gray-700" onClick={() => setCalorieRange([0, 1200])}>
-                  ×
-                </button>
-              </Badge>
+      {/* Search and Sort Controls */}
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
+          {/* Search bar */}
+          <div className="relative flex-1">
+            <Search 
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" 
+              aria-hidden="true"
+            />
+            <Input
+              type="search"
+              placeholder="Search meals by name or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  clearSearch()
+                }
+              }}
+              className="pl-10 pr-10 h-11"
+              aria-label="Search meals"
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
-            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-6">
-              Clear all
-            </Button>
+          </div>
+
+          {/* Sort dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 h-11 w-full sm:w-auto justify-between sm:justify-start"
+                aria-label="Sort meals"
+              >
+                <span className="hidden sm:inline">{getSortLabel(sortOption)}</span>
+                <span className="sm:hidden">Sort</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => setSortOption("popular")}>
+                  Most Popular
+                  {sortOption === "popular" && <Check className="ml-auto h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("calories-low")}>
+                  Calories: Low to High
+                  {sortOption === "calories-low" && <Check className="ml-auto h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("calories-high")}>
+                  Calories: High to Low
+                  {sortOption === "calories-high" && <Check className="ml-auto h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("protein-high")}>
+                  Highest Protein
+                  {sortOption === "protein-high" && <Check className="ml-auto h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("alphabetical")}>
+                  Alphabetical
+                  {sortOption === "alphabetical" && <Check className="ml-auto h-4 w-4" />}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Results count and search indicator */}
+        {!loading && (
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-sm text-gray-600">
+              {debouncedSearchQuery ? (
+                <>
+                  Found <span className="font-semibold text-gray-900">{filteredMeals.length}</span>{" "}
+                  {filteredMeals.length === 1 ? "meal" : "meals"} for &quot;{debouncedSearchQuery}&quot;
+                </>
+              ) : (
+                <>
+                  Showing <span className="font-semibold text-gray-900">{filteredMeals.length}</span>{" "}
+                  {filteredMeals.length === 1 ? "meal" : "meals"}
+                </>
+              )}
+            </div>
+            {searchQuery !== debouncedSearchQuery && (
+              <div className="text-xs text-gray-400 animate-pulse">Searching...</div>
+            )}
           </div>
         )}
 
-        {/* Results count */}
-        <div className="text-sm text-gray-500 mb-6">
-          {filteredMeals.length} {filteredMeals.length === 1 ? "meal" : "meals"} found
-        </div>
-
         {/* Meal grid */}
-        <TabsContent value="all" className="mt-0">
-          {renderMealGrid()}
-        </TabsContent>
-        <TabsContent value="breakfast" className="mt-0">
-          {renderMealGrid()}
-        </TabsContent>
-        <TabsContent value="main" className="mt-0">
-          {renderMealGrid()}
-        </TabsContent>
-        <TabsContent value="snack" className="mt-0">
-          {renderMealGrid()}
-        </TabsContent>
-      </Tabs>
+        {renderMealGrid()}
+      </div>
 
       {/* Meal detail component */}
       <MealDetail
@@ -421,14 +272,19 @@ export default function MealsPage() {
   function renderMealGrid() {
     if (loading) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton className="h-48 w-full" />
-              <CardContent className="p-4">
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-full mb-1" />
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-2/3" />
+                <div className="flex gap-4 pt-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -436,20 +292,48 @@ export default function MealsPage() {
       )
     }
 
-    if (filteredMeals.length === 0) {
+    if (error) {
       return (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium mb-2">No meals found</h3>
-          <p className="text-gray-500 mb-4">Try adjusting your filters or search query.</p>
-          <Button variant="outline" onClick={resetFilters}>
-            Reset Filters
+        <div className="text-center py-12 md:py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-gray-900">Unable to load meals</h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">{error}</p>
+          <Button onClick={fetchMeals} variant="outline" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Try Again
           </Button>
         </div>
       )
     }
 
+    if (filteredMeals.length === 0) {
+      return (
+        <div className="text-center py-12 md:py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+            <Search className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-gray-900">
+            {debouncedSearchQuery ? "No meals found" : "No meals available"}
+          </h3>
+          <p className="text-gray-600 mb-4 max-w-md mx-auto">
+            {debouncedSearchQuery
+              ? `We couldn't find any meals matching "${debouncedSearchQuery}". Try a different search term.`
+              : "There are no meals available at the moment. Please check back later."}
+          </p>
+          {debouncedSearchQuery && (
+            <Button onClick={clearSearch} variant="outline" className="gap-2">
+              <X className="h-4 w-4" />
+              Clear Search
+            </Button>
+          )}
+        </div>
+      )
+    }
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {filteredMeals.map((meal) => (
           <MealCard key={meal.id} meal={meal} onViewDetails={openMealDetail} />
         ))}
