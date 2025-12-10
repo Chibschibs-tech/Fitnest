@@ -68,7 +68,7 @@ export default function Navbar() {
           <div className="hidden md:block">
             <NavbarAuth />
           </div>
-          <CartIcon />
+          {/* <CartIcon /> */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button variant="outline" size="icon" aria-label="Menu">

@@ -12,16 +12,21 @@ import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Product {
-  id: number
+  id: string
   name: string
   description: string
-  price: number
-  salePrice?: number
   imageUrl?: string
-  category: string
-  tags?: string
+  image?: string
+  category: {
+    name: string
+  }
+  price: {
+    base: number
+    discount: number
+  }
+  quantity: number
+  stock_quantity: number
   nutritionalInfo?: any
-  stock: number
 }
 
 interface ProductDetailContentProps {
@@ -100,9 +105,9 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         {/* Product Image */}
         <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
-          {product.imageUrl ? (
+          {product.imageUrl || product.image ? (
             <Image
-              src={product.imageUrl || "/placeholder.svg"}
+              src={product.imageUrl || product.image || "/placeholder.svg"}
               alt={product.name}
               fill
               className="object-cover"
@@ -113,7 +118,7 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
               <ShoppingCart className="h-24 w-24 text-gray-300" />
             </div>
           )}
-          {product.salePrice && (
+          {product.price?.discount > 0 && product.price?.base > product.price?.discount && (
             <Badge className="absolute right-4 top-4 bg-fitnest-green px-3 py-1 text-base">Sale</Badge>
           )}
         </div>
@@ -123,22 +128,24 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
           <div>
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <Badge variant="outline" className="mt-2">
-              {product.category.replace("_", " ")}
+              {product.category?.name?.replace(/_/g, " ") || "Uncategorized"}
             </Badge>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              {product.salePrice ? (
+              {product.price?.discount > 0 && product.price?.base > product.price?.discount ? (
                 <>
-                  <span className="text-2xl font-bold text-fitnest-green">{product.salePrice} MAD</span>
-                  <span className="text-lg text-gray-500 line-through">{product.price} MAD</span>
+                  <span className="text-2xl font-bold text-fitnest-green">{product.price.discount} MAD</span>
+                  <span className="text-lg text-gray-500 line-through">{product.price.base} MAD</span>
                 </>
               ) : (
-                <span className="text-2xl font-bold">{product.price} MAD</span>
+                <span className="text-2xl font-bold">{product.price?.base || 0} MAD</span>
               )}
             </div>
-            <p className="text-sm text-gray-500">{product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}</p>
+            <p className="text-sm text-gray-500">
+              {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : "Out of stock"}
+            </p>
           </div>
 
           <div>
@@ -177,14 +184,14 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
           <Button
             className="w-full bg-fitnest-green hover:bg-fitnest-green/90 py-6 text-lg"
             onClick={handleAddToCart}
-            disabled={isAddingToCart || product.stock <= 0 || status !== "authenticated"}
+            disabled={isAddingToCart || product.stock_quantity <= 0 || status !== "authenticated"}
           >
             {isAddingToCart ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
               <ShoppingCart className="mr-2 h-5 w-5" />
             )}
-            {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
+            {product.stock_quantity <= 0 ? "Out of Stock" : "Add to Cart"}
           </Button>
 
           {status !== "authenticated" && (
