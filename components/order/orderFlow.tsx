@@ -4,14 +4,16 @@ import { useState } from "react"
 import { ChevronLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MealPlan } from "./types"
-import { SelectMealPlan } from "./steps/selectMealPlan"
 import { cn } from "@/lib/utils"
+import { SelectMealPlan } from "./steps/selectMealPlan"
+import { SelectPreferences } from "./steps/selectPreferences"
+import { MealPlan, OrderPreferences } from "./types"
 
 export function OrderFlow() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null)
+  const [preferences, setPreferences] = useState<OrderPreferences | null>(null)
 
   const handleBack = () => {
     if (currentStep === 1) {
@@ -24,9 +26,21 @@ export function OrderFlow() {
   const handlePlanSelected = (plan: MealPlan) => {
     setSelectedPlan(plan)
     setCurrentStep(2)
-    // Next step will be implemented next
-    console.log('Selected plan:', plan)
   }
+
+  const handlePreferencesSelected = (prefs: OrderPreferences) => {
+    setPreferences(prefs)
+    setCurrentStep(3)
+    console.log('Selected preferences:', prefs)
+    // Next step will be implemented next
+  }
+
+  const stepTitles = [
+    'Choose Meal Plan',
+    'Customize Preferences',
+    'Build Your Menu',
+    'Review & Confirm'
+  ]
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -44,21 +58,23 @@ export function OrderFlow() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Create Your Order
+              {stepTitles[currentStep - 1]}
             </h1>
             <p className="text-gray-600 mt-2">
               Step {currentStep} of 4
             </p>
           </div>
 
-          {/* Progress Indicator */}
+          {/* Progress Bar */}
           <div className="hidden md:flex items-center space-x-2">
             {[1, 2, 3, 4].map((step) => (
               <div
                 key={step}
                 className={cn(
-                  "h-2 w-16 rounded-full transition-colors",
-                  step <= currentStep ? "bg-fitnest-green" : "bg-gray-200"
+                  "h-2 w-20 rounded-full transition-all duration-300",
+                  step < currentStep && "bg-fitnest-green",
+                  step === currentStep && "bg-fitnest-green animate-pulse",
+                  step > currentStep && "bg-gray-200"
                 )}
               />
             ))}
@@ -67,16 +83,24 @@ export function OrderFlow() {
       </div>
 
       {/* Step Content */}
-      <div className="grid grid-cols-1 gap-8">
+      <div className="animate-in fade-in duration-300">
         {currentStep === 1 && (
           <SelectMealPlan 
             onNext={handlePlanSelected}
           />
         )}
         
-        {currentStep === 2 && (
+        {currentStep === 2 && selectedPlan && (
+          <SelectPreferences 
+            selectedPlan={selectedPlan}
+            onNext={handlePreferencesSelected}
+            onBack={handleBack}
+          />
+        )}
+
+        {currentStep === 3 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">Step 2 - Coming next...</p>
+            <p className="text-gray-500">Step 3 - Menu Building - Coming next...</p>
           </div>
         )}
       </div>

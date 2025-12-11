@@ -18,4 +18,17 @@ export interface MealPlan {
     data?: T
     mealPlans?: T
   }
+
+  export interface OrderPreferences {
+    selectedMeals: string[] // ['breakfast', 'lunch', 'dinner']
+    snacksPerDay: number // 0, 1, or 2
+    duration: 1 | 2 | 4 // weeks
+    deliveryDays: Date[]
+  }
   
+  export interface MealType {
+    id: string
+    label: string
+    description: string
+    icon: string
+  }
