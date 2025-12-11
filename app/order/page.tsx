@@ -1,7 +1,7 @@
 "use client"
 
-import { OrderProcess } from "./order-process"
+import { OrderFlow } from "@/components/order/orderFlow"
 
 export default function OrderPage() {
-  return <OrderProcess />
+  return <OrderFlow />
 }
