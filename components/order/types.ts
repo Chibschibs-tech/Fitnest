@@ -11,6 +11,7 @@ export interface MealPlan {
     snack_price_per_day: number
     created_at: string
     updated_at: string
+    meals: any
   }
   
   export interface APIResponse<T> {
@@ -31,4 +32,30 @@ export interface MealPlan {
     label: string
     description: string
     icon: string
+  }
+
+  export interface Meal {
+    id: string
+    name: string
+    description: string
+    image: string
+    sku: string
+    calories: number
+    protein: number
+    carbohydrates: number
+    fats: number
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    status: 'active' | 'inactive'
+    updated_at: string
+    created_at: string
+  }
+  
+  export interface MealSelections {
+    [dayISO: string]: {
+      [mealType: string]: string // meal ID
+    }
+  }
+  
+  export interface MenuBuildData {
+    selections: MealSelections
   }

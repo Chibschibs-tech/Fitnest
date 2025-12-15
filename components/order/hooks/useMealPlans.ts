@@ -53,6 +53,7 @@ export function useMealPlans() {
           snack_price_per_day: Number(plan.snack_price_per_day) || 0,
           created_at: plan.created_at || new Date().toISOString(),
           updated_at: plan.updated_at || new Date().toISOString(),
+          meals: plan.meals || {},
         }))
 
         setMealPlans(transformedPlans)

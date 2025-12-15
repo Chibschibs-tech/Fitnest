@@ -5,15 +5,17 @@ import { ChevronLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { BuildMenu } from "./steps/BuildMenu"
 import { SelectMealPlan } from "./steps/selectMealPlan"
 import { SelectPreferences } from "./steps/selectPreferences"
-import { MealPlan, OrderPreferences } from "./types"
+import type { MealPlan, OrderPreferences, MenuBuildData } from "./types"
 
 export function OrderFlow() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null)
   const [preferences, setPreferences] = useState<OrderPreferences | null>(null)
+  const [menuData, setMenuData] = useState<MenuBuildData | null>(null)
 
   const handleBack = () => {
     if (currentStep === 1) {
@@ -31,8 +33,13 @@ export function OrderFlow() {
   const handlePreferencesSelected = (prefs: OrderPreferences) => {
     setPreferences(prefs)
     setCurrentStep(3)
-    console.log('Selected preferences:', prefs)
-    // Next step will be implemented next
+  }
+
+  const handleMenuBuilt = (data: MenuBuildData) => {
+    setMenuData(data)
+    setCurrentStep(4)
+    console.log('Menu built:', data)
+    // Next: Review & Confirm step
   }
 
   const stepTitles = [
@@ -85,9 +92,7 @@ export function OrderFlow() {
       {/* Step Content */}
       <div className="animate-in fade-in duration-300">
         {currentStep === 1 && (
-          <SelectMealPlan 
-            onNext={handlePlanSelected}
-          />
+          <SelectMealPlan onNext={handlePlanSelected} />
         )}
         
         {currentStep === 2 && selectedPlan && (
@@ -98,9 +103,18 @@ export function OrderFlow() {
           />
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 3 && selectedPlan && preferences && (
+          <BuildMenu
+            selectedPlan={selectedPlan}
+            preferences={preferences}
+            onNext={handleMenuBuilt}
+            onBack={handleBack}
+          />
+        )}
+
+        {currentStep === 4 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">Step 3 - Menu Building - Coming next...</p>
+            <p className="text-gray-500">Step 4 - Review & Confirm - Coming next...</p>
           </div>
         )}
       </div>
