@@ -142,9 +142,9 @@ function SuccessContent() {
         <p className="text-sm text-gray-600 mb-2">Order Number</p>
         <div className="flex items-center justify-center gap-3">
           <p className="text-3xl font-bold text-gray-900 font-mono">
-            #{orderDetails.order_number}
+            #{orderDetails?.order_number}
           </p>
-          <Badge className="bg-green-600 hover:bg-green-700">{orderDetails.status.toUpperCase()}</Badge>
+          <Badge className="bg-green-600 hover:bg-green-700">{orderDetails?.status.toUpperCase()}</Badge>
         </div>
         <p className="text-xs text-gray-500 mt-2">
           Please save this number for your records
