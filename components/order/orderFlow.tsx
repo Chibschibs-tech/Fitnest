@@ -6,9 +6,20 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BuildMenu } from "./steps/BuildMenu"
+import { ReviewAndConfirm } from "./steps/ReviewAndConfirm"
+import { MealPlan, OrderPreferences, MenuBuildData, OrderData, Meal } from "./types"
 import { SelectMealPlan } from "./steps/selectMealPlan"
 import { SelectPreferences } from "./steps/selectPreferences"
-import type { MealPlan, OrderPreferences, MenuBuildData } from "./types"
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+
+// Helper function to format date as Y-m-d
+const formatDateYMD = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export function OrderFlow() {
   const router = useRouter()
@@ -16,6 +27,7 @@ export function OrderFlow() {
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null)
   const [preferences, setPreferences] = useState<OrderPreferences | null>(null)
   const [menuData, setMenuData] = useState<MenuBuildData | null>(null)
+  const [meals, setMeals] = useState<Meal[]>([])
 
   const handleBack = () => {
     if (currentStep === 1) {
@@ -35,11 +47,81 @@ export function OrderFlow() {
     setCurrentStep(3)
   }
 
-  const handleMenuBuilt = (data: MenuBuildData) => {
+  const handleMenuBuilt = (data: MenuBuildData, fetchedMeals: Meal[]) => {
     setMenuData(data)
+    setMeals(fetchedMeals)
     setCurrentStep(4)
-    console.log('Menu built:', data)
-    // Next: Review & Confirm step
+  }
+
+  const handleOrderSubmit = async (orderData: OrderData) => {
+    try {
+      // Convert menu_selections keys from ISO to Y-m-d format
+      const formattedSelections: { [key: string]: any } = {}
+      if (menuData?.selections) {
+        Object.entries(menuData.selections).forEach(([isoKey, value]) => {
+          const date = new Date(isoKey)
+          const ymdKey = formatDateYMD(date)
+          formattedSelections[ymdKey] = value
+        })
+      }
+
+      // Calculate total price
+      let totalPrice = 0
+      if (selectedPlan && preferences) {
+        preferences.selectedMeals.forEach(mealType => {
+          const priceKey = `${mealType}_price_per_day` as keyof MealPlan
+          totalPrice += (selectedPlan[priceKey] as number) * preferences.deliveryDays.length
+        })
+        totalPrice += selectedPlan.snack_price_per_day * preferences.snacksPerDay * preferences.deliveryDays.length
+      }
+
+      // Prepare the order payload
+      const payload = {
+        meal_plan_id: selectedPlan?.id,
+        contact_name: orderData.contactInfo.name,
+        contact_email: orderData.contactInfo.email,
+        contact_phone: orderData.contactInfo.phone,
+        delivery_address: {
+          street: orderData.address.street,
+          city: orderData.address.city,
+          state: orderData.address.state,
+          zip_code: orderData.address.zipCode,
+          country: orderData.address.country,
+          additional_info: orderData.address.additionalInfo,
+        },
+        preferences: {
+          meals: preferences?.selectedMeals,
+          snacks_per_day: preferences?.snacksPerDay,
+          duration_weeks: preferences?.duration,
+        },
+        delivery_days: preferences?.deliveryDays.map(d => formatDateYMD(d)),
+        menu_selections: formattedSelections,
+        total_price: totalPrice,
+      }
+
+      console.log('Order payload:', { ...payload, total_price: totalPrice })
+
+      const response = await fetch(`${API_BASE}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create order')
+      }
+
+      const result = await response.json()
+      
+      // Redirect to success page or order confirmation
+      router.push(`/order/success?orderId=${result.id || result.data?.id}`)
+    } catch (error) {
+      console.error('Order submission error:', error)
+      throw error
+    }
   }
 
   const stepTitles = [
@@ -107,15 +189,20 @@ export function OrderFlow() {
           <BuildMenu
             selectedPlan={selectedPlan}
             preferences={preferences}
-            onNext={handleMenuBuilt}
+            onNext={(menuData: MenuBuildData, fetchedMeals: Meal[]) => handleMenuBuilt(menuData, fetchedMeals)}
             onBack={handleBack}
           />
         )}
 
-        {currentStep === 4 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Step 4 - Review & Confirm - Coming next...</p>
-          </div>
+        {currentStep === 4 && selectedPlan && preferences && menuData && meals && (
+          <ReviewAndConfirm
+            selectedPlan={selectedPlan}
+            preferences={preferences}
+            menuData={menuData}
+            meals={meals}
+            onSubmit={handleOrderSubmit}
+            onBack={handleBack}
+          />
         )}
       </div>
     </div>

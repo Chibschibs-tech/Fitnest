@@ -9,10 +9,18 @@ import { MealPlan, OrderPreferences, Meal, MealSelections, MenuBuildData } from 
 import { usePlanMeals } from "../hooks/usePlanMeals"
 import { DayMealSelector } from "../DayMealSelector"
 
+// Helper function to format date as Y-m-d
+const formatDateYMD = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 interface BuildMenuProps {
   selectedPlan: MealPlan
   preferences: OrderPreferences
-  onNext: (menuData: MenuBuildData) => void
+  onNext: (menuData: MenuBuildData, meals: Meal[]) => void
   onBack: () => void
 }
 
@@ -40,7 +48,7 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
   const [selections, setSelections] = useState<MealSelections>(() => {
     const initial: MealSelections = {}
     preferences.deliveryDays.forEach(day => {
-      const dayKey = day.toISOString()
+      const dayKey = formatDateYMD(day)
       initial[dayKey] = {}
     })
     return initial
@@ -76,7 +84,7 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
   }, [meals, selectedPlan])
 
   const handleMealSelect = (day: Date, mealType: string, mealId: string) => {
-    const dayKey = day.toISOString()
+    const dayKey = formatDateYMD(day)
     setSelections(prev => ({
       ...prev,
       [dayKey]: {
@@ -89,7 +97,7 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
   // Validate all days have all meals selected
   const validateSelections = (): boolean => {
     for (const day of preferences.deliveryDays) {
-      const dayKey = day.toISOString()
+      const dayKey = formatDateYMD(day)
       const daySelections = selections[dayKey] || {}
 
       // Check all main meals
@@ -111,7 +119,7 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
 
   const handleContinue = () => {
     if (validateSelections()) {
-      onNext({ selections })
+      onNext({ selections }, meals)
     }
   }
 
@@ -206,11 +214,11 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
           .sort((a, b) => a.getTime() - b.getTime())
           .map(day => (
             <DayMealSelector
-              key={day.toISOString()}
+              key={formatDateYMD(day)}
               day={day}
               mealTypes={preferences.selectedMeals}
               availableMeals={mealsByType}
-              selections={selections[day.toISOString()] || {}}
+              selections={selections[formatDateYMD(day)] || {}}
               onMealSelect={(mealType, mealId) => handleMealSelect(day, mealType, mealId)}
               snacksPerDay={preferences.snacksPerDay}
             />

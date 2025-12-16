@@ -59,3 +59,23 @@ export interface MealPlan {
   export interface MenuBuildData {
     selections: MealSelections
   }
+
+  export interface ContactInfo {
+    name: string
+    email: string
+    phone: string
+  }
+  
+  export interface Address {
+    street: string
+    city: string
+    state: string
+    zipCode: string
+    country: string
+    additionalInfo?: string
+  }
+  
+  export interface OrderData {
+    contactInfo: ContactInfo
+    address: Address
+  }
