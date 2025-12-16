@@ -21,15 +21,25 @@ export default function Home() {
           blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
         />
         <div className="relative z-10 container mx-auto px-4 pb-8 sm:pb-12 md:pb-16 lg:pb-20">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
+          <div className="max-w-4xl mx-auto text-center space-y-6">
             {/* Hero Badge */}
             <div className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
               <Star className="h-4 w-4 text-fitnest-orange fill-fitnest-orange" />
               <span className="text-sm font-medium text-gray-900">Trusted by 1000+ Happy Customers</span>
             </div>
             
+            {/* Hero Headline */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-white drop-shadow-2xl">
+              Fresh, Healthy Meals<br />Delivered to Your Door
+            </h1>
+            
+            {/* Hero Subheadline */}
+            <p className="text-lg sm:text-xl md:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
+              Chef-prepared nutrition designed for your fitness goals. No prep, no hassle, just results.
+            </p>
+            
             {/* CTA Buttons */}
-            <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-0 sm:flex-row sm:space-x-4">
+            <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-0 sm:flex-row sm:space-x-4 pt-4">
               <Link href="/meal-plans" className="w-full sm:w-auto">
                 <Button 
                   className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all duration-200 w-full sm:w-auto text-sm sm:text-base px-6 py-2 sm:px-8 sm:py-6 shadow-xl hover:shadow-2xl"
@@ -510,259 +520,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Blog Section - Improved mobile horizontal scrolling */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="mb-4 text-4xl md:text-5xl font-bold">Latest from Our Blog</h2>
-            <p className="text-lg text-gray-600">
-              Expert advice on nutrition, fitness, and healthy living to help you achieve your wellness goals.
-            </p>
-          </div>
-
-          {/* Mobile Horizontal Scrolling Blog Posts with Snap Scroll */}
-          <div className="md:hidden mb-8">
-            <div className="relative">
-              {/* Scroll Hint */}
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                <div className="bg-fitnest-orange/90 text-white text-xs px-3 py-2 rounded-full shadow-lg animate-pulse">
-                  Swipe →
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
-                <div className="flex gap-4 pb-6">
-                  {/* Blog Post 1 */}
-                  <article className="flex-shrink-0 w-[85vw] max-w-[320px] snap-center bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="relative h-44 overflow-hidden">
-                      <Image
-                        src="/placeholder.svg?height=176&width=320"
-                        alt="Meal Prep Tips for Busy Professionals"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold px-3 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
-                          Meal Prep
-                        </span>
-                        <span className="text-xs text-gray-500">5 min read</span>
-                      </div>
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2">
-                        10 Healthy Meal Prep Tips for Busy Professionals
-                      </h3>
-                      <Link
-                        href="/blog/healthy-meal-prep"
-                        className="inline-flex items-center text-fitnest-orange font-semibold text-sm hover:gap-2 transition-all"
-                        aria-label="Read article about meal prep tips"
-                      >
-                        Read More <ChevronRight className="h-4 w-4 ml-1" />
-                      </Link>
-                    </div>
-                  </article>
-
-                  {/* Blog Post 2 */}
-                  <article className="flex-shrink-0 w-[85vw] max-w-[320px] snap-center bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="relative h-44 overflow-hidden">
-                      <Image
-                        src="/placeholder.svg?height=176&width=320"
-                        alt="Common Nutrition Myths Debunked"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold px-3 py-1 bg-fitnest-orange/10 text-fitnest-orange rounded-full">
-                          Nutrition
-                        </span>
-                        <span className="text-xs text-gray-500">7 min read</span>
-                      </div>
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2">
-                        5 Common Nutrition Myths Debunked
-                      </h3>
-                      <Link
-                        href="/blog/nutrition-myths"
-                        className="inline-flex items-center text-fitnest-orange font-semibold text-sm hover:gap-2 transition-all"
-                        aria-label="Read article about nutrition myths"
-                      >
-                        Read More <ChevronRight className="h-4 w-4 ml-1" />
-                      </Link>
-                    </div>
-                  </article>
-
-                  {/* Blog Post 3 */}
-                  <article className="flex-shrink-0 w-[85vw] max-w-[320px] snap-center bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="relative h-44 overflow-hidden">
-                      <Image
-                        src="/placeholder.svg?height=176&width=320"
-                        alt="Breaking Through Weight Loss Plateaus"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold px-3 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
-                          Fitness
-                        </span>
-                        <span className="text-xs text-gray-500">8 min read</span>
-                      </div>
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2">
-                        Breaking Through a Weight Loss Plateau
-                      </h3>
-                      <Link
-                        href="/blog/weight-loss-plateau"
-                        className="inline-flex items-center text-fitnest-orange font-semibold text-sm hover:gap-2 transition-all"
-                        aria-label="Read article about weight loss plateaus"
-                      >
-                        Read More <ChevronRight className="h-4 w-4 ml-1" />
-                      </Link>
-                    </div>
-                  </article>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop Blog Grid */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Blog Post 1 */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative h-52 overflow-hidden">
-                <Image 
-                  src="/placeholder.svg?height=208&width=384" 
-                  alt="Meal Prep Tips for Busy Professionals" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-semibold px-3 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
-                    Meal Prep
-                  </span>
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    5 min read
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 group-hover:text-fitnest-green transition-colors">
-                  10 Healthy Meal Prep Tips for Busy Professionals
-                </h3>
-                <p className="text-gray-600 mb-5 line-clamp-2 leading-relaxed">
-                  Learn how to efficiently prepare nutritious meals for the entire week, even with a busy schedule.
-                </p>
-                <Link href="/blog/healthy-meal-prep" className="block">
-                  <Button
-                    variant="outline"
-                    className="w-full border-2 border-fitnest-orange text-fitnest-orange hover:bg-fitnest-orange hover:text-white transition-all"
-                    aria-label="Read meal prep tips article"
-                  >
-                    Read More
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </article>
-
-            {/* Blog Post 2 */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative h-52 overflow-hidden">
-                <Image
-                  src="/placeholder.svg?height=208&width=384"
-                  alt="Common Nutrition Myths Debunked"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-semibold px-3 py-1 bg-fitnest-orange/10 text-fitnest-orange rounded-full">
-                    Nutrition
-                  </span>
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    7 min read
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 group-hover:text-fitnest-orange transition-colors">
-                  5 Common Nutrition Myths Debunked
-                </h3>
-                <p className="text-gray-600 mb-5 line-clamp-2 leading-relaxed">
-                  Separating fact from fiction: nutrition experts weigh in on popular diet claims and misconceptions.
-                </p>
-                <Link href="/blog/nutrition-myths" className="block">
-                  <Button
-                    variant="outline"
-                    className="w-full border-2 border-fitnest-orange text-fitnest-orange hover:bg-fitnest-orange hover:text-white transition-all"
-                    aria-label="Read nutrition myths article"
-                  >
-                    Read More
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </article>
-
-            {/* Blog Post 3 */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative h-52 overflow-hidden">
-                <Image
-                  src="/placeholder.svg?height=208&width=384"
-                  alt="Breaking Through Weight Loss Plateaus"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-semibold px-3 py-1 bg-fitnest-green/10 text-fitnest-green rounded-full">
-                    Fitness
-                  </span>
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    8 min read
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 group-hover:text-fitnest-green transition-colors">
-                  Breaking Through a Weight Loss Plateau
-                </h3>
-                <p className="text-gray-600 mb-5 line-clamp-2 leading-relaxed">
-                  Effective strategies to overcome stalled progress and continue your weight loss journey.
-                </p>
-                <Link href="/blog/weight-loss-plateau" className="block">
-                  <Button
-                    variant="outline"
-                    className="w-full border-2 border-fitnest-orange text-fitnest-orange hover:bg-fitnest-orange hover:text-white transition-all"
-                    aria-label="Read weight loss plateau article"
-                  >
-                    Read More
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </article>
-          </div>
-
-          <div className="mt-12 text-center">
-            <Link href="/blog">
-              <Button 
-                size="lg"
-                className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all shadow-lg px-8 py-6"
-                aria-label="View all blog articles"
-              >
-                View All Articles
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Express Shop Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="mb-4 text-4xl md:text-5xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
