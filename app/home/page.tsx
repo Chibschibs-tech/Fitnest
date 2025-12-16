@@ -3,7 +3,91 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ChevronRight, Star, Clock, Truck, Award, Check } from "lucide-react"
 
-export default function Home() {
+// Type for meal plan data from API
+interface MealPlan {
+  id: string
+  name: string
+  description: string
+  calories: string
+  price: string
+  features: string[]
+  image: string
+  color?: string
+}
+
+// Type for product data from API
+interface Product {
+  id: string
+  name: string
+  description: string
+  image: string
+  category: {
+    name: string
+  }
+  price: {
+    base: number
+    discount: number
+  }
+  quantity: number
+  stock_quantity: number
+}
+
+// Fetch meal plans from API
+async function getMealPlans(): Promise<MealPlan[]> {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+  
+  try {
+    const response = await fetch(`${API_BASE}/meal-plans?status=active`, {
+      next: { revalidate: 3600 }, // Revalidate every hour
+    })
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // Handle different API response structures
+    return Array.isArray(data.data) ? data.data : data
+  } catch (error) {
+    console.error('Failed to fetch meal plans:', error)
+    // Return empty array in case of error
+    return []
+  }
+}
+
+// Fetch products from API
+async function getProducts(): Promise<Product[]> {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+  
+  try {
+    const response = await fetch(`${API_BASE}/products?status=active`, {
+      next: { revalidate: 3600 }, // Revalidate every hour
+    })
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // Handle different API response structures
+    return Array.isArray(data.data) ? data.data : data
+  } catch (error) {
+    console.error('Failed to fetch products:', error)
+    // Return empty array in case of error
+    return []
+  }
+}
+
+export default async function Home() {
+  // Fetch meal plans and limit to first 4 for home page
+  const allMealPlans = await getMealPlans()
+  const mealPlans = allMealPlans.slice(0, 4)
+  
+  // Fetch products and limit to first 4 for home page
+  const allProducts = await getProducts()
+  const products = allProducts.slice(0, 4)
   return (
     <div className="flex flex-col">
       {/* Hero Section - Full banner with enhanced CTAs and overlay */}
@@ -112,167 +196,75 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {/* Weight Loss Plan */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/weight-loss-meal.png" 
-                  alt="Weight Loss Meal Plan - Healthy calorie-controlled meals" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-                <div className="absolute top-3 right-3 bg-fitnest-orange text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                  Popular
-                </div>
+          {mealPlans.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                {mealPlans.map((plan, index) => (
+                  <article key={plan.id} className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                    <div className="relative h-48 overflow-hidden">
+                      <Image 
+                        src={plan.image || "/placeholder.svg?height=192&width=256"} 
+                        alt={`${plan.name} - ${plan.description}`} 
+                        fill 
+                        className="object-cover group-hover:scale-110 transition-transform duration-300" 
+                      />
+                      {index === 0 && (
+                        <div className="absolute top-3 right-3 bg-fitnest-orange text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                          Popular
+                        </div>
+                      )}
+                      {plan.calories && (
+                        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-gray-900 text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+                          {plan.calories} cal
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
+                        {plan.name}
+                      </h3>
+                      <p className="text-gray-600 mb-4 text-sm leading-relaxed line-clamp-2">
+                        {plan.description}
+                      </p>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold text-fitnest-green">{plan.price}</span>
+                          <span className="text-sm text-gray-500">MAD/week</span>
+                        </div>
+                        <Link href={`/meal-plans/${plan.id}`} className="w-full">
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
+                            aria-label={`View ${plan.name} details`}
+                          >
+                            View Plan
+                            <ChevronRight className="ml-1 h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Weight Loss Plan
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Calorie-controlled meals designed to help you lose weight while staying satisfied.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">350 MAD</span>
-                    <span className="text-sm text-gray-500">/week</span>
-                  </div>
-                  <Link href="/meal-plans/weight-loss" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="View Weight Loss Plan details"
-                    >
-                      View Plan
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
 
-            {/* Stay Fit Plan */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/vibrant-nutrition-plate.png" 
-                  alt="Stay Fit Meal Plan - Balanced nutrition for active lifestyle" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
+              <div className="mt-12 text-center">
+                <Link href="/meal-plans">
+                  <Button
+                    size="lg"
+                    className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all shadow-lg hover:shadow-xl px-8 py-6"
+                    aria-label="View all available meal plans"
+                  >
+                    View All Meal Plans
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Stay Fit Plan
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Balanced nutrition to maintain your weight and support an active lifestyle.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">320 MAD</span>
-                    <span className="text-sm text-gray-500">/week</span>
-                  </div>
-                  <Link href="/meal-plans/balanced-nutrition" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="View Stay Fit Plan details"
-                    >
-                      View Plan
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
-
-            {/* Muscle Gain Plan */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/muscle-gain-meal.png" 
-                  alt="Muscle Gain Meal Plan - High protein meals for muscle building" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Muscle Gain Plan
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Protein-rich meals to support muscle growth and recovery after workouts.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">400 MAD</span>
-                    <span className="text-sm text-gray-500">/week</span>
-                  </div>
-                  <Link href="/meal-plans/muscle-gain" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="View Muscle Gain Plan details"
-                    >
-                      View Plan
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
-
-            {/* Keto Plan */}
-            <article className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/keto-meal.png" 
-                  alt="Keto Meal Plan - Low-carb high-fat ketogenic diet" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Keto Plan
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Low-carb, high-fat meals designed to help you achieve and maintain ketosis.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">380 MAD</span>
-                    <span className="text-sm text-gray-500">/week</span>
-                  </div>
-                  <Link href="/meal-plans/keto" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="View Keto Plan details"
-                    >
-                      View Plan
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <div className="mt-12 text-center">
-            <Link href="/meal-plans">
-              <Button
-                size="lg"
-                className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all shadow-lg hover:shadow-xl px-8 py-6"
-                aria-label="View all available meal plans"
-              >
-                View All Meal Plans
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-gray-500 mb-6">Loading meal plans...</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -532,168 +524,90 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {/* Protein Bar */}
-            <article className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/protein-bar.png" 
-                  alt="Protein Power Bars - High protein snacks" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Protein Power Bars
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  High-protein bars perfect for post-workout recovery or a quick energy boost.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">25 MAD</span>
-                    <span className="text-sm text-gray-500">/bar</span>
-                  </div>
-                  <Link href="/express-shop?category=protein_bars" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="Shop protein power bars"
-                    >
-                      Shop Now
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
+          {products.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                {products.map((product) => {
+                  const displayPrice = product.price?.discount > 0 && product.price?.base > product.price?.discount
+                    ? product.price.discount
+                    : product.price?.base || 0
+                  const hasDiscount = product.price?.discount > 0 && product.price?.base > product.price?.discount
 
-            {/* Granola */}
-            <article className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/honey-almond-granola.png" 
-                  alt="Premium Granola - Honey almond breakfast" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  return (
+                    <article key={product.id} className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                      <div className="relative h-48 overflow-hidden">
+                        <Image 
+                          src={product.image || "/placeholder.svg?height=192&width=256"} 
+                          alt={`${product.name} - ${product.description}`} 
+                          fill 
+                          className="object-cover group-hover:scale-110 transition-transform duration-300" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {hasDiscount && (
+                          <div className="absolute top-3 right-3 bg-fitnest-orange text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                            Sale
+                          </div>
+                        )}
+                        {product.stock_quantity <= 0 && (
+                          <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                            Out of Stock
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors line-clamp-1">
+                          {product.name}
+                        </h3>
+                        <p className="text-gray-600 mb-4 text-sm leading-relaxed line-clamp-2 min-h-[2.5rem]">
+                          {product.description}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-baseline gap-2">
+                            {hasDiscount ? (
+                              <>
+                                <span className="text-2xl font-bold text-fitnest-green">{displayPrice} MAD</span>
+                                <span className="text-sm text-gray-500 line-through">{product.price.base} MAD</span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-bold text-fitnest-green">{displayPrice} MAD</span>
+                            )}
+                          </div>
+                          <Link href={`/express-shop/${product.id}`} className="w-full">
+                            <Button 
+                              size="sm" 
+                              className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
+                              aria-label={`Shop ${product.name}`}
+                              disabled={product.stock_quantity <= 0}
+                            >
+                              {product.stock_quantity > 0 ? 'Shop Now' : 'Out of Stock'}
+                              {product.stock_quantity > 0 && <ChevronRight className="ml-1 h-4 w-4" />}
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
+                  )
+                })}
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Premium Granola
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Crunchy granola with premium ingredients, perfect for breakfast or snacking.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">32 MAD</span>
-                    <span className="text-sm text-gray-500">/pack</span>
-                  </div>
-                  <Link href="/express-shop?category=granola" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="Shop premium granola"
-                    >
-                      Shop Now
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
 
-            {/* Energy Balls */}
-            <article className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/placeholder.svg?height=192&width=256" 
-                  alt="Energy Balls - Natural superfood snacks" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="mt-12 text-center">
+                <Link href="/express-shop">
+                  <Button 
+                    size="lg"
+                    className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all shadow-lg hover:shadow-xl px-8 py-6"
+                    aria-label="Visit Express Shop for more products"
+                  >
+                    Visit Express Shop
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Energy Balls
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Natural energy balls made with dates, nuts, and superfoods for sustained energy.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">40 MAD</span>
-                    <span className="text-sm text-gray-500">/pack</span>
-                  </div>
-                  <Link href="/express-shop?category=energy_balls" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="Shop energy balls"
-                    >
-                      Shop Now
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
-
-            {/* Breakfast Mixes */}
-            <article className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="relative h-48 overflow-hidden">
-                <Image 
-                  src="/healthy-protein-pancake-mix.png" 
-                  alt="Breakfast Mixes - Protein pancakes and oats" 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors">
-                  Breakfast Mixes
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Quick and nutritious breakfast options including protein pancakes and overnight oats.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-fitnest-green">50 MAD</span>
-                    <span className="text-sm text-gray-500">/pack</span>
-                  </div>
-                  <Link href="/express-shop?category=breakfast" className="w-full">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                      aria-label="Shop breakfast mixes"
-                    >
-                      Shop Now
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <div className="mt-12 text-center">
-            <Link href="/express-shop">
-              <Button 
-                size="lg"
-                className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all shadow-lg hover:shadow-xl px-8 py-6"
-                aria-label="Visit Express Shop for more products"
-              >
-                Visit Express Shop
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-gray-500 mb-6">Loading products...</p>
+            </div>
+          )}
         </div>
       </section>
 
