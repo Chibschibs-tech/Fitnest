@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Check } from "lucide-react"
+import { Check, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -98,23 +98,25 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
                   key={meal.id}
                   onClick={() => toggleMeal(meal.id)}
                   className={cn(
-                    "relative flex flex-col items-center p-6 rounded-lg border-2 transition-all",
-                    "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-fitnest-green",
+                    "group relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300",
+                    "hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-fitnest-green",
                     isSelected 
-                      ? "border-fitnest-green bg-fitnest-green/5" 
-                      : "border-gray-200 hover:border-gray-300"
+                      ? "border-fitnest-green bg-gradient-to-br from-fitnest-green/10 to-fitnest-orange/5 shadow-md" 
+                      : "border-gray-200 hover:border-fitnest-green/50 bg-white"
                   )}
                 >
                   {isSelected && (
-                    <div className="absolute top-3 right-3 h-6 w-6 bg-fitnest-green rounded-full flex items-center justify-center">
-                      <Check className="h-4 w-4 text-white" />
+                    <div className="absolute top-3 right-3 h-7 w-7 bg-gradient-to-br from-fitnest-green to-fitnest-green/80 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
+                      <Check className="h-4 w-4 text-white" strokeWidth={3} />
                     </div>
                   )}
-                  <h3 className="font-semibold text-lg">{meal.label}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{meal.description}</p>
-                  <p className="text-sm font-medium text-fitnest-green">
-                    {price.toFixed(2)} MAD/day
-                  </p>
+                  <h3 className="font-bold text-lg text-gray-900 group-hover:text-fitnest-green transition-colors">{meal.label}</h3>
+                  <p className="text-sm text-gray-600 mb-3 text-center">{meal.description}</p>
+                  <div className="mt-auto px-4 py-2 bg-fitnest-green/10 rounded-full">
+                    <p className="text-sm font-bold text-fitnest-green">
+                      {price.toFixed(2)} MAD/day
+                    </p>
+                  </div>
                 </button>
               )
             })}
@@ -241,21 +243,23 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-6 border-t-2">
           <Button
             variant="outline"
             onClick={onBack}
             size="lg"
+            className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50"
           >
-            Back
+            <span>Back</span>
           </Button>
           <Button
             onClick={validateAndContinue}
             disabled={!canContinue}
-            className="bg-fitnest-green hover:bg-fitnest-green/90"
+            className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50"
             size="lg"
           >
-            Continue to Menu Selection
+            <span>Continue to Menu</span>
+            <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
       </CardContent>

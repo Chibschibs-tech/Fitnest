@@ -11,8 +11,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  Download,
-  Share2,
   ArrowRight,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -98,56 +96,72 @@ function SuccessContent() {
 
   if (!orderId) {
     return (
-      <div className="container mx-auto px-4 py-16 max-w-2xl">
-        <Card className="border-red-200">
-          <CardContent className="pt-6 text-center">
-            <p className="text-red-600">No order ID found. Please check your email for order confirmation.</p>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <Card className="rounded-3xl border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50 shadow-xl">
+          <CardContent className="pt-8 pb-8 text-center space-y-6">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-4xl">⚠️</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900">Order Not Found</h3>
+              <p className="text-red-600 font-medium">No order ID found. Please check your email for order confirmation.</p>
+            </div>
             <Button 
               onClick={() => router.push('/')}
-              className="mt-4"
+              className="bg-gradient-to-r from-fitnest-green to-green-600 hover:from-green-600 hover:to-fitnest-green text-white font-bold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
             >
-              Go Home
+              <Home className="h-5 w-5 mr-2" />
+              <span>Go Home</span>
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
       {/* Success Header */}
-      <div className="text-center mb-8 animate-in fade-in duration-500">
-        <div className="flex justify-center mb-6">
+      <div className="text-center mb-10 animate-in fade-in duration-500">
+        <div className="flex justify-center mb-8">
           <div className="relative">
-            <div className="rounded-full bg-green-100 p-8 animate-in zoom-in duration-300">
-              <CheckCircle2 className="h-20 w-20 text-green-600" />
+            <div className="rounded-full bg-green-100 p-8 animate-in zoom-in duration-300 shadow-xl">
+              <CheckCircle2 className="h-24 w-24 text-fitnest-green" strokeWidth={2.5} />
             </div>
-            <div className="absolute -top-1 -right-1">
-              <div className="h-6 w-6 bg-green-600 rounded-full animate-ping" />
+            <div className="absolute -top-2 -right-2">
+              <div className="h-8 w-8 bg-fitnest-green rounded-full animate-ping opacity-75" />
+              <div className="absolute top-0 right-0 h-8 w-8 bg-fitnest-green rounded-full" />
             </div>
           </div>
         </div>
         
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">
-          Order Confirmed! 🎉
+        <h1 className="text-5xl font-bold mb-4">
+          <span className="bg-gradient-to-r from-fitnest-green to-green-600 bg-clip-text text-transparent">
+            Order Confirmed!
+          </span>
+          <span className="ml-3">🎉</span>
         </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Thank you for your order! We've sent a confirmation email with all the details.
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          Thank you for your order! We've sent a <span className="font-semibold text-fitnest-green">confirmation email</span> with all the details.
         </p>
       </div>
 
       {/* Order ID Badge */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 mb-8 text-center">
-        <p className="text-sm text-gray-600 mb-2">Order Number</p>
-        <div className="flex items-center justify-center gap-3">
-          <p className="text-3xl font-bold text-gray-900 font-mono">
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-3xl p-8 mb-10 text-center shadow-xl">
+        <p className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Order Number</p>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <p className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-fitnest-green to-green-600 bg-clip-text text-transparent font-mono">
             #{orderDetails?.order_number}
           </p>
-          <Badge className="bg-green-600 hover:bg-green-700">{orderDetails?.status.toUpperCase()}</Badge>
+          <Badge className="bg-gradient-to-r from-fitnest-green to-green-600 hover:from-green-600 hover:to-fitnest-green text-white border-0 px-4 py-2 text-sm font-bold shadow-lg">
+            {orderDetails?.status.toUpperCase()}
+          </Badge>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          Please save this number for your records
+        <p className="text-sm text-gray-500 mt-4 font-medium">
+          💾 Please save this number for your records
         </p>
       </div>
 
@@ -155,40 +169,44 @@ function SuccessContent() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* What's Next */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-fitnest-green" />
+          <Card className="rounded-3xl border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-gradient-to-br from-fitnest-green/10 to-green-100 rounded-xl">
+                  <Package className="h-6 w-6 text-fitnest-green" />
+                </div>
                 What Happens Next?
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-4">
+            <CardContent className="space-y-6">
+              <div className="group flex gap-5 p-4 rounded-2xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
                     1
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Meal Preparation</h4>
-                  <p className="text-sm text-gray-600">
-                    Our chefs will start preparing your customized meals with fresh, high-quality ingredients.
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg mb-2 text-gray-900">Meal Preparation</h4>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Our <span className="font-semibold text-fitnest-green">expert chefs</span> will start preparing your customized meals with fresh, high-quality ingredients.
                   </p>
                 </div>
               </div>
 
-              <Separator />
+              <div className="relative">
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-fitnest-orange" />
+              </div>
 
-              <div className="flex gap-4">
+              <div className="group flex gap-5 p-4 rounded-2xl hover:bg-gradient-to-br hover:from-orange-50 hover:to-amber-50 transition-all duration-300">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fitnest-orange to-orange-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
                     2
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Delivery</h4>
-                  <p className="text-sm text-gray-600">
-                    Your meals will be delivered fresh on your selected dates. You'll receive a notification before each delivery.
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg mb-2 text-gray-900">Delivery</h4>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Your meals will be delivered <span className="font-semibold text-fitnest-orange">fresh</span> on your selected dates. You'll receive a notification before each delivery.
                   </p>
                 </div>
               </div>
@@ -197,31 +215,33 @@ function SuccessContent() {
 
           {/* Delivery Schedule */}
           {orderDetails?.delivery_days && orderDetails.delivery_days.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-fitnest-green" />
+            <Card className="rounded-3xl border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="p-2 bg-gradient-to-br from-fitnest-green/10 to-green-100 rounded-xl">
+                    <Calendar className="h-6 w-6 text-fitnest-green" />
+                  </div>
                   Delivery Schedule
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-base">
                   Your meals will be delivered on these dates
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {orderDetails.delivery_days.map((day: string, index: number) => (
                     <div 
                       key={day}
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-gray-50"
+                      className="group flex items-center gap-4 p-4 rounded-2xl border-2 bg-gradient-to-br from-white to-gray-50 hover:from-fitnest-green/5 hover:to-green-50 hover:border-fitnest-green/30 hover:shadow-md transition-all duration-300"
                     >
-                      <div className="w-8 h-8 rounded-full bg-fitnest-green text-white flex items-center justify-center text-xs font-bold">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fitnest-green to-green-600 text-white flex items-center justify-center text-sm font-bold shadow-md group-hover:scale-110 transition-transform">
                         {index + 1}
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm">
+                      <div className="flex-1">
+                        <p className="font-bold text-base text-gray-900 group-hover:text-fitnest-green transition-colors">
                           {format(new Date(day), 'EEEE')}
                         </p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-sm text-gray-600 font-medium">
                           {format(new Date(day), 'MMM d, yyyy')}
                         </p>
                       </div>
@@ -234,36 +254,40 @@ function SuccessContent() {
 
           {/* Contact & Address */}
           {orderDetails && (
-            <Card>
+            <Card className="rounded-3xl border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="text-base">Delivery Information</CardTitle>
+                <CardTitle className="text-xl">Delivery Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Contact */}
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-sm flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
+                  <div className="space-y-4 p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                    <h4 className="font-bold text-base flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-xl shadow-sm">
+                        <Mail className="h-5 w-5 text-blue-600" />
+                      </div>
                       Contact Details
                     </h4>
-                    <div className="space-y-2 text-sm">
-                      <p className="text-gray-600">{orderDetails.client_info.name}</p>
-                      <p className="text-gray-600">{orderDetails.client_info.email}</p>
-                      <p className="text-gray-600 flex items-center gap-2">
-                        <Phone className="h-3 w-3" />
+                    <div className="space-y-3 text-sm pl-2">
+                      <p className="text-gray-900 font-semibold">{orderDetails.client_info.name}</p>
+                      <p className="text-gray-700 break-all">{orderDetails.client_info.email}</p>
+                      <p className="text-gray-700 flex items-center gap-2 font-medium">
+                        <Phone className="h-4 w-4 text-blue-600" />
                         {orderDetails.client_info.phone}
                       </p>
                     </div>
                   </div>
 
                   {/* Address */}
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-sm flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-500" />
+                  <div className="space-y-4 p-4 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100">
+                    <h4 className="font-bold text-base flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-xl shadow-sm">
+                        <MapPin className="h-5 w-5 text-fitnest-green" />
+                      </div>
                       Delivery Address
                     </h4>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <p>{orderDetails.delivery_address?.street}</p>
+                    <div className="space-y-1 text-sm text-gray-700 pl-2 leading-relaxed">
+                      <p className="font-semibold">{orderDetails.delivery_address?.street}</p>
                       <p>{orderDetails.delivery_address?.city}, {orderDetails.delivery_address?.state}</p>
                       <p>{orderDetails.delivery_address?.zip_code}, {orderDetails.delivery_address?.country}</p>
                     </div>
@@ -277,54 +301,67 @@ function SuccessContent() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Help Card */}
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card className="rounded-3xl border-2 border-blue-200 bg-blue-50/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-base">Need Help?</CardTitle>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <span>💬</span>
+                Need Help?
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <p className="text-gray-700">
+            <CardContent className="space-y-4">
+              <p className="text-gray-700 font-medium leading-relaxed">
                 Our support team is here to help you with any questions.
               </p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <a 
                   href="mailto:support@fitness.ma" 
-                  className="flex items-center gap-2 text-fitnest-green hover:underline"
+                  className="group flex items-center gap-3 p-3 rounded-xl bg-white border-2 border-blue-100 hover:border-blue-300 hover:shadow-md transition-all duration-300"
                 >
-                  <Mail className="h-4 w-4" />
-                  support@fitness.ma
+                  <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                    <Mail className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600 group-hover:text-blue-700">
+                    support@fitness.ma
+                  </span>
                 </a>
                 <a 
                   href="tel:+212123456789" 
-                  className="flex items-center gap-2 text-fitnest-green hover:underline"
+                  className="group flex items-center gap-3 p-3 rounded-xl bg-white border-2 border-blue-100 hover:border-blue-300 hover:shadow-md transition-all duration-300"
                 >
-                  <Phone className="h-4 w-4" />
-                  +212 123 456 789
+                  <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                    <Phone className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600 group-hover:text-blue-700">
+                    +212 123 456 789
+                  </span>
                 </a>
               </div>
             </CardContent>
           </Card>
 
           {/* Continue Shopping */}
-          <Card className="border-fitnest-green bg-gradient-to-br from-green-50 to-emerald-50">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-3">
-                <Package className="h-10 w-10 text-fitnest-green mx-auto" />
-                <h4 className="font-semibold">Want More?</h4>
-                <p className="text-sm text-gray-600">
+          <Card className="rounded-3xl border-2 border-fitnest-green bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="pt-8">
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-r from-fitnest-green to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Package className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="font-bold text-xl text-gray-900">Want More?</h4>
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Explore our other meal plans and customize your nutrition journey.
                 </p>
                 <Button 
-                  variant="outline" 
-                  className="w-full border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white"
+                  className="w-full bg-gradient-to-r from-fitnest-green to-green-600 hover:from-green-600 hover:to-fitnest-green text-white font-bold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
                   onClick={() => router.push('/meal-plans')}
                 >
-                  Browse Meal Plans
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <span>Browse Meal Plans</span>
+                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   )
@@ -333,12 +370,18 @@ function SuccessContent() {
 export default function OrderSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="container mx-auto px-4 py-16 max-w-2xl">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-gray-500">Loading order details...</p>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <Card className="rounded-3xl border-2 shadow-xl">
+          <CardContent className="pt-12 pb-12 text-center space-y-4">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-fitnest-green/20 to-green-100 rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-fitnest-green border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="text-gray-700 font-semibold text-lg">Loading order details...</p>
+            <p className="text-sm text-gray-500">Please wait while we fetch your order information</p>
           </CardContent>
         </Card>
+        </div>
       </div>
     }>
       <SuccessContent />

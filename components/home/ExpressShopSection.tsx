@@ -1,7 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Sparkles, Tag, ShoppingBag } from "lucide-react"
 import type { Product } from "@/lib/api/home"
 
 interface ExpressShopSectionProps {
@@ -22,80 +22,114 @@ export function ExpressShopSection({ products }: ExpressShopSectionProps) {
   }
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="mb-4 text-4xl md:text-5xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
-            Express Shop
+        <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+          <div className="inline-flex items-center gap-2 bg-fitnest-green/10 rounded-full px-4 py-2 mb-4">
+            <ShoppingBag className="h-4 w-4 text-fitnest-green" />
+            <span className="text-sm font-semibold text-fitnest-green">Express Shop</span>
+          </div>
+          <h2 className="mb-4 text-3xl md:text-5xl font-bold text-gray-900">
+            Quick Snacks & <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Supplements</span>
           </h2>
-          <p className="text-lg text-gray-600 leading-relaxed">
-            Discover our selection of healthy snacks and supplements to complement your meal plans and keep you energized throughout the day.
+          <p className="text-base md:text-lg text-gray-600 leading-relaxed">
+            Healthy snacks and premium supplements to complement your meal plans and fuel your fitness journey.
           </p>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-12">
           {products.map((product) => {
             const displayPrice = product.price?.discount > 0 && product.price?.base > product.price?.discount
               ? product.price.discount
               : product.price?.base || 0
             const hasDiscount = product.price?.discount > 0 && product.price?.base > product.price?.discount
+            const isOutOfStock = product.stock_quantity <= 0
 
             return (
               <article 
                 key={product.id} 
-                className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+                className="group relative bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border border-gray-100"
               >
-                <div className="relative h-48 overflow-hidden">
+                {/* Image Container */}
+                <div className="relative h-56 overflow-hidden bg-gray-50">
                   <Image 
-                    src={product.image || "/placeholder.svg?height=192&width=256"} 
+                    src={product.image || "/placeholder.svg?height=224&width=320"} 
                     alt={`${product.name} - ${product.description}`} 
                     fill 
-                    className="object-cover group-hover:scale-110 transition-transform duration-300" 
+                    className="object-cover group-hover:scale-105 transition-transform duration-700" 
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  {hasDiscount && (
-                    <div className="absolute top-3 right-3 bg-fitnest-orange text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                      Sale
-                    </div>
-                  )}
-                  {product.stock_quantity <= 0 && (
-                    <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                      Out of Stock
-                    </div>
-                  )}
+                  
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-black/0" />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-2">
+                    {isOutOfStock && (
+                      <div className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        <span>Out of Stock</span>
+                      </div>
+                    )}
+                    {hasDiscount && !isOutOfStock && (
+                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-fitnest-orange to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        <Tag className="h-3.5 w-3.5" />
+                        <span>Sale</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Content */}
                 <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-fitnest-green transition-colors line-clamp-1">
+                  <h3 className="text-xl font-bold mb-3 text-gray-900 group-hover:text-fitnest-green transition-colors line-clamp-1">
                     {product.name}
                   </h3>
-                  <p className="text-gray-600 mb-4 text-sm leading-relaxed line-clamp-2 min-h-[2.5rem]">
-                    {product.description}
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-baseline gap-2">
+                  
+                  {/* Pricing */}
+                  <div className="mb-5 p-4 bg-gradient-to-br from-fitnest-green/5 to-fitnest-orange/5 rounded-2xl border border-fitnest-green/10">
+                    <div className="flex items-baseline justify-center gap-2">
                       {hasDiscount ? (
                         <>
-                          <span className="text-2xl font-bold text-fitnest-green">{displayPrice} MAD</span>
-                          <span className="text-sm text-gray-500 line-through">{product.price.base} MAD</span>
+                          <span className="text-3xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
+                            {displayPrice}
+                          </span>
+                          <span className="text-sm text-gray-600 font-medium">MAD</span>
+                          <span className="text-sm text-gray-500 line-through ml-2">{product.price.base}</span>
                         </>
                       ) : (
-                        <span className="text-2xl font-bold text-fitnest-green">{displayPrice} MAD</span>
+                        <>
+                          <span className="text-3xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
+                            {displayPrice}
+                          </span>
+                          <span className="text-sm text-gray-600 font-medium">MAD</span>
+                        </>
                       )}
                     </div>
-                    <Link href={`/express-shop/${product.id}`} className="w-full">
-                      <Button 
-                        size="sm" 
-                        className="w-full bg-fitnest-green hover:bg-fitnest-green/90 text-white transition-all hover:shadow-lg"
-                        aria-label={`Shop ${product.name}`}
-                        disabled={product.stock_quantity <= 0}
-                      >
-                        {product.stock_quantity > 0 ? 'Shop Now' : 'Out of Stock'}
-                        {product.stock_quantity > 0 && <ChevronRight className="ml-1 h-4 w-4" />}
-                      </Button>
-                    </Link>
                   </div>
+
+                  {/* CTA Button */}
+                  <Link href={`/express-shop/${product.id}`} className="block">
+                    <Button 
+                      size="lg"
+                      className={`w-full ${
+                        isOutOfStock 
+                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white transition-all hover:shadow-lg'
+                      } font-semibold rounded-xl group/btn`}
+                      aria-label={`Shop ${product.name}`}
+                      disabled={isOutOfStock}
+                    >
+                      {isOutOfStock ? (
+                        <span>Out of Stock</span>
+                      ) : (
+                        <>
+                          <span>Add to Cart</span>
+                          <ChevronRight className="ml-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                    </Button>
+                  </Link>
                 </div>
               </article>
             )
@@ -103,15 +137,16 @@ export function ExpressShopSection({ products }: ExpressShopSectionProps) {
         </div>
 
         {/* View All CTA */}
-        <div className="mt-12 text-center">
+        <div className="text-center">
           <Link href="/express-shop">
-            <Button 
+            <Button
               size="lg"
-              className="bg-fitnest-orange text-white hover:bg-fitnest-orange/90 hover:scale-105 transition-all shadow-lg hover:shadow-xl px-8 py-6"
+              variant="outline"
+              className="bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 hover:border-fitnest-orange hover:text-fitnest-orange transition-all shadow-md hover:shadow-lg px-8 py-6 rounded-xl font-semibold group/cta"
               aria-label="Visit Express Shop for more products"
             >
-              Visit Express Shop
-              <ChevronRight className="ml-2 h-5 w-5" />
+              <span>Browse All Products</span>
+              <ChevronRight className="ml-2 h-5 w-5 group-hover/cta:translate-x-1 transition-transform" />
             </Button>
           </Link>
         </div>
