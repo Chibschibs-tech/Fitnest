@@ -38,16 +38,16 @@ export default function Navbar() {
 
   return (
     <header 
-      className={`sticky top-0 z-50 w-full border-b bg-white transition-shadow duration-300 ${
-        isScrolled ? "shadow-md" : ""
+      className={`sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md transition-all duration-300 ${
+        isScrolled ? "shadow-lg border-gray-200" : "border-gray-100"
       }`}
     >
-      <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
+      <div className="container mx-auto flex h-16 md:h-18 items-center px-4 md:px-6">
         {/* Logo - Left */}
         <div className="flex items-center flex-shrink-0">
           <Link 
             href="/home" 
-            className="flex items-center space-x-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2 rounded-md transition-transform hover:scale-105"
+            className="flex items-center space-x-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2 rounded-lg transition-all duration-300 hover:scale-105"
             aria-label="Fitnest.ma Home"
           >
             <Image
@@ -62,22 +62,25 @@ export default function Navbar() {
         </div>
 
         {/* Desktop Navigation - Center */}
-        <nav className="hidden lg:flex lg:items-center lg:space-x-1 flex-1 justify-center" aria-label="Main navigation">
+        <nav className="hidden lg:flex lg:items-center lg:space-x-2 flex-1 justify-center" aria-label="Main navigation">
           {routes.map((route) => (
             <Link
               key={route.href}
               href={route.href}
-              className={`relative px-3 py-2 text-sm font-medium transition-all duration-200 rounded-md
+              className={`group relative px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-xl
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2
-                hover:bg-gray-50 ${
+                ${
                 isActive(route.href) 
-                  ? "text-fitnest-green" 
-                  : "text-gray-700 hover:text-fitnest-green"
+                  ? "text-fitnest-green bg-fitnest-green/5" 
+                  : "text-gray-700 hover:text-fitnest-green hover:bg-gray-50"
               }`}
             >
               {route.label}
               {isActive(route.href) && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-fitnest-green rounded-full" />
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-fitnest-green to-fitnest-orange rounded-full" />
+              )}
+              {!isActive(route.href) && (
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-fitnest-green to-fitnest-orange rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
               )}
             </Link>
           ))}
@@ -91,10 +94,11 @@ export default function Navbar() {
             className="hidden lg:block"
           >
             <Button 
-              className="bg-fitnest-orange hover:bg-fitnest-orange/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+              className="bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white font-bold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl group"
               size="default"
             >
-              Order Now
+              <ShoppingBag className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+              <span>Order Now</span>
             </Button>
           </Link>
 
@@ -119,65 +123,65 @@ export default function Navbar() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="lg:hidden hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-fitnest-green"
+                className="lg:hidden hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-fitnest-green rounded-xl"
                 aria-label="Open menu"
               >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-6 w-6 text-gray-700" />
               </Button>
             </SheetTrigger>
             
             {/* Mobile Menu Content */}
             <SheetContent 
               side="right" 
-              className="w-[85%] sm:w-[400px] px-0"
+              className="w-[85%] sm:w-[400px] px-0 border-l-2"
             >
               <div className="flex flex-col h-full">
                 {/* Menu Header */}
-                <div className="px-6 py-4 border-b">
-                  <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+                <div className="px-6 py-5 border-b bg-gradient-to-r from-fitnest-green/5 to-fitnest-orange/5">
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Menu</h2>
                 </div>
 
                 {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto px-6 py-6" aria-label="Mobile navigation">
-                  <div className="flex flex-col space-y-1">
+                  <div className="flex flex-col space-y-2">
                     {routes.map((route) => (
                       <Link
                         key={route.href}
                         href={route.href}
-                        className={`flex items-center justify-between px-4 py-3 text-base font-medium rounded-lg transition-all duration-200
+                        className={`flex items-center justify-between px-4 py-3.5 text-base font-semibold rounded-xl transition-all duration-300
                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2 ${
                           isActive(route.href)
-                            ? "bg-fitnest-green/10 text-fitnest-green"
-                            : "text-gray-700 hover:bg-gray-50 hover:text-fitnest-green"
+                            ? "bg-gradient-to-r from-fitnest-green/10 to-fitnest-orange/10 text-fitnest-green border-l-4 border-fitnest-green"
+                            : "text-gray-700 hover:bg-gray-50 hover:text-fitnest-green hover:translate-x-1"
                         }`}
                         onClick={() => setIsOpen(false)}
                       >
                         <span>{route.label}</span>
                         {isActive(route.href) && (
-                          <div className="h-2 w-2 rounded-full bg-fitnest-green" />
+                          <div className="h-2 w-2 rounded-full bg-gradient-to-r from-fitnest-green to-fitnest-orange animate-pulse" />
                         )}
                       </Link>
                     ))}
                   </div>
 
                   {/* Mobile Order CTA */}
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <Link
                       href="/order"
                       onClick={() => setIsOpen(false)}
                     >
                       <Button 
-                        className="w-full bg-fitnest-orange hover:bg-fitnest-orange/90 text-white font-semibold shadow-sm py-6 text-base"
+                        className="w-full bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white font-bold shadow-lg py-6 text-base rounded-xl group"
                       >
-                        <ShoppingBag className="mr-2 h-5 w-5" />
-                        Order Now
+                        <ShoppingBag className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+                        <span>Order Now</span>
                       </Button>
                     </Link>
                   </div>
                 </nav>
 
                 {/* Auth Section - Mobile */}
-                <div className="border-t px-6 py-4 bg-gray-50">
+                <div className="border-t px-6 py-4 bg-gradient-to-br from-gray-50 to-white">
                   <NavbarAuth />
                 </div>
               </div>

@@ -351,15 +351,17 @@ export function ReviewAndConfirm({
                 variant="outline"
                 onClick={onBack}
                 size="lg"
+                className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50"
               >
-                Back
+                <span>Back</span>
               </Button>
               <Button
                 onClick={handleContinueToReview}
-                className="bg-fitnest-green hover:bg-fitnest-green/90"
+                className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
                 size="lg"
               >
-                Review Order
+                <span>Review Order</span>
+                <CheckCircle2 className="ml-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               </Button>
             </div>
           </CardContent>
@@ -695,22 +697,26 @@ export function ReviewAndConfirm({
               onClick={() => setShowReview(false)}
               size="lg"
               disabled={isSubmitting}
+              className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50 disabled:opacity-50"
             >
-              Back to Edit
+              <span>Back to Edit</span>
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-fitnest-green hover:bg-fitnest-green/90"
+              className="bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white font-bold px-10 py-7 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50"
               size="lg"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <span>Processing...</span>
                 </>
               ) : (
-                'Confirm Order'
+                <>
+                  <span>Confirm Order</span>
+                  <CheckCircle2 className="ml-2 h-5 w-5" />
+                </>
               )}
             </Button>
           </div>

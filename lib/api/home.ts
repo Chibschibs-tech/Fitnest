@@ -4,7 +4,10 @@ export interface MealPlan {
   name: string
   description: string
   calories: string
-  price: string
+  breakfast_price_per_day: number
+  lunch_price_per_day: number
+  dinner_price_per_day: number
+  snack_price_per_day: number
   features: string[]
   image: string
   color?: string

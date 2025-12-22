@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -233,16 +233,18 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
               variant="outline"
               onClick={onBack}
               size="lg"
+              className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50"
             >
-              Back
+              <span>Back</span>
             </Button>
             <Button
               onClick={handleContinue}
               disabled={!canContinue}
-              className="bg-fitnest-green hover:bg-fitnest-green/90"
+              className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50"
               size="lg"
             >
-              Continue to Review
+              <span>Continue to Review</span>
+              <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         </CardContent>

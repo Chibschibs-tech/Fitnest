@@ -1,4 +1,4 @@
-import { Star } from "lucide-react"
+import { Star, Quote, Sparkles } from "lucide-react"
 
 const testimonials = [
   {
@@ -6,59 +6,97 @@ const testimonials = [
     author: "Sarah M.",
     plan: "Weight Loss Plan",
     initial: "S",
-    color: "fitnest-green",
+    color: "from-fitnest-green to-fitnest-green/80",
+    bgColor: "from-fitnest-green/10 to-fitnest-green/5",
   },
   {
     quote: "As a busy professional, Fitnest saves me hours each week. The muscle gain plan is perfect for my fitness goals.",
     author: "Karim B.",
     plan: "Muscle Gain Plan",
     initial: "K",
-    color: "fitnest-orange",
+    color: "from-fitnest-orange to-orange-500",
+    bgColor: "from-fitnest-orange/10 to-orange-500/5",
   },
   {
     quote: "The variety and quality of meals exceeded my expectations. Delivery is always on time and customer service is excellent.",
     author: "Leila A.",
     plan: "Stay Fit Plan",
     initial: "L",
-    color: "fitnest-green",
+    color: "from-fitnest-green to-emerald-600",
+    bgColor: "from-fitnest-green/10 to-emerald-600/5",
   },
 ]
 
 export function TestimonialsSection() {
   return (
-    <section className="py-20 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="mb-4 text-4xl md:text-5xl font-bold">What Our Customers Say</h2>
-          <p className="text-lg text-gray-600">
-            Real stories from real people achieving their health goals
+    <section className="py-20 bg-gray-50 relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(79,209,197,0.08)_0%,transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,rgba(255,141,109,0.08)_0%,transparent_50%)]" />
+      
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+          <div className="inline-flex items-center gap-2 bg-fitnest-orange/10 rounded-full px-4 py-2 mb-4">
+            <Sparkles className="h-4 w-4 text-fitnest-orange" />
+            <span className="text-sm font-semibold text-fitnest-orange">Testimonials</span>
+          </div>
+          <h2 className="mb-4 text-3xl md:text-5xl font-bold text-gray-900">
+            What Our <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Customers Say</span>
+          </h2>
+          <p className="text-base md:text-lg text-gray-600 leading-relaxed">
+            Real stories from real people achieving their health and fitness goals.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {testimonials.map(({ quote, author, plan, initial, color }) => (
-            <div 
+        {/* Testimonials Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
+          {testimonials.map(({ quote, author, plan, initial, color, bgColor }) => (
+            <article
               key={author}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow"
+              className="group relative bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 overflow-hidden"
             >
-              <div className="flex items-center gap-1 mb-4">
+              {/* Decorative Background Gradient */}
+              <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-br ${bgColor} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-y-1/2 translate-x-1/2`} />
+              
+              {/* Quote Icon */}
+              <div className="relative mb-4">
+                <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-br ${bgColor} group-hover:scale-110 transition-transform duration-500`}>
+                  <Quote className="h-6 w-6 text-gray-700" strokeWidth={2} />
+                </div>
+              </div>
+
+              {/* Star Rating */}
+              <div className="relative flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-fitnest-orange text-fitnest-orange" />
+                  <Star key={i} className="h-4 w-4 fill-fitnest-orange text-fitnest-orange" />
                 ))}
               </div>
-              <p className="text-gray-700 mb-6 leading-relaxed italic">
+
+              {/* Quote */}
+              <p className="relative text-gray-700 mb-6 leading-relaxed text-base min-h-[120px]">
                 &ldquo;{quote}&rdquo;
               </p>
-              <div className="flex items-center gap-3">
-                <div className={`h-12 w-12 rounded-full bg-gradient-to-br from-${color} to-${color}/80 flex items-center justify-center text-white font-bold text-lg`}>
-                  {initial}
+
+              {/* Author Info */}
+              <div className="relative flex items-center gap-3 pt-4 border-t border-gray-100">
+                <div className="relative">
+                  {/* Glow Effect */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-full blur-md opacity-30`} />
+                  {/* Avatar */}
+                  <div className={`relative h-12 w-12 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-500`}>
+                    {initial}
+                  </div>
                 </div>
                 <div>
-                  <p className="font-bold">{author}</p>
+                  <p className="font-bold text-gray-900">{author}</p>
                   <p className="text-sm text-gray-500">{plan}</p>
                 </div>
               </div>
-            </div>
+
+              {/* Bottom Accent */}
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${color} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-3xl`} />
+            </article>
           ))}
         </div>
       </div>
