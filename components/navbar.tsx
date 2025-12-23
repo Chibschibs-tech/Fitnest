@@ -102,21 +102,6 @@ export default function Navbar() {
             </Button>
           </Link>
 
-          {/* Cart Icon */}
-          <div className="hidden md:block">
-            <CartIcon />
-          </div>
-
-          {/* Auth - Desktop */}
-          {/* <div className="hidden lg:block">
-            <NavbarAuth />
-          </div>
-
-          {/* Mobile Cart Icon */}
-          <div className="md:hidden">
-            <CartIcon />
-          </div>
-
           {/* Mobile Menu Trigger */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -179,11 +164,6 @@ export default function Navbar() {
                     </Link>
                   </div>
                 </nav>
-
-                {/* Auth Section - Mobile */}
-                <div className="border-t px-6 py-4 bg-gradient-to-br from-gray-50 to-white">
-                  <NavbarAuth />
-                </div>
               </div>
             </SheetContent>
           </Sheet>
