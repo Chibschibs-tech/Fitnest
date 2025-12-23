@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ShoppingBag } from "lucide-react"
-import { CartIcon } from "@/components/cart-icon"
-import { NavbarAuth } from "@/components/navbar-auth"
 import Image from "next/image"
 
 export default function Navbar() {
@@ -102,21 +100,6 @@ export default function Navbar() {
             </Button>
           </Link>
 
-          {/* Cart Icon */}
-          <div className="hidden md:block">
-            <CartIcon />
-          </div>
-
-          {/* Auth - Desktop */}
-          {/* <div className="hidden lg:block">
-            <NavbarAuth />
-          </div>
-
-          {/* Mobile Cart Icon */}
-          <div className="md:hidden">
-            <CartIcon />
-          </div>
-
           {/* Mobile Menu Trigger */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -179,11 +162,6 @@ export default function Navbar() {
                     </Link>
                   </div>
                 </nav>
-
-                {/* Auth Section - Mobile */}
-                <div className="border-t px-6 py-4 bg-gradient-to-br from-gray-50 to-white">
-                  <NavbarAuth />
-                </div>
               </div>
             </SheetContent>
           </Sheet>
