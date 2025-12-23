@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ShoppingBag } from "lucide-react"
-import { CartIcon } from "@/components/cart-icon"
-import { NavbarAuth } from "@/components/navbar-auth"
 import Image from "next/image"
 
 export default function Navbar() {
