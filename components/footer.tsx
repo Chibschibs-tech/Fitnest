@@ -39,7 +39,9 @@ export default function Footer() {
               />
             </Link>
             <p className="text-sm text-gray-600 leading-relaxed mb-6 max-w-sm font-medium">
-              Healthy, delicious meals delivered to your door. Custom meal plans designed for your fitness goals and lifestyle.
+              Des repas sains et savoureux livrés chez vous.
+              <br />
+              Des Meal Plans sur mesure, pensés pour vos objectifs sportifs et votre style de vie.
             </p>
             
             {/* Contact Info */}
@@ -94,7 +96,7 @@ export default function Footer() {
                   className="text-sm text-gray-600 hover:text-fitnest-green transition-all duration-300 inline-flex items-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2 rounded-lg font-medium hover:translate-x-1"
                 >
                   <ArrowRight className="h-3.5 w-3.5 mr-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
-                  <span>Individual Meals</span>
+                  <span>Recettes</span>
                 </Link>
               </li>
               <li>
@@ -121,7 +123,7 @@ export default function Footer() {
                   className="text-sm text-gray-600 hover:text-fitnest-green transition-all duration-300 inline-flex items-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2 rounded-lg font-medium hover:translate-x-1"
                 >
                   <ArrowRight className="h-3.5 w-3.5 mr-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
-                  <span>About Us</span>
+                  <span>A propos</span>
                 </Link>
               </li>
               <li>
@@ -206,7 +208,7 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             {/* Social Media Links */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <span className="text-sm font-bold text-gray-900">Follow us:</span>
+              <span className="text-sm font-bold text-gray-900">Suivez nous</span>
               <div className="flex items-center gap-3">
                 <a
                   href="https://facebook.com/fitnest.ma"

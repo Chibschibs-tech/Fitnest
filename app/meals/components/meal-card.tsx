@@ -57,7 +57,7 @@ export function MealCard({ meal, onViewDetails }: MealCardProps) {
           onClick={() => onViewDetails(meal)}
           className="text-green-600 text-green-700 hover:text-green-900 hover:bg-green-40 bg-green-50 font-medium transition-all"
         >
-          View Details
+          Description
         </Button>
       </CardFooter>
     </Card>

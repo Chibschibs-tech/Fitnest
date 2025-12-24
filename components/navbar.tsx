@@ -26,9 +26,9 @@ export default function Navbar() {
 
   const routes = [
     { href: "/meal-plans", label: "Meal Plans" },
-    { href: "/meals", label: "Meals" },
+    { href: "/meals", label: "Recettes" },
     { href: "/express-shop", label: "Express Shop" },
-    { href: "/about", label: "About" },
+    { href: "/about", label: "A propos" },
     { href: "/contact", label: "Contact" },
   ]
 
@@ -98,7 +98,7 @@ export default function Navbar() {
               size="default"
             >
               <ShoppingBag className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-              <span>Order Now</span>
+              <span>Commander</span>
             </Button>
           </Link>
 
@@ -174,7 +174,7 @@ export default function Navbar() {
                         className="w-full bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white font-bold shadow-lg py-6 text-base rounded-xl group"
                       >
                         <ShoppingBag className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
-                        <span>Order Now</span>
+                        <span>Commander</span>
                       </Button>
                     </Link>
                   </div>

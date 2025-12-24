@@ -137,13 +137,13 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Build Your Menu</CardTitle>
-          <CardDescription>Select meals for each delivery day</CardDescription>
+          <CardTitle>Construisez votre Menu</CardTitle>
+          <CardDescription>Sélectionnez les repas pour chaque jour de livraison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-fitnest-green mb-4" />
-            <p className="text-gray-500">Loading meals...</p>
+            <p className="text-gray-500">Chargement des repas...</p>
           </div>
         </CardContent>
       </Card>
@@ -154,13 +154,13 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Build Your Menu</CardTitle>
-          <CardDescription>Select meals for each delivery day</CardDescription>
+          <CardTitle>Construisez votre Menu</CardTitle>
+          <CardDescription>Sélectionnez les repas pour chaque jour de livraison</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>Erreur</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         </CardContent>
@@ -175,16 +175,16 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle>Build Your Menu</CardTitle>
+              <CardTitle>Construisez votre Menu</CardTitle>
               <CardDescription>
-                Select your preferred meals for each delivery day
+                Sélectionnez vos repas préférés pour chaque jour de livraison
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-fitnest-green">
                 {totalSelected}/{totalRequired}
               </div>
-              <div className="text-xs text-gray-500">meals selected</div>
+              <div className="text-xs text-gray-500">repas sélectionnés</div>
             </div>
           </div>
         </CardHeader>
@@ -199,10 +199,10 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
 
           <div className="flex items-center justify-between text-sm">
             <p className="text-gray-600">
-              {preferences.deliveryDays.length} delivery days • {preferences.selectedMeals.length} meals + {preferences.snacksPerDay} snacks per day
+              {preferences.deliveryDays.length} jours de livraison • {preferences.selectedMeals.length} repas + {preferences.snacksPerDay} snacks par jour
             </p>
             {canContinue && (
-              <p className="text-green-600 font-medium">✓ Ready to continue</p>
+              <p className="text-green-600 font-medium">✓ Vous êtes prêt !</p>
             )}
           </div>
         </CardContent>
@@ -235,7 +235,7 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
               size="lg"
               className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50"
             >
-              <span>Back</span>
+              <span>Retour</span>
             </Button>
             <Button
               onClick={handleContinue}
@@ -243,7 +243,7 @@ export function BuildMenu({ selectedPlan, preferences, onNext, onBack }: BuildMe
               className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50"
               size="lg"
             >
-              <span>Continue to Review</span>
+              <span>Continuer vers la Confirmation</span>
               <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>

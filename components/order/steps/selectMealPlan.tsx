@@ -30,13 +30,13 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Choose Your Meal Plan</CardTitle>
-          <CardDescription>Select the perfect meal plan for your goals</CardDescription>
+          <CardTitle>Choisissez votre Meal Plan</CardTitle>
+          <CardDescription>Sélectionnez le meal plan idéal pour vos objectifs</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-fitnest-green mb-4" />
-            <p className="text-gray-500">Loading meal plans...</p>
+            <p className="text-gray-500">Chargement des meal plans...</p>
           </div>
         </CardContent>
       </Card>
@@ -47,13 +47,13 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Choose Your Meal Plan</CardTitle>
-          <CardDescription>Select the perfect meal plan for your goals</CardDescription>
+          <CardTitle>Choisissez votre Meal Plan</CardTitle>
+          <CardDescription>Sélectionnez le meal plan idéal pour vos objectifs</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>Erreur</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         </CardContent>
@@ -65,15 +65,15 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Choose Your Meal Plan</CardTitle>
-          <CardDescription>Select the perfect meal plan for your goals</CardDescription>
+          <CardTitle>Choisissez votre Meal Plan</CardTitle>
+          <CardDescription>Sélectionnez le meal plan idéal pour vos objectifs</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No Plans Available</AlertTitle>
+            <AlertTitle>Aucun Plan Disponible</AlertTitle>
             <AlertDescription>
-              There are no active meal plans available at the moment. Please check back later.
+              Il n'y a aucun meal plan actif disponible pour le moment. Veuillez revenir plus tard.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -84,9 +84,9 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Choose Your Meal Plan</CardTitle>
+        <CardTitle>Choisissez votre Meal Plan</CardTitle>
         <CardDescription>
-          Select the perfect meal plan tailored to your fitness goals
+          Sélectionnez le meal plan idéal adapté à vos objectifs fitness
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -135,7 +135,7 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
                 {/* Pricing Preview */}
                 <div className="mt-4 p-4 bg-gradient-to-br from-fitnest-green/5 to-fitnest-orange/5 rounded-2xl border border-fitnest-green/10">
                   <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-sm text-gray-600 font-medium">From</span>
+                    <span className="text-sm text-gray-600 font-medium">À partir de</span>
                     <span className="text-2xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
                       {Math.min(
                         plan.breakfast_price_per_day,
@@ -143,7 +143,7 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
                         plan.dinner_price_per_day
                       ).toFixed(2)}
                     </span>
-                    <span className="text-sm text-gray-600 font-medium">MAD/day</span>
+                    <span className="text-sm text-gray-600 font-medium">MAD/jour</span>
                   </div>
                 </div>
               </button>
@@ -159,7 +159,7 @@ export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProp
             className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
             size="lg"
           >
-            <span>Continue to Preferences</span>
+            <span>Continuer vers les Préférences</span>
             <Check className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>

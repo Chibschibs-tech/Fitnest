@@ -31,10 +31,10 @@ export function ExpressShopSection({ products }: ExpressShopSectionProps) {
             <span className="text-sm font-semibold text-fitnest-green">Express Shop</span>
           </div>
           <h2 className="mb-4 text-3xl md:text-5xl font-bold text-gray-900">
-            Quick Snacks & <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Supplements</span>
+            Snacks & compléments <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">premium</span>
           </h2>
           <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-            Healthy snacks and premium supplements to complement your meal plans and fuel your fitness journey.
+            Des encas sains et des compléments de qualité pour accompagner vos plans de repas et booster votre progression.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ export function ExpressShopSection({ products }: ExpressShopSectionProps) {
                         <span>Out of Stock</span>
                       ) : (
                         <>
-                          <span>Add to Cart</span>
+                          <span>Ajouter au Panier</span>
                           <ChevronRight className="ml-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                         </>
                       )}
@@ -145,7 +145,7 @@ export function ExpressShopSection({ products }: ExpressShopSectionProps) {
               className="bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 hover:border-fitnest-orange hover:text-fitnest-orange transition-all shadow-md hover:shadow-lg px-8 py-6 rounded-xl font-semibold group/cta"
               aria-label="Visit Express Shop for more products"
             >
-              <span>Browse All Products</span>
+              <span>Découvrir tous les Produits</span>
               <ChevronRight className="ml-2 h-5 w-5 group-hover/cta:translate-x-1 transition-transform" />
             </Button>
           </Link>

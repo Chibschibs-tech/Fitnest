@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, Check, ClipboardList, Settings, UtensilsCrossed, ShoppingCart } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BuildMenu } from "./steps/BuildMenu"
@@ -10,6 +10,7 @@ import { ReviewAndConfirm } from "./steps/ReviewAndConfirm"
 import { MealPlan, OrderPreferences, MenuBuildData, OrderData, Meal } from "./types"
 import { SelectMealPlan } from "./steps/selectMealPlan"
 import { SelectPreferences } from "./steps/selectPreferences"
+import { PendingOrderSummary } from "./PendingOrderSummary"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
 
@@ -23,6 +24,9 @@ const formatDateYMD = (date: Date): string => {
 
 export function OrderFlow() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const planId = searchParams.get('planId')
+  
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null)
   const [preferences, setPreferences] = useState<OrderPreferences | null>(null)
@@ -125,10 +129,10 @@ export function OrderFlow() {
   }
 
   const steps = [
-    { number: 1, title: 'Choose Meal Plan', icon: ClipboardList },
-    { number: 2, title: 'Customize Preferences', icon: Settings },
-    { number: 3, title: 'Build Your Menu', icon: UtensilsCrossed },
-    { number: 4, title: 'Review & Confirm', icon: ShoppingCart }
+    { number: 1, title: 'Choisissez un Meal Plan', icon: ClipboardList },
+    { number: 2, title: 'Personnalisez votre Plan', icon: Settings },
+    { number: 3, title: 'Construisez votre Menu', icon: UtensilsCrossed },
+    { number: 4, title: 'Confirmation', icon: ShoppingCart }
   ]
 
   return (
@@ -142,7 +146,7 @@ export function OrderFlow() {
             className="mb-6 hover:bg-gray-100 rounded-xl font-semibold group"
           >
             <ChevronLeft className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-            {currentStep === 1 ? 'Back to Meal Plans' : 'Back'}
+            {currentStep === 1 ? 'Retour aux Meal Plans' : 'Retour'}
           </Button>
 
           {/* Title and Step Counter */}
@@ -152,14 +156,14 @@ export function OrderFlow() {
                 {currentStep}
               </div>
               <span className="text-sm font-semibold text-fitnest-green">
-                Step {currentStep} of 4
+                Étape {currentStep} de 4
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
               {steps[currentStep - 1].title}
             </h1>
             <p className="text-gray-600 text-base md:text-lg font-medium">
-              Complete this step to continue your order
+              Complétez cette étape pour continuer votre commande
             </p>
           </div>
 
@@ -234,37 +238,56 @@ export function OrderFlow() {
         </div>
 
         {/* Step Content */}
-        <div className="animate-in fade-in duration-500">
-          {currentStep === 1 && (
-            <SelectMealPlan onNext={handlePlanSelected} />
-          )}
-          
-          {currentStep === 2 && selectedPlan && (
-            <SelectPreferences 
-              selectedPlan={selectedPlan}
-              onNext={handlePreferencesSelected}
-              onBack={handleBack}
-            />
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 animate-in fade-in duration-500">
+            {currentStep === 1 && (
+              <SelectMealPlan 
+                onNext={handlePlanSelected}
+                initialSelectedId={planId || undefined}
+              />
+            )}
+            
+            {currentStep === 2 && selectedPlan && (
+              <SelectPreferences 
+                selectedPlan={selectedPlan}
+                onNext={handlePreferencesSelected}
+                onBack={handleBack}
+              />
+            )}
 
-          {currentStep === 3 && selectedPlan && preferences && (
-            <BuildMenu
-              selectedPlan={selectedPlan}
-              preferences={preferences}
-              onNext={(menuData: MenuBuildData, fetchedMeals: Meal[]) => handleMenuBuilt(menuData, fetchedMeals)}
-              onBack={handleBack}
-            />
-          )}
+            {currentStep === 3 && selectedPlan && preferences && (
+              <BuildMenu
+                selectedPlan={selectedPlan}
+                preferences={preferences}
+                onNext={(menuData: MenuBuildData, fetchedMeals: Meal[]) => handleMenuBuilt(menuData, fetchedMeals)}
+                onBack={handleBack}
+              />
+            )}
 
-          {currentStep === 4 && selectedPlan && preferences && menuData && meals && (
-            <ReviewAndConfirm
-              selectedPlan={selectedPlan}
-              preferences={preferences}
-              menuData={menuData}
-              meals={meals}
-              onSubmit={handleOrderSubmit}
-              onBack={handleBack}
-            />
+            {currentStep === 4 && selectedPlan && preferences && menuData && meals && (
+              <ReviewAndConfirm
+                selectedPlan={selectedPlan}
+                preferences={preferences}
+                menuData={menuData}
+                meals={meals}
+                onSubmit={handleOrderSubmit}
+                onBack={handleBack}
+              />
+            )}
+          </div>
+
+          {/* Pending Order Summary Sidebar - Only for Steps 2, 3, 4 */}
+          {currentStep >= 2 && currentStep <= 4 && selectedPlan && (
+            <div className="lg:col-span-1">
+              <PendingOrderSummary
+                step={currentStep as 2 | 3 | 4}
+                selectedPlan={selectedPlan}
+                preferences={preferences || undefined}
+                menuData={menuData || undefined}
+                meals={meals}
+              />
+            </div>
           )}
         </div>
       </div>

@@ -4,27 +4,27 @@ const stats = [
   { 
     icon: Clock, 
     value: "30min", 
-    label: "Fast Delivery",
-    description: "Average delivery time"
+    label: "Livraison Rapide",
+    description: "Temps moyen de livraison"
   },
   { 
     icon: Star, 
     value: "4.9", 
-    label: "Top Rated", 
+    label: "Les Mieux Notés", 
     fill: true,
-    description: "Customer satisfaction"
+    description: "Satisfaction client"
   },
   { 
     icon: Award, 
     value: "1000+", 
-    label: "Happy Customers",
-    description: "And growing daily"
+    label: "Clients Satisfaits",
+    description: "Plus tous les jours"
   },
   { 
     icon: Truck, 
-    value: "Free", 
-    label: "Delivery",
-    description: "On all orders"
+    value: "Gratuit", 
+    label: "Livraison Gratuite",
+    description: "Sur toutes les commandes"
   },
 ]
 

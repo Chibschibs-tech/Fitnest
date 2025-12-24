@@ -45,12 +45,12 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
     const newErrors: string[] = []
 
     if (selectedMeals.length < 2) {
-      newErrors.push('Please select at least 2 meals per day')
+      newErrors.push('Veuillez sélectionner au moins 2 repas par jour')
     }
 
     const minDays = 3
     if (deliveryDays.length < minDays) {
-      newErrors.push(`Please select at least ${minDays} delivery days`)
+      newErrors.push(`Veuillez sélectionner au moins ${minDays} jours de livraison`)
     }
 
     setErrors(newErrors)
@@ -71,9 +71,9 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Customize Your Plan</CardTitle>
+        <CardTitle>Personnalisez votre Plan</CardTitle>
         <CardDescription>
-          Configure your meal preferences and delivery schedule for {selectedPlan.name}
+          Configurez vos préférences de repas et votre calendrier de livraison pour {selectedPlan.name}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -81,10 +81,10 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
         <div className="space-y-4">
           <div>
             <Label className="text-base font-semibold">
-              Select Your Meals <span className="text-red-500">*</span>
+              Sélectionnez vos Repas <span className="text-red-500">*</span>
             </Label>
             <p className="text-sm text-gray-600 mt-1">
-              Choose at least 2 meals per day
+              Choisissez au moins 2 repas par jour
             </p>
           </div>
 
@@ -114,7 +114,7 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
                   <p className="text-sm text-gray-600 mb-3 text-center">{meal.description}</p>
                   <div className="mt-auto px-4 py-2 bg-fitnest-green/10 rounded-full">
                     <p className="text-sm font-bold text-fitnest-green">
-                      {price.toFixed(2)} MAD/day
+                      {price.toFixed(2)} MAD/jour
                     </p>
                   </div>
                 </button>
@@ -126,9 +126,9 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
         {/* Snacks Selection */}
         <div className="space-y-4">
           <div>
-            <Label className="text-base font-semibold">Snacks Per Day</Label>
+            <Label className="text-base font-semibold">Snacks par Jour</Label>
             <p className="text-sm text-gray-600 mt-1">
-              Add healthy snacks to your plan (optional)
+              Ajoutez des snacks sains à votre plan (optionnel)
             </p>
           </div>
 
@@ -159,11 +159,11 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
                     <p className="text-sm text-gray-600 mb-2">{option.description}</p>
                     {option.value > 0 && (
                       <p className="text-sm font-medium text-fitnest-green">
-                        +{price.toFixed(2)} MAD/day
+                        +{price.toFixed(2)} MAD/jour
                       </p>
                     )}
                     {option.value === 0 && (
-                      <p className="text-sm text-gray-500">Free</p>
+                      <p className="text-sm text-gray-500">Gratuit</p>
                     )}
                   </Label>
                 </div>
@@ -176,10 +176,10 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
         <div className="space-y-4">
           <div>
             <Label className="text-base font-semibold">
-              Subscription Duration <span className="text-red-500">*</span>
+              Durée d'Abonnement <span className="text-red-500">*</span>
             </Label>
             <p className="text-sm text-gray-600 mt-1">
-              How long would you like to subscribe?
+              Pour combien de temps souhaitez-vous vous abonner ?
             </p>
           </div>
 
@@ -215,10 +215,10 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
         <div className="space-y-4">
           <div>
             <Label className="text-base font-semibold">
-              Select Delivery Days <span className="text-red-500">*</span>
+              Sélectionnez les Jours de Livraison <span className="text-red-500">*</span>
             </Label>
             <p className="text-sm text-gray-600 mt-1">
-              Choose which days you want to receive your meals (delivery starts 48 hours from now)
+              Choisissez quels jours vous souhaitez recevoir vos repas (la livraison commence 48 heures à partir de maintenant)
             </p>
           </div>
 
@@ -250,7 +250,7 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
             size="lg"
             className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50"
           >
-            <span>Back</span>
+            <span>Retour</span>
           </Button>
           <Button
             onClick={validateAndContinue}
@@ -258,7 +258,7 @@ export function SelectPreferences({ selectedPlan, onNext, onBack }: SelectPrefer
             className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50"
             size="lg"
           >
-            <span>Continue to Menu</span>
+            <span>Continuer vers le Menu</span>
             <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>

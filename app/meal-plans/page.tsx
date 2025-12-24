@@ -43,7 +43,7 @@ async function getMealPlans(): Promise<MealPlan[]> {
     }
     
     const data = await response.json()
-    
+    console.log("✅ Fetched meal plans data:", data)
     // Handle different API response structures
     return Array.isArray(data.data) ? data.data : data
   } catch (error) {
@@ -172,12 +172,12 @@ function MealPlanCard({ plan }: { plan: MealPlan }) {
       </CardContent>
       
       <CardFooter className="pt-4 pb-6">
-        <Link href={`/meal-plans/${plan.id}`} className="w-full">
+        <Link href={`/order?planId=${plan.id}`} className="w-full">
           <Button 
             className="w-full bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white group/btn transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl font-bold"
             size="lg"
           >
-            <span>View Details</span>
+            <span>Commander</span>
             <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover/btn:translate-x-1" />
           </Button>
         </Link>
@@ -230,17 +230,16 @@ export default function MealPlansPage() {
         <div className="text-center max-w-4xl mx-auto mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 bg-fitnest-green/10 rounded-full px-4 py-2 mb-6">
             <Sparkles className="h-4 w-4 text-fitnest-green" />
-            <span className="text-sm font-semibold text-fitnest-green">Our Plans</span>
+            <span className="text-sm font-semibold text-fitnest-green">Nos Meal Plans</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 text-gray-900">
-            Meal Plans Tailored to{" "}
+            Meal Plans Personnalisés selon{" "}
             <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
-              Your Goals
+              vos objectifs
             </span>
           </h1>
           <p className="text-base md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto font-medium">
-            Our chef-prepared meals are designed to help you reach your health and fitness goals with delicious,
-            nutritionally balanced options for every lifestyle.
+            Des repas préparés par nos chefs pour vous accompagner vers vos objectifs santé et fitness, alliant plaisir, équilibre nutritionnel et adaptabilité à votre mode de vie.
           </p>
         </div>
 
@@ -259,20 +258,20 @@ export default function MealPlansPage() {
               <Sparkles className="h-8 w-8 text-fitnest-green" />
             </div>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-gray-900">
-              Ready to Start Your{" "}
+              Prêt pour une{" "}
               <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
-                Healthy Journey?
+                vie plus saine ?
               </span>
             </h2>
             <p className="text-gray-600 mb-8 text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-medium">
-              Choose your plan, customize your meals, and enjoy delicious, nutritious food delivered fresh to your door.
+              Sélectionnez votre formule, personnalisez vos repas et savourez une cuisine saine et gourmande, livrée fraîchement à votre porte.
             </p>
             <Link href="/order">
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white px-10 py-7 text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-xl font-bold group"
               >
-                <span>Order Your Meals Now</span>
+                <span>Commander</span>
                 <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
