@@ -4,7 +4,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { Meal } from "../page"
+import type { Meal } from "@/lib/api/home"
 
 interface MealCardProps {
   meal: Meal
