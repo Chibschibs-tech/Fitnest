@@ -28,13 +28,15 @@ export function MealPlansSection({ mealPlans }: MealPlansSectionProps) {
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 bg-fitnest-orange/10 rounded-full px-4 py-2 mb-4">
             <Sparkles className="h-4 w-4 text-fitnest-orange" />
-            <span className="text-sm font-semibold text-fitnest-orange">Our Plans</span>
+            <span className="text-sm font-semibold text-fitnest-orange">Nos Meal Plans</span>
           </div>
           <h2 className="mb-4 text-3xl md:text-5xl font-bold text-gray-900">
-            Choose Your Perfect <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Meal Plan</span>
+            Choisir le <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Meal Plan</span> parfait
           </h2>
           <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-            Chef-prepared meals designed for your goals. Fresh ingredients, balanced nutrition, zero hassle.
+            Des repas de chef pour atteindre vos objectifs.
+            <br />
+            Frais, équilibrés, sans contrainte.
           </p>
         </div>
 
@@ -65,7 +67,7 @@ export function MealPlansSection({ mealPlans }: MealPlansSectionProps) {
                     {index === 0 && (
                       <div className="flex items-center gap-1.5 bg-gradient-to-r from-fitnest-orange to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
                         <Sparkles className="h-3.5 w-3.5" />
-                        <span>Popular</span>
+                        <span>Populaire</span>
                       </div>
                     )}
                   </div>
@@ -79,23 +81,25 @@ export function MealPlansSection({ mealPlans }: MealPlansSectionProps) {
                   
                   {/* Pricing */}
                   <div className="mb-5 p-4 bg-gradient-to-br from-fitnest-green/5 to-fitnest-orange/5 rounded-2xl border border-fitnest-green/10">
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-sm text-gray-600 font-medium">starting from</span>
-                      <span className="text-3xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 font-medium">à partir de</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-3xl font-bold bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent leading-none">
                         {dailyPrice * 3}
                       </span>
-                      <span className="text-sm text-gray-600 font-medium">MAD/day</span>
+                        <span className="text-sm text-gray-600 font-medium mt-1">MAD/jour</span>
+                      </div>
                     </div>
                   </div>
 
                   {/* CTA Button */}
-                  <Link href={`/meal-plans/${plan.id}`} className="block">
+                  <Link href={`/order?planId=${plan.id}`} className="block">
                     <Button 
                       size="lg"
                       className="w-full bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white transition-all hover:shadow-lg group/btn font-semibold rounded-xl"
-                      aria-label={`View ${plan.name} details`}
+                      aria-label={`Order ${plan.name}`}
                     >
-                      <span>View Details</span>
+                      <span>Commander</span>
                       <ChevronRight className="ml-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
@@ -114,7 +118,7 @@ export function MealPlansSection({ mealPlans }: MealPlansSectionProps) {
               className="bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 hover:border-fitnest-orange hover:text-fitnest-orange transition-all shadow-md hover:shadow-lg px-8 py-6 rounded-xl font-semibold group/cta"
               aria-label="View all available meal plans"
             >
-              <span>Explore All Plans</span>
+              <span>Explorer les Meal Plans</span>
               <ChevronRight className="ml-2 h-5 w-5 group-hover/cta:translate-x-1 transition-transform" />
             </Button>
           </Link>

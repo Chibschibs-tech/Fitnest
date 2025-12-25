@@ -119,11 +119,11 @@ export default function MealsPage() {
   // Get sort option label
   const getSortLabel = useCallback((option: string) => {
     const labels: Record<string, string> = {
-      popular: "Most Popular",
-      "calories-low": "Calories: Low to High",
-      "calories-high": "Calories: High to Low",
-      "protein-high": "Highest Protein",
-      alphabetical: "Alphabetical",
+      popular: "Les Plus Populaires",
+      "calories-low": "Calories : Faible à Élevé",
+      "calories-high": "Calories : Élevé à Faible",
+      "protein-high": "Protéines Élevées",
+      alphabetical: "Alphabétique",
     }
     return labels[option] || "Sort by"
   }, [])
@@ -151,16 +151,16 @@ export default function MealsPage() {
         <div className="mb-8 md:mb-12 text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-fitnest-orange/10 rounded-full px-4 py-2 mb-4">
             <UtensilsCrossed className="h-4 w-4 text-fitnest-orange" />
-            <span className="text-sm font-semibold text-fitnest-orange">Our Menu</span>
+            <span className="text-sm font-semibold text-fitnest-orange">Notre Menu</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
-            Explore Our{" "}
+            Explorez Nos{" "}
             <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
-              Meals
+              Recettes
             </span>
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg leading-relaxed font-medium">
-            Browse our selection of nutritious, chef-prepared meals designed to support your health and fitness goals.
+            Découvrez notre sélection de repas nutritifs, préparés par nos chefs pour accompagner vos objectifs santé et fitness.
           </p>
         </div>
 
@@ -175,7 +175,7 @@ export default function MealsPage() {
               />
               <Input
                 type="search"
-                placeholder="Search meals by name or description..."
+                placeholder="Chercher les recettes par nom ou description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -211,42 +211,42 @@ export default function MealsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 shadow-lg">
-                <DropdownMenuLabel className="font-bold text-gray-900">Sort Options</DropdownMenuLabel>
+                <DropdownMenuLabel className="font-bold text-gray-900">Options de Tri</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem 
                     onClick={() => setSortOption("popular")}
                     className="font-medium cursor-pointer"
                   >
-                    Most Popular
+                    Les Plus Populaires
                     {sortOption === "popular" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setSortOption("calories-low")}
                     className="font-medium cursor-pointer"
                   >
-                    Calories: Low to High
+                    Calories : Faible à Élevé
                     {sortOption === "calories-low" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setSortOption("calories-high")}
                     className="font-medium cursor-pointer"
                   >
-                    Calories: High to Low
+                    Calories : Élevé à Faible
                     {sortOption === "calories-high" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setSortOption("protein-high")}
                     className="font-medium cursor-pointer"
                   >
-                    Highest Protein
+                    Protéines Élevées
                     {sortOption === "protein-high" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setSortOption("alphabetical")}
                     className="font-medium cursor-pointer"
                   >
-                    Alphabetical
+                    Alphabétique
                     {sortOption === "alphabetical" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -265,9 +265,8 @@ export default function MealsPage() {
                     <span className="text-fitnest-orange">&quot;{debouncedSearchQuery}&quot;</span>
                   </>
                 ) : (
-                  <span className="text-gray-600">
-                    Showing <span className="text-gray-900">{filteredMeals.length}</span>{" "}
-                    {filteredMeals.length === 1 ? "meal" : "meals"}
+                  <span className="text-gray-900 font-semibold">
+                    {filteredMeals.length} {filteredMeals.length === 1 ? "Recette" : "Recettes"}
                   </span>
                 )}
               </div>

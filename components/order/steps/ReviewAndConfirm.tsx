@@ -115,26 +115,26 @@ export function ReviewAndConfirm({
 
     // Contact validation
     if (!contactInfo.name.trim()) {
-      newErrors.name = 'Name is required'
+      newErrors.name = 'Le nom est requis'
     }
     if (!contactInfo.email.trim()) {
-      newErrors.email = 'Email is required'
+      newErrors.email = 'L\'email est requis'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactInfo.email)) {
-      newErrors.email = 'Invalid email format'
+      newErrors.email = 'Format d\'email invalide'
     }
     if (!contactInfo.phone.trim()) {
-      newErrors.phone = 'Phone number is required'
+      newErrors.phone = 'Le numéro de téléphone est requis'
     }
 
     // Address validation
     if (!address.street.trim()) {
-      newErrors.street = 'Street address is required'
+      newErrors.street = 'L\'adresse est requise'
     }
     if (!address.city.trim()) {
-      newErrors.city = 'City is required'
+      newErrors.city = 'La ville est requise'
     }
     if (!address.zipCode.trim()) {
-      newErrors.zipCode = 'Zip code is required'
+      newErrors.zipCode = 'Le code postal est requis'
     }
 
     setErrors(newErrors)
@@ -173,23 +173,23 @@ export function ReviewAndConfirm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-fitnest-green" />
-              Contact Information
+              Informations de Contact
             </CardTitle>
             <CardDescription>
-              We'll use this to communicate about your order
+              Nous utiliserons ces informations pour communiquer au sujet de votre commande
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">
-                  Full Name <span className="text-red-500">*</span>
+                  Nom Complet <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="name"
-                    placeholder="John Doe"
+                    placeholder="Nom Prénom"
                     value={contactInfo.name}
                     onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
                     className={cn("pl-10", errors.name && "border-red-500")}
@@ -202,7 +202,7 @@ export function ReviewAndConfirm({
 
               <div className="space-y-2">
                 <Label htmlFor="phone">
-                  Phone Number <span className="text-red-500">*</span>
+                  Numéro de Téléphone <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -222,23 +222,23 @@ export function ReviewAndConfirm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">
-                Email Address <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  value={contactInfo.email}
-                  onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
-                  className={cn("pl-10", errors.email && "border-red-500")}
-                />
-              </div>
-              {errors.email && (
-                <p className="text-xs text-red-500">{errors.email}</p>
-              )}
+                <Label htmlFor="email">
+                  Adresse Email <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="nom@exemple.com"
+                    value={contactInfo.email}
+                    onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                    className={cn("pl-10", errors.email && "border-red-500")}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-xs text-red-500">{errors.email}</p>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -248,33 +248,33 @@ export function ReviewAndConfirm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-fitnest-green" />
-              Delivery Address
+              Adresse de Livraison
             </CardTitle>
             <CardDescription>
-              Where should we deliver your meals?
+              Où devons-nous livrer vos repas ?
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="street">
-                Street Address <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="street"
-                placeholder="123 Main Street, Apt 4B"
-                value={address.street}
-                onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                className={errors.street ? "border-red-500" : ""}
-              />
-              {errors.street && (
-                <p className="text-xs text-red-500">{errors.street}</p>
-              )}
+                <Label htmlFor="street">
+                  Adresse <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="street"
+                  placeholder="123 Rue Principale, Apt 4B"
+                  value={address.street}
+                  onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                  className={errors.street ? "border-red-500" : ""}
+                />
+                {errors.street && (
+                  <p className="text-xs text-red-500">{errors.street}</p>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="city">
-                  City <span className="text-red-500">*</span>
+                  Ville <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="city"
@@ -289,7 +289,7 @@ export function ReviewAndConfirm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="state">State/Province</Label>
+                <Label htmlFor="state">État/Province</Label>
                 <Input
                   id="state"
                   placeholder="Casablanca-Settat"
@@ -302,7 +302,7 @@ export function ReviewAndConfirm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="zipCode">
-                  Zip/Postal Code <span className="text-red-500">*</span>
+                  Code Postal <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="zipCode"
@@ -317,7 +317,7 @@ export function ReviewAndConfirm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
+                <Label htmlFor="country">Pays</Label>
                 <Input
                   id="country"
                   value={address.country}
@@ -329,16 +329,16 @@ export function ReviewAndConfirm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="additionalInfo">
-                Additional Information (Optional)
-              </Label>
-              <Textarea
-                id="additionalInfo"
-                placeholder="Building name, floor, special delivery instructions..."
-                value={address.additionalInfo}
-                onChange={(e) => setAddress({ ...address, additionalInfo: e.target.value })}
-                rows={3}
-              />
+                <Label htmlFor="additionalInfo">
+                  Informations Complémentaires (Optionnel)
+                </Label>
+                <Textarea
+                  id="additionalInfo"
+                  placeholder="Nom du bâtiment, étage, instructions de livraison spéciales..."
+                  value={address.additionalInfo}
+                  onChange={(e) => setAddress({ ...address, additionalInfo: e.target.value })}
+                  rows={3}
+                />
             </div>
           </CardContent>
         </Card>
@@ -353,14 +353,14 @@ export function ReviewAndConfirm({
                 size="lg"
                 className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50"
               >
-                <span>Back</span>
+                <span>Retour</span>
               </Button>
               <Button
                 onClick={handleContinueToReview}
                 className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-10 py-7 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
                 size="lg"
               >
-                <span>Review Order</span>
+                <span>Vérifier la Commande</span>
                 <CheckCircle2 className="ml-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               </Button>
             </div>
@@ -378,10 +378,10 @@ export function ReviewAndConfirm({
         <CardHeader className="bg-fitnest-green/5">
           <CardTitle className="flex items-center gap-2 text-fitnest-green">
             <CheckCircle2 className="h-6 w-6" />
-            Review Your Order
+            Vérifiez votre Commande
           </CardTitle>
           <CardDescription>
-            Please review all details before confirming your order
+            Veuillez vérifier tous les détails avant de confirmer votre commande
           </CardDescription>
         </CardHeader>
       </Card>
@@ -393,7 +393,7 @@ export function ReviewAndConfirm({
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Contact Information
+                Informations de Contact
               </CardTitle>
               <Button
                 variant="ghost"
@@ -401,13 +401,13 @@ export function ReviewAndConfirm({
                 onClick={() => setShowReview(false)}
               >
                 <Edit2 className="h-3 w-3 mr-1" />
-                Edit
+                Modifier
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div>
-              <p className="text-gray-500">Name</p>
+              <p className="text-gray-500">Nom</p>
               <p className="font-medium">{contactInfo.name}</p>
             </div>
             <div>
@@ -415,7 +415,7 @@ export function ReviewAndConfirm({
               <p className="font-medium">{contactInfo.email}</p>
             </div>
             <div>
-              <p className="text-gray-500">Phone</p>
+              <p className="text-gray-500">Téléphone</p>
               <p className="font-medium">{contactInfo.phone}</p>
             </div>
           </CardContent>
@@ -426,7 +426,7 @@ export function ReviewAndConfirm({
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Delivery Address
+                Adresse de Livraison
               </CardTitle>
               <Button
                 variant="ghost"
@@ -434,7 +434,7 @@ export function ReviewAndConfirm({
                 onClick={() => setShowReview(false)}
               >
                 <Edit2 className="h-3 w-3 mr-1" />
-                Edit
+                Modifier
               </Button>
             </div>
           </CardHeader>
@@ -454,7 +454,7 @@ export function ReviewAndConfirm({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Meal Plan Details
+            Détails du Meal Plan
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -480,12 +480,12 @@ export function ReviewAndConfirm({
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Duration</p>
-              <p className="font-medium">{preferences.duration} week{preferences.duration > 1 ? 's' : ''}</p>
+              <p className="text-gray-500">Durée</p>
+              <p className="font-medium">{preferences.duration} semaine{preferences.duration > 1 ? 's' : ''}</p>
             </div>
             <div>
-              <p className="text-gray-500">Delivery Days</p>
-              <p className="font-medium">{preferences.deliveryDays.length} days</p>
+              <p className="text-gray-500">Jours de Livraison</p>
+              <p className="font-medium">{preferences.deliveryDays.length} jours</p>
             </div>
           </div>
         </CardContent>
@@ -496,10 +496,10 @@ export function ReviewAndConfirm({
   <CardHeader>
     <CardTitle className="text-base flex items-center gap-2">
       <Calendar className="h-4 w-4" />
-      Delivery Schedule & Meals
+      Calendrier de Livraison & Repas
     </CardTitle>
     <CardDescription>
-      Your complete meal plan for each delivery day
+      Votre meal plan complet pour chaque jour de livraison
     </CardDescription>
   </CardHeader>
   <CardContent>
@@ -554,7 +554,7 @@ export function ReviewAndConfirm({
                     {format(day, 'EEEE, MMMM d, yyyy')}
                   </h4>
                   <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
-                    {dayMeals.length} items
+                    {dayMeals.length} articles
                   </span>
                 </div>
               </div>
@@ -604,11 +604,11 @@ export function ReviewAndConfirm({
                               <p className="text-xs font-semibold">{meal.protein || 0}g</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-[10px] text-gray-500">Carb</p>
+                              <p className="text-[10px] text-gray-500">Glu</p>
                               <p className="text-xs font-semibold">{meal.carbohydrates || 0}g</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-[10px] text-gray-500">Fat</p>
+                              <p className="text-[10px] text-gray-500">Lip</p>
                               <p className="text-xs font-semibold">{meal.fats || 0}g</p>
                             </div>
                           </div>
@@ -622,7 +622,7 @@ export function ReviewAndConfirm({
                 {dayMeals.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs flex-wrap gap-2">
-                      <span className="text-gray-500 font-medium">Daily Totals:</span>
+                      <span className="text-gray-500 font-medium">Totaux Journaliers :</span>
                       <div className="flex gap-4 flex-wrap">
                         <span>
                           <span className="font-semibold text-fitnest-green">
@@ -634,19 +634,19 @@ export function ReviewAndConfirm({
                           <span className="font-semibold text-fitnest-green">
                             {dayMeals.reduce((sum, { meal }) => sum + (meal?.protein || 0), 0)}g
                           </span>{' '}
-                          <span className="text-gray-500">protein</span>
+                          <span className="text-gray-500">protéines</span>
                         </span>
                         <span>
                           <span className="font-semibold text-fitnest-green">
                             {dayMeals.reduce((sum, { meal }) => sum + (meal?.carbohydrates || 0), 0)}g
                           </span>{' '}
-                          <span className="text-gray-500">carbs</span>
+                          <span className="text-gray-500">glucides</span>
                         </span>
                         <span>
                           <span className="font-semibold text-fitnest-green">
                             {dayMeals.reduce((sum, { meal }) => sum + (meal?.fats || 0), 0)}g
                           </span>{' '}
-                          <span className="text-gray-500">fat</span>
+                          <span className="text-gray-500">lipides</span>
                         </span>
                       </div>
                     </div>
@@ -665,12 +665,12 @@ export function ReviewAndConfirm({
         <CardContent className="pt-6">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Meals Total</span>
+              <span>Total Repas</span>
               <span>{calculateTotal().toFixed(2)} MAD</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Delivery</span>
-              <span className="text-green-600">Free</span>
+              <span>Livraison</span>
+              <span className="text-green-600">Gratuit</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
@@ -686,8 +686,7 @@ export function ReviewAndConfirm({
         <CardContent className="pt-6 space-y-4">
           <Alert>
             <AlertDescription className="text-xs">
-              By confirming this order, you agree to our Terms of Service and Privacy Policy.
-              You can modify or cancel your subscription at any time.
+              En confirmant cette commande, vous acceptez nos Conditions d'Utilisation et notre Politique de Confidentialité. Vous pouvez modifier ou annuler votre abonnement à tout moment.
             </AlertDescription>
           </Alert>
 
@@ -699,7 +698,7 @@ export function ReviewAndConfirm({
               disabled={isSubmitting}
               className="font-bold px-8 py-6 rounded-xl border-2 hover:bg-gray-50 disabled:opacity-50"
             >
-              <span>Back to Edit</span>
+              <span>Retour à la Modification</span>
             </Button>
             <Button
               onClick={handleSubmit}
@@ -710,11 +709,11 @@ export function ReviewAndConfirm({
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  <span>Processing...</span>
+                  <span>Traitement en cours...</span>
                 </>
               ) : (
                 <>
-                  <span>Confirm Order</span>
+                  <span>Confirmer la Commande</span>
                   <CheckCircle2 className="ml-2 h-5 w-5" />
                 </>
               )}

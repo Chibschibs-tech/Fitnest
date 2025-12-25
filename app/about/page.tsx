@@ -4,9 +4,9 @@ import { Sparkles, Heart, Target, Users, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "About Us | Fitnest",
+  title: "A Propos | Fitnest",
   description:
-    "Learn about Fitnest, Morocco's premier meal prep delivery service dedicated to helping you achieve your health and fitness goals.",
+    "Découvrez Fitnest, le premier service de livraison de repas préparés au Maroc, dédié à vous aider à atteindre vos objectifs de santé et de fitness.",
 }
 
 export default function AboutPage() {
@@ -18,18 +18,17 @@ export default function AboutPage() {
         <div className="text-center mb-12 animate-in fade-in duration-500">
           <div className="inline-flex items-center gap-2 bg-fitnest-green/10 rounded-full px-4 py-2 mb-4">
             <Heart className="h-4 w-4 text-fitnest-green" />
-            <span className="text-sm font-semibold text-fitnest-green">Our Story</span>
+            <span className="text-sm font-semibold text-fitnest-green">Notre Histoire</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900">
-            About{" "}
+            À Propos de{" "}
             <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
               Fitnest
             </span>
           </h1>
           <div className="max-w-3xl mx-auto">
             <p className="text-gray-600 text-base md:text-lg leading-relaxed font-medium">
-              Fitnest is Morocco's premier health-focused lifestyle brand dedicated to helping you achieve your wellness
-              goals through delicious, nutritionally balanced meals delivered right to your door.
+              Fitnest est la première marque de bien-être au Maroc, dédiée à vous aider à atteindre vos objectifs santé grâce à des repas délicieux et équilibrés, livrés directement chez vous.
             </p>
           </div>
         </div>
@@ -44,7 +43,7 @@ export default function AboutPage() {
                 <Target className="h-8 w-8 text-white" />
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Our{" "}
+                Notre{" "}
                 <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
                   Vision
                 </span>
@@ -52,14 +51,10 @@ export default function AboutPage() {
             </div>
             <div className="text-center max-w-3xl mx-auto space-y-4">
               <p className="text-lg md:text-xl text-gray-700 leading-relaxed font-medium">
-                FitNest aims to become the leading health-focused lifestyle brand in Morocco, redefining how people eat,
-                move, and live.
+                FitNest aspire à devenir la marque de bien-être de référence au Maroc, redéfinissant la façon dont les gens mangent, bougent et vivent.
               </p>
               <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-                We envision a future where healthy living is accessible, enjoyable, and deeply rooted in local
-                culture—from what people eat daily to how they take care of their bodies. Through personalized nutrition,
-                education, and sustainable food practices, FitNest aspires to shift long-term habits and become a symbol
-                of well-being and positive transformation.
+                Nous envisageons un avenir où une vie saine est accessible, agréable et profondément ancrée dans la culture locale — de ce que les gens mangent quotidiennement à la façon dont ils prennent soin de leur corps. Grâce à une nutrition personnalisée, à l'éducation et à des pratiques alimentaires durables, FitNest aspire à transformer les habitudes à long terme et à devenir un symbole de bien-être et de transformation positive.
               </p>
             </div>
           </div>
@@ -75,7 +70,7 @@ export default function AboutPage() {
                 <Sparkles className="h-8 w-8 text-white" />
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Our{" "}
+                Notre{" "}
                 <span className="bg-gradient-to-r from-fitnest-orange to-orange-600 bg-clip-text text-transparent">
                   Mission
                 </span>
@@ -83,13 +78,10 @@ export default function AboutPage() {
             </div>
             <div className="text-center max-w-3xl mx-auto space-y-4">
               <p className="text-xl md:text-2xl font-bold text-gray-900">
-                To make healthy eating simple, enjoyable, and part of everyday life.
+                Rendre une alimentation saine simple, agréable et partie intégrante de la vie quotidienne.
               </p>
               <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-                We deliver personalized, nutrient-rich meals straight to your door and support our customers with tools
-                and content that help them build healthier routines. With a focus on freshness, transparency, and
-                long-term wellness, FitNest empowers individuals to take charge of their health—one meal, one habit at a
-                time.
+                Nous livrons des repas personnalisés et riches en nutriments directement à votre porte et accompagnons nos clients avec des outils et du contenu qui les aident à développer des routines plus saines. En mettant l'accent sur la fraîcheur, la transparence et le bien-être à long terme, FitNest permet aux individus de prendre en main leur santé — un repas, une habitude à la fois.
               </p>
             </div>
           </div>
@@ -100,9 +92,9 @@ export default function AboutPage() {
       <section className="mb-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Our{" "}
+            Nos{" "}
             <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
-              Values
+              Valeurs
             </span>
           </h2>
         </div>
@@ -111,12 +103,11 @@ export default function AboutPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 text-3xl">💚</div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-fitnest-green transition-colors">
-                Health First
+                Santé
               </h3>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              We put health at the core of every product and service. Every meal, ingredient, and experience is designed
-              to fuel the body and promote long-term well-being.
+              Nous plaçons la santé au cœur de chaque produit et service. Chaque repas, ingrédient et expérience est conçu pour alimenter le corps et promouvoir un bien-être durable.
             </p>
           </div>
 
@@ -124,12 +115,11 @@ export default function AboutPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 text-3xl">🔥</div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-fitnest-green transition-colors">
-                Lifestyle-Driven
+                Lifestyle
               </h3>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              We believe that healthy living is more than just eating well—it's a mindset. FitNest promotes a full
-              lifestyle transformation through balanced routines, movement, mindfulness, and education.
+              Nous croyons qu'une vie saine ne se limite pas à bien manger — c'est un état d'esprit. FitNest promeut une transformation complète du mode de vie grâce à des routines équilibrées, au mouvement, à la pleine conscience et à l'éducation.
             </p>
           </div>
 
@@ -137,12 +127,11 @@ export default function AboutPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 text-3xl">🌱</div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-fitnest-green transition-colors">
-                Simplicity & Convenience
+                Simplicité
               </h3>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              We remove the barriers to healthy habits. From personalized meals to seamless delivery and clear guidance,
-              we make nutrition and wellness easier for everyone.
+              Nous éliminons les obstacles aux habitudes saines. Des repas personnalisés à la livraison fluide en passant par des conseils clairs, nous rendons la nutrition et le bien-être plus faciles pour tous.
             </p>
           </div>
 
@@ -150,12 +139,11 @@ export default function AboutPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 text-3xl">📚</div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-fitnest-green transition-colors">
-                Empowerment Through Education
+                Éducation
               </h3>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              Knowledge drives change. Through clear content, expert insights, and practical tips, we help our community
-              make better choices and build sustainable habits.
+              La connaissance stimule le changement. Grâce à un contenu clair, des conseils d'experts et des astuces pratiques, nous aidons notre communauté à faire de meilleurs choix et à développer des habitudes durables.
             </p>
           </div>
 
@@ -163,12 +151,11 @@ export default function AboutPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 text-3xl">🌍</div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-fitnest-green transition-colors">
-                Sustainability & Responsibility
+                Durabilité
               </h3>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              We care about the future. Our commitment to eco-friendly packaging, local sourcing, and self-sufficient
-              farming solutions reflects our responsibility toward people and the planet.
+              Nous nous soucions de l'avenir. Notre engagement envers des emballages écologiques, un approvisionnement local et des solutions agricoles autosuffisantes reflète notre responsabilité envers les gens et la planète.
             </p>
           </div>
         </div>
@@ -179,12 +166,12 @@ export default function AboutPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-fitnest-green/10 rounded-full px-4 py-2 mb-4">
             <Users className="h-4 w-4 text-fitnest-green" />
-            <span className="text-sm font-semibold text-fitnest-green">Meet The Team</span>
+            <span className="text-sm font-semibold text-fitnest-green">Rencontrez l'Équipe</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Our{" "}
+            Notre{" "}
             <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
-              Team
+              Équipe
             </span>
           </h2>
         </div>
@@ -194,21 +181,21 @@ export default function AboutPage() {
               <Image src="/professional-chef-portrait.png" alt="Executive Chef" fill className="object-cover" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">Karim Benali</h3>
-            <p className="text-fitnest-green font-semibold">Executive Chef</p>
+            <p className="text-fitnest-green font-semibold">Chef Exécutif</p>
           </div>
           <div className="group text-center bg-white rounded-3xl p-8 shadow-lg border-2 border-gray-100 hover:border-fitnest-green hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
             <div className="relative w-48 h-48 mx-auto mb-6 rounded-2xl overflow-hidden shadow-xl group-hover:scale-105 transition-transform duration-300">
               <Image src="/placeholder.svg?key=c89xy" alt="Head Nutritionist" fill className="object-cover" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">Leila Tazi</h3>
-            <p className="text-fitnest-green font-semibold">Head Nutritionist</p>
+            <p className="text-fitnest-green font-semibold">Nutritionniste en Chef</p>
           </div>
           <div className="group text-center bg-white rounded-3xl p-8 shadow-lg border-2 border-gray-100 hover:border-fitnest-green hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
             <div className="relative w-48 h-48 mx-auto mb-6 rounded-2xl overflow-hidden shadow-xl group-hover:scale-105 transition-transform duration-300">
               <Image src="/placeholder.svg?key=dukkd" alt="Founder & CEO" fill className="object-cover" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">Omar Alaoui</h3>
-            <p className="text-fitnest-green font-semibold">Founder & CEO</p>
+            <p className="text-fitnest-green font-semibold">Fondateur et PDG</p>
           </div>
         </div>
       </section>
@@ -217,7 +204,7 @@ export default function AboutPage() {
       <section className="bg-gradient-to-br from-fitnest-green/10 to-green-50 rounded-3xl p-8 md:p-12 border-2 border-fitnest-green/20 shadow-xl">
         <div className="text-center mb-6">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Join Us on Our{" "}
+            Rejoignez Notre{" "}
             <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">
               Mission
             </span>
@@ -225,12 +212,11 @@ export default function AboutPage() {
         </div>
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-base md:text-lg text-gray-700 leading-relaxed font-medium mb-8">
-            Whether you're looking to lose weight, build muscle, or simply maintain a healthy lifestyle, Fitnest is here
-            to support your journey with delicious, nutritious meals delivered right to your door.
+            Que vous cherchiez à perdre du poids, à développer votre masse musculaire ou simplement à maintenir un mode de vie sain, Fitnest est là pour accompagner votre parcours avec des repas délicieux et nutritifs livrés directement chez vous.
           </p>
           <Link href="/order">
             <button className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl inline-flex items-center gap-2 group">
-              <span>Start Your Journey Today</span>
+              <span>Commencez Votre Parcours Aujourd'hui</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </Link>

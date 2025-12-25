@@ -74,7 +74,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
         <div className="mb-8 md:mb-12 text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-fitnest-green/10 rounded-full px-4 py-2 mb-4">
             <ShoppingBag className="h-4 w-4 text-fitnest-green" />
-            <span className="text-sm font-semibold text-fitnest-green">Quick Delivery</span>
+            <span className="text-sm font-semibold text-fitnest-green">Livraison Rapide</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
             Express{" "}
@@ -83,7 +83,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
             </span>
           </h1>
           <p className="mx-auto max-w-2xl text-gray-600 text-base md:text-lg leading-relaxed font-medium mb-8">
-            Browse our selection of healthy snacks, protein bars, and premium supplements for quick delivery.
+            Explorez notre gamme de snacks sains, barres protéinées et compléments haut de gamme, livrés rapidement chez vous.
           </p>
           
           {/* Trust Indicators */}
@@ -92,21 +92,21 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
               <div className="bg-fitnest-green/10 rounded-lg p-2">
                 <Zap className="h-4 w-4 text-fitnest-green" />
               </div>
-              <span className="text-sm font-semibold text-gray-700">Fast Shipping</span>
+              <span className="text-sm font-semibold text-gray-700">Livraison Rapide</span>
             </div>
             <div className="hidden sm:block h-6 w-px bg-gray-300" />
             <div className="flex items-center gap-2">
               <div className="bg-fitnest-orange/10 rounded-lg p-2">
                 <Package className="h-4 w-4 text-fitnest-orange" />
               </div>
-              <span className="text-sm font-semibold text-gray-700">Quality Products</span>
+              <span className="text-sm font-semibold text-gray-700">Produits de Qualité</span>
             </div>
             <div className="hidden sm:block h-6 w-px bg-gray-300" />
             <div className="flex items-center gap-2">
               <div className="bg-fitnest-green/10 rounded-lg p-2">
                 <TrendingUp className="h-4 w-4 text-fitnest-green" />
               </div>
-              <span className="text-sm font-semibold text-gray-700">Best Prices</span>
+              <span className="text-sm font-semibold text-gray-700">Meilleurs Prix</span>
             </div>
           </div>
         </div>
@@ -122,11 +122,11 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
         {filteredProducts.length > 0 && (
           <div className="mb-8 max-w-6xl mx-auto px-1">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-600">
-                Showing <span className="text-gray-900">{filteredProducts.length}</span>{" "}
-                {filteredProducts.length === 1 ? "product" : "products"}
+              <p className="text-sm font-semibold text-gray-900">
+                {filteredProducts.length}{" "}
+                {filteredProducts.length === 1 ? "Produit" : "Produits"}
                 {selectedCategory !== "all" && (
-                  <span className="text-fitnest-orange"> in {selectedCategory}</span>
+                  <span className="text-fitnest-orange"> dans {selectedCategory}</span>
                 )}
               </p>
             </div>
@@ -153,7 +153,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                   <Button 
                     className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
                   >
-                    <span>View All Products</span>
+                    <span>Tous les Produits</span>
                     <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -286,7 +286,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                         ) : (
                           <>
                             <ShoppingCart className="mr-2 h-4 w-4 group-hover/btn:scale-110 transition-transform" />
-                            <span>View Product</span>
+                            <span>Ajouter au Panier</span>
                             <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                           </>
                         )}
@@ -309,16 +309,16 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                   <Package className="h-6 w-6 text-fitnest-green" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Complete Meal Plans
+                  Des Meal Plans Complets
                 </h3>
                 <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                  Looking for a complete nutrition solution? Check out our meal plans with fresh, prepared meals delivered daily.
+                  À la recherche d'une solution nutritionnelle complète ? Optez pour nos Meal Plans, avec des plats frais et préparés, livrés quotidiennement.
                 </p>
                 <Link href="/meal-plans">
                   <Button 
                     className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group/btn w-full sm:w-auto"
                   >
-                    <span>View Meal Plans</span>
+                    <span>Voir les Meal Plans</span>
                     <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -330,16 +330,16 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                   <Sparkles className="h-6 w-6 text-fitnest-orange" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Need Assistance?
+                  Besoin d'aide
                 </h3>
                 <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                  Our nutrition experts are ready to help you find the perfect products for your fitness goals.
+                  Nos experts en nutrition vous accompagnent pour trouver le meal plan idéal, afin d'équilibrer vos macronutriments et atteindre vos objectifs fitness.
                 </p>
                 <Link href="/contact">
                   <Button 
                     className="bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group/btn w-full sm:w-auto"
                   >
-                    <span>Contact Us</span>
+                    <span>Nous Contacter</span>
                     <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                   </Button>
                 </Link>

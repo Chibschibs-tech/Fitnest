@@ -37,19 +37,19 @@ export function HeroSection() {
           {/* Hero Headline */}
           <div className="space-y-4">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-white drop-shadow-2xl animate-in fade-in duration-700">
-              Fresh, Healthy Meals
+              Repas Frais et Équilibrés
               <br />
               <span className="bg-gradient-to-r from-fitnest-orange via-orange-400 to-fitnest-orange bg-clip-text text-transparent drop-shadow-none">
-                Delivered to Your Door
+                Livrés chez vous
               </span>
             </h1>
           </div>
           
           {/* Hero Subheadline */}
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
-            Chef-prepared nutrition designed for your fitness goals. 
+            Des repas de chef adaptés à vos objectifs.
             <br className="hidden sm:block" />
-            No prep, no hassle, just <span className="text-fitnest-orange font-bold">results</span>.
+            Pas de préparation, pas de tracas, juste des <span className="text-fitnest-orange font-bold">résultats</span>.
           </p>
           
           {/* CTA Buttons */}
@@ -62,7 +62,7 @@ export function HeroSection() {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Sparkles className="mr-2 h-5 w-5 relative z-10" />
-                <span className="relative z-10">View Meal Plans</span>
+                <span className="relative z-10">Nos Meal Plans</span>
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform relative z-10" />
               </Button>
             </Link>
@@ -74,7 +74,7 @@ export function HeroSection() {
                 aria-label="Learn how our service works"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="relative z-10">How It Works</span>
+                <span className="relative z-10">Comment ça marche</span>
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform relative z-10" />
               </Button>
             </Link>
@@ -87,21 +87,21 @@ export function HeroSection() {
               <div className="bg-fitnest-green rounded-full p-2 shadow-lg">
                 <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-sm font-bold text-white">Fresh Daily</span>
+              <span className="text-sm font-bold text-white">Toujours Frais</span>
             </div>
             <div className="h-6 w-px bg-white/40" />
             <div className="flex items-center gap-2">
               <div className="bg-fitnest-orange rounded-full p-2 shadow-lg">
                 <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-sm font-bold text-white">Free Delivery</span>
+              <span className="text-sm font-bold text-white">Livraison Gratuite</span>
             </div>
             <div className="h-6 w-px bg-white/40" />
             <div className="flex items-center gap-2">
               <div className="bg-fitnest-green rounded-full p-2 shadow-lg">
                 <Star className="h-4 w-4 text-white fill-white" strokeWidth={2.5} />
               </div>
-              <span className="text-sm font-bold text-white">No Commitment</span>
+              <span className="text-sm font-bold text-white">Sans Engagement</span>
             </div>
             </div>
           </div>

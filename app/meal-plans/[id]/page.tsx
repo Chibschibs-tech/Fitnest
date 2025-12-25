@@ -225,7 +225,7 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
                 )}
               </div>
               <Button size="lg" className="bg-fitnest-orange hover:bg-orange-600 text-white">
-                Start Your Plan
+                Commander
               </Button>
             </div>
             <div className="relative">
@@ -352,7 +352,7 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
                 <h3 className="text-xl font-bold mb-2">Ready to Start?</h3>
                 <p className="text-green-100 mb-4">Join thousands of satisfied customers</p>
                 <Button className="w-full bg-fitnest-orange hover:bg-orange-600">
-                  Order Now - {plan.price} MAD/week
+                  Commander - {plan.price} MAD/week
                 </Button>
               </CardContent>
             </Card>

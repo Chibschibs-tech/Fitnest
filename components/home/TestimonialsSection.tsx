@@ -2,25 +2,25 @@ import { Star, Quote, Sparkles } from "lucide-react"
 
 const testimonials = [
   {
-    quote: "Fitnest has completely changed my relationship with food. The meals are delicious and I've lost 8kg in 3 months!",
+    quote: "Fitnest a complètement changé ma relation à l'alimentation. Les repas sont délicieux et j'ai perdu 8 kg en 3 mois !",
     author: "Sarah M.",
-    plan: "Weight Loss Plan",
+    plan: "Plan de Perte de Poid",
     initial: "S",
     color: "from-fitnest-green to-fitnest-green/80",
     bgColor: "from-fitnest-green/10 to-fitnest-green/5",
   },
   {
-    quote: "As a busy professional, Fitnest saves me hours each week. The muscle gain plan is perfect for my fitness goals.",
+    quote: "En tant que personne très occupé, Le programme prise de masse de Fitnest me fait gagner des heures chaque semaine.",
     author: "Karim B.",
-    plan: "Muscle Gain Plan",
+    plan: "Plan de Prise de Masse",
     initial: "K",
     color: "from-fitnest-orange to-orange-500",
     bgColor: "from-fitnest-orange/10 to-orange-500/5",
   },
   {
-    quote: "The variety and quality of meals exceeded my expectations. Delivery is always on time and customer service is excellent.",
+    quote: "La variété et la qualité des repas ont dépassé mes attentes. La livraison est toujours ponctuelle et le service client est excellent.",
     author: "Leila A.",
-    plan: "Stay Fit Plan",
+    plan: "Plan de Maintien en Forme",
     initial: "L",
     color: "from-fitnest-green to-emerald-600",
     bgColor: "from-fitnest-green/10 to-emerald-600/5",
@@ -39,13 +39,13 @@ export function TestimonialsSection() {
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 bg-fitnest-orange/10 rounded-full px-4 py-2 mb-4">
             <Sparkles className="h-4 w-4 text-fitnest-orange" />
-            <span className="text-sm font-semibold text-fitnest-orange">Testimonials</span>
+            <span className="text-sm font-semibold text-fitnest-orange">Témoignages</span>
           </div>
           <h2 className="mb-4 text-3xl md:text-5xl font-bold text-gray-900">
-            What Our <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Customers Say</span>
+            Ils nous font <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">confiance</span>
           </h2>
           <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-            Real stories from real people achieving their health and fitness goals.
+            Des parcours authentiques de clients ayant atteint leurs objectifs santé et fitness.
           </p>
         </div>
 

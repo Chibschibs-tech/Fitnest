@@ -1,30 +1,30 @@
 export const MEAL_TYPES = [
     {
       id: 'breakfast',
-      label: 'Breakfast',
-      description: 'Start your day right',
+      label: 'Petit-déjeuner',
+      description: 'Commencez bien votre journée',
     },
     {
       id: 'lunch',
-      label: 'Lunch',
-      description: 'Midday fuel',
+      label: 'Déjeuner',
+      description: 'Alimentez votre après-midi',
     },
     {
       id: 'dinner',
-      label: 'Dinner',
-      description: 'Evening nutrition',
+      label: 'Dîner',
+      description: 'Terminez votre journée sainement',
     },
   ] as const
   
   export const SNACK_OPTIONS = [
-    { value: 0, label: 'No Snacks', description: 'Just main meals' },
-    { value: 1, label: '1 Snack', description: 'One healthy snack' },
-    { value: 2, label: '2 Snacks', description: 'Two healthy snacks' },
+    { value: 0, label: 'Pas de Snacks', description: 'Économisez' },
+    { value: 1, label: '1 Snack', description: 'Boost parfait en milieu de journée' },
+    { value: 2, label: '2 Snacks', description: 'Énergie maximale toute la journée' },
   ] as const
   
   export const DURATION_OPTIONS = [
-    { value: 1, label: '1 Week', description: '7 days', days: 7 },
-    { value: 2, label: '2 Weeks', description: '14 days', days: 14 },
-    { value: 4, label: '1 Month', description: '28 days', days: 28 },
+    { value: 1, label: '1 Semaine', description: 'Essayez', days: 7 },
+    { value: 2, label: '2 Semaines', description: 'Le plus flexible', days: 14 },
+    { value: 4, label: '4 Semaines', description: 'Meilleur rapport qualité-prix', days: 28 },
   ] as const
   

@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button"
 import { ChevronRight, Check, Star, Shield, Zap } from "lucide-react"
 
 const benefits = [
-  { text: "No commitment", icon: Shield },
-  { text: "Cancel anytime", icon: Check },
-  { text: "Free delivery", icon: Zap },
+  { text: "Sans engagement", icon: Shield },
+  { text: "Résiliation à tout moment", icon: Check },
+  { text: "Livraison gratuite", icon: Zap },
 ]
 
 export function CTASection() {
@@ -25,12 +25,14 @@ export function CTASection() {
           {/* Main Heading */}
           <div className="space-y-4">
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-in fade-in duration-700">
-              Ready to Transform Your <span className="text-fitnest-orange">Lifestyle?</span>
+              Prêt à transformer votre <span className="text-fitnest-orange">mode de vie ?</span>
             </h2>
             
             {/* Subheading */}
             <p className="text-base md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
-              Join <strong>1000+ happy customers</strong> who have transformed their lives through healthy eating. Start your wellness journey today with chef-prepared meals delivered to your door.
+              Rejoignez plus de <strong>1 000 clients satisfaits</strong> qui ont transformé leur quotidien grâce à une alimentation saine.
+              <br className="hidden md:block" />
+              Commencez dès aujourd'hui votre parcours bien-être avec des repas préparés par des chefs, livrés directement chez vous.
             </p>
           </div>
 
@@ -57,7 +59,7 @@ export function CTASection() {
                 className="bg-gradient-to-r from-fitnest-orange to-orange-500 text-white hover:from-orange-500 hover:to-fitnest-orange hover:scale-105 transition-all shadow-2xl hover:shadow-fitnest-orange/50 px-10 py-7 text-base md:text-lg font-semibold rounded-xl group/btn w-full sm:w-auto"
                 aria-label="Get started with Fitnest meal plans"
               >
-                <span>Get Started Today</span>
+                <span>Commencez maintenant</span>
                 <ChevronRight className="ml-2 h-5 w-5 md:h-6 md:w-6 group-hover/btn:translate-x-1 transition-transform" />
               </Button>
             </Link>
@@ -68,7 +70,7 @@ export function CTASection() {
                 className="bg-white/15 backdrop-blur-md text-white border-2 border-white/40 hover:bg-white hover:text-fitnest-green hover:scale-105 transition-all px-10 py-7 text-base md:text-lg font-semibold rounded-xl shadow-lg group/btn w-full sm:w-auto"
                 aria-label="Browse all meal plans"
               >
-                <span>Browse Meal Plans</span>
+                <span>Découvrez Nos Meal Plans</span>
                 <ChevronRight className="ml-2 h-5 w-5 md:h-6 md:w-6 group-hover/btn:translate-x-1 transition-transform" />
               </Button>
             </Link>
@@ -83,7 +85,7 @@ export function CTASection() {
                 ))}
               </div>
               <span className="text-sm md:text-base font-semibold">
-                Rated 4.9/5 by over 1000+ customers
+                Noté 4.9/5 par plus de 1000+ clients
               </span>
             </div>
           </div>

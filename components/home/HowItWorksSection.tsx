@@ -5,24 +5,24 @@ import { ClipboardList, Settings, UtensilsCrossed, Sparkles, ChevronRight, Arrow
 const steps = [
   {
     number: 1,
-    title: "Choose Your Plan",
-    description: "Select a meal plan that fits your goals and dietary preferences",
+    title: "Choisissez votre Meal Plan",
+    description: "Choisissez le Meal Plan qui correspond à vos objectifs",
     color: "from-fitnest-green to-fitnest-green/80",
     bgColor: "from-fitnest-green/10 to-fitnest-green/5",
     icon: ClipboardList,
   },
   {
     number: 2,
-    title: "Customize & Order",
-    description: "Personalize your meals and schedule your delivery times",
+    title: "Personnalisez votre commande",
+    description: "Choisissez vos repas et programmez vos livraisons",
     color: "from-fitnest-orange to-orange-500",
     bgColor: "from-fitnest-orange/10 to-orange-500/5",
     icon: Settings,
   },
   {
     number: 3,
-    title: "Enjoy Your Meals",
-    description: "Receive fresh, ready-to-eat meals delivered to your doorstep",
+    title: "Savourez des repas de qualité",
+    description: "Recevez des repas frais livrés à votre porte",
     color: "from-fitnest-green to-emerald-600",
     bgColor: "from-fitnest-green/10 to-emerald-600/5",
     icon: UtensilsCrossed,
@@ -41,13 +41,13 @@ export function HowItWorksSection() {
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 bg-fitnest-orange/10 rounded-full px-4 py-2 mb-4">
             <Sparkles className="h-4 w-4 text-fitnest-orange" />
-            <span className="text-sm font-semibold text-fitnest-orange">Simple Process</span>
+            <span className="text-sm font-semibold text-fitnest-orange">Process Simple</span>
           </div>
           <h2 className="mb-4 text-3xl md:text-5xl font-bold text-gray-900">
-            How It <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Works</span>
+            Comment ça <span className="bg-gradient-to-r from-fitnest-green to-fitnest-orange bg-clip-text text-transparent">Marche</span>
           </h2>
           <p className="text-base md:text-lg text-gray-600 leading-relaxed">
-            Get started with Fitnest in three simple steps and transform your nutrition journey.
+            Lancez-vous avec Fitnest en trois étapes simples pour transformer votre nutrition.
           </p>
         </div>
         
@@ -108,7 +108,7 @@ export function HowItWorksSection() {
               size="lg"
               className="bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 hover:border-fitnest-orange hover:text-fitnest-orange transition-all shadow-md hover:shadow-lg px-8 py-6 rounded-xl font-semibold group/cta"
             >
-              <span>Learn More About Our Process</span>
+              <span>Apprenez Plus Sur Notre Process</span>
               <ChevronRight className="ml-2 h-5 w-5 group-hover/cta:translate-x-1 transition-transform" />
             </Button>
           </Link>

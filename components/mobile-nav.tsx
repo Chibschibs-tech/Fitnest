@@ -37,7 +37,7 @@ export function MobileNav() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/meal-plans", label: "Meal Plans" },
-    { href: "/meals", label: "Meals" },
+    { href: "/meals", label: "Recettes" },
     { href: "/express-shop", label: "Express Shop" },
     { href: "/how-it-works", label: "How It Works" },
     { href: "/blog", label: "Blog" },
