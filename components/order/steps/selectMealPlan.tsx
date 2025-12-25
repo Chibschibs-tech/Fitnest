@@ -13,10 +13,17 @@ import { MealPlan } from "../types"
 interface SelectMealPlanProps {
   onNext: (selectedPlan: MealPlan) => void
   initialSelectedId?: string
+  initialMealPlans?: MealPlan[]
 }
 
-export function SelectMealPlan({ onNext, initialSelectedId }: SelectMealPlanProps) {
-  const { mealPlans, isLoading, error } = useMealPlans()
+export function SelectMealPlan({ onNext, initialSelectedId, initialMealPlans = [] }: SelectMealPlanProps) {
+  // Use initialMealPlans if provided (from server), otherwise fall back to client-side hook
+  const { mealPlans: clientMealPlans, isLoading: clientLoading, error: clientError } = useMealPlans()
+  
+  const mealPlans = initialMealPlans.length > 0 ? initialMealPlans : clientMealPlans
+  const isLoading = initialMealPlans.length > 0 ? false : clientLoading
+  const error = initialMealPlans.length > 0 ? null : clientError
+  
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(initialSelectedId || null)
 
   const handleContinue = () => {

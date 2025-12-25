@@ -12,8 +12,6 @@ import { SelectMealPlan } from "./steps/selectMealPlan"
 import { SelectPreferences } from "./steps/selectPreferences"
 import { PendingOrderSummary } from "./PendingOrderSummary"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
-
 // Helper function to format date as Y-m-d
 const formatDateYMD = (date: Date): string => {
   const year = date.getFullYear()
@@ -22,7 +20,11 @@ const formatDateYMD = (date: Date): string => {
   return `${year}-${month}-${day}`
 }
 
-export function OrderFlow() {
+interface OrderFlowProps {
+  initialMealPlans?: MealPlan[]
+}
+
+export function OrderFlow({ initialMealPlans = [] }: OrderFlowProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planId = searchParams.get('planId')
@@ -105,7 +107,8 @@ export function OrderFlow() {
 
       console.log('Order payload:', { ...payload, total_price: totalPrice })
 
-      const response = await fetch(`${API_BASE}/orders`, {
+      // Use internal API route to avoid CORS issues
+      const response = await fetch(`/api/internal/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -245,6 +248,7 @@ export function OrderFlow() {
               <SelectMealPlan 
                 onNext={handlePlanSelected}
                 initialSelectedId={planId || undefined}
+                initialMealPlans={initialMealPlans}
               />
             )}
             

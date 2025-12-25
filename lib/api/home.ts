@@ -3,14 +3,19 @@ export interface MealPlan {
   id: string
   name: string
   description: string
-  calories: string
+  calories?: string
   breakfast_price_per_day: number
   lunch_price_per_day: number
   dinner_price_per_day: number
   snack_price_per_day: number
-  features: string[]
+  features?: string[]
   image: string
   color?: string
+  sku: string
+  status: string
+  created_at: string
+  updated_at: string
+  meals: any
 }
 
 export interface Product {
@@ -61,7 +66,27 @@ export async function getMealPlans(): Promise<MealPlan[]> {
     const data = await response.json()
     
     // Handle different API response structures
-    return Array.isArray(data.data) ? data.data : data
+    const plans = Array.isArray(data.data) ? data.data : data
+    
+    // Ensure all required fields are present
+    return plans.map((plan: any) => ({
+      id: plan.id || '',
+      name: plan.name || '',
+      description: plan.description || '',
+      calories: plan.calories || '',
+      breakfast_price_per_day: Number(plan.breakfast_price_per_day) || 0,
+      lunch_price_per_day: Number(plan.lunch_price_per_day) || 0,
+      dinner_price_per_day: Number(plan.dinner_price_per_day) || 0,
+      snack_price_per_day: Number(plan.snack_price_per_day) || 0,
+      features: plan.features || [],
+      image: plan.image || '/placeholder.svg',
+      color: plan.color,
+      sku: plan.sku || '',
+      status: plan.status || 'active',
+      created_at: plan.created_at || new Date().toISOString(),
+      updated_at: plan.updated_at || new Date().toISOString(),
+      meals: plan.meals || {},
+    }))
   } catch (error) {
     console.error('Failed to fetch meal plans:', error)
     return []
