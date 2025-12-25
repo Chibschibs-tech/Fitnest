@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react"
 import { MealPlan, APIResponse } from "../types"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
-
 export function useMealPlans() {
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -16,7 +14,8 @@ export function useMealPlans() {
         setIsLoading(true)
         setError(null)
 
-        const response = await fetch(`${API_BASE}/meal-plans?status=active`, {
+        // Use internal API route to avoid CORS issues
+        const response = await fetch(`/api/internal/meal-plans`, {
           cache: 'no-store',
           headers: {
             'Accept': 'application/json',
