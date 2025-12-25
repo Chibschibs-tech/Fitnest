@@ -62,7 +62,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
   const categories = ["all", ...uniqueCategories]
 
   // Filter products based on selected category
-  const selectedCategory = searchParams.category || "all"
+  const selectedCategory = (await searchParams).category || "all"
   const filteredProducts = selectedCategory === "all" 
     ? products 
     : products.filter((product) => (product.category?.name || "uncategorized") === selectedCategory)

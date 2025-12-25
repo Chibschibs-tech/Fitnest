@@ -46,7 +46,7 @@ export function HeroSection() {
           </div>
           
           {/* Hero Subheadline */}
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed font-medium">
             Des repas de chef adaptés à vos objectifs.
             <br className="hidden sm:block" />
             Pas de préparation, pas de tracas, juste des <span className="text-fitnest-orange font-bold">résultats</span>.
@@ -83,26 +83,26 @@ export function HeroSection() {
           {/* Trust Indicators */}
           <div className="pt-8">
             <div className="inline-flex flex-wrap justify-center items-center gap-4 md:gap-6 bg-white/15 backdrop-blur-md rounded-2xl px-6 py-3 border border-white/30 shadow-2xl">
-            <div className="flex items-center gap-2">
-              <div className="bg-fitnest-green rounded-full p-2 shadow-lg">
-                <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
+              <div className="flex items-center gap-2">
+                <div className="bg-fitnest-green rounded-full p-2 shadow-lg">
+                  <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
+                </div>
+                <span className="text-sm font-bold text-white">Toujours Frais</span>
               </div>
-              <span className="text-sm font-bold text-white">Toujours Frais</span>
-            </div>
-            <div className="h-6 w-px bg-white/40" />
-            <div className="flex items-center gap-2">
-              <div className="bg-fitnest-orange rounded-full p-2 shadow-lg">
-                <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} />
+              <div className="h-6 w-px bg-white/40" />
+              <div className="flex items-center gap-2">
+                <div className="bg-fitnest-orange rounded-full p-2 shadow-lg">
+                  <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} />
+                </div>
+                <span className="text-sm font-bold text-white">Livraison Gratuite</span>
               </div>
-              <span className="text-sm font-bold text-white">Livraison Gratuite</span>
-            </div>
-            <div className="h-6 w-px bg-white/40" />
-            <div className="flex items-center gap-2">
-              <div className="bg-fitnest-green rounded-full p-2 shadow-lg">
-                <Star className="h-4 w-4 text-white fill-white" strokeWidth={2.5} />
+              <div className="h-6 w-px bg-white/40" />
+              <div className="flex items-center gap-2">
+                <div className="bg-fitnest-green rounded-full p-2 shadow-lg">
+                  <Star className="h-4 w-4 text-white fill-white" strokeWidth={2.5} />
+                </div>
+                <span className="text-sm font-bold text-white">Sans Engagement</span>
               </div>
-              <span className="text-sm font-bold text-white">Sans Engagement</span>
-            </div>
             </div>
           </div>
         </div>

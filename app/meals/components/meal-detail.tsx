@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet"
 import { Flame, Beef, Wheat, Droplet, Sparkles } from "lucide-react"
-import type { Meal } from "../page"
+import type { Meal } from "@/lib/api/home"
 
 interface MealDetailProps {
   meal: Meal | null

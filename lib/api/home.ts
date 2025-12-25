@@ -29,6 +29,21 @@ export interface Product {
   stock_quantity: number
 }
 
+export interface Meal {
+  id: string
+  name: string
+  description: string
+  image: string
+  sku: string
+  calories: number
+  protein: number
+  carbohydrates: number
+  fats: number
+  status: "active" | "inactive"
+  updated_at: string
+  created_at: string
+}
+
 // API Base URL
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
 
@@ -70,6 +85,27 @@ export async function getProducts(): Promise<Product[]> {
     return Array.isArray(data.data) ? data.data : data
   } catch (error) {
     console.error('Failed to fetch products:', error)
+    return []
+  }
+}
+
+// Fetch meals from API
+export async function getMeals(): Promise<Meal[]> {
+  try {
+    const response = await fetch(`${API_BASE}/meals?status=active`, {
+      next: { revalidate: 3600 }, // Revalidate every hour
+    })
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // Handle different API response structures
+    return Array.isArray(data.data) ? data.data : data
+  } catch (error) {
+    console.error('Failed to fetch meals:', error)
     return []
   }
 }
