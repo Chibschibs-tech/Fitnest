@@ -138,7 +138,7 @@ const publicRoutes = [
   "/order",
 ]
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Check if the path is a public route or starts with a public route prefix
@@ -170,3 +170,4 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 }
+

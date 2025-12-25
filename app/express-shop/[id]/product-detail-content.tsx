@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/use-simple-auth"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -35,7 +35,7 @@ interface ProductDetailContentProps {
 
 export function ProductDetailContent({ product }: ProductDetailContentProps) {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const { toast } = useToast()
@@ -45,7 +45,7 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
   }
 
   const handleAddToCart = async () => {
-    if (status !== "authenticated") {
+    if (!user) {
       toast({
         variant: "destructive",
         title: "Authentication Required",
