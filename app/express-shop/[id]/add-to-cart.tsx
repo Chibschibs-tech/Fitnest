@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/use-simple-auth"
 import { useRouter } from "next/navigation"
 
 interface AddToCartProps {
@@ -16,11 +16,11 @@ interface AddToCartProps {
 export function AddToCart({ productId, stock, name }: AddToCartProps) {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const { status } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
 
   const handleAddToCart = async () => {
-    if (status !== "authenticated") {
+    if (!user) {
       toast({
         variant: "destructive",
         title: "Authentication Required",
