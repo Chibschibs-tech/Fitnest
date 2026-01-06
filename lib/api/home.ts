@@ -55,7 +55,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma
 // Fetch meal plans from API
 export async function getMealPlans(): Promise<MealPlan[]> {
   try {
-    const response = await fetch(`${API_BASE}/meal-plans?status=active`, {
+    const response = await fetch(`${API_BASE}/meal-plans/home`, {
       next: { revalidate: 3600 }, // Revalidate every hour
     })
     
@@ -96,7 +96,7 @@ export async function getMealPlans(): Promise<MealPlan[]> {
 // Fetch products from API
 export async function getProducts(): Promise<Product[]> {
   try {
-    const response = await fetch(`${API_BASE}/products?status=active`, {
+    const response = await fetch(`${API_BASE}/products/home`, {
       next: { revalidate: 3600 }, // Revalidate every hour
     })
     
