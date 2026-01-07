@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Plus, Sparkles, Tag, ChevronRight, ShoppingBag, Zap, TrendingUp, Package, ChevronLeft } from "lucide-react"
 import { CategoryFilter } from "./category-filter"
+import { SearchBar } from "./search-bar"
 import { Suspense } from "react"
 
 interface Product {
@@ -43,7 +44,7 @@ interface PaginatedResponse {
   totalPages: number
 }
 
-async function getProducts(categoryName?: string, page: number = 1): Promise<PaginatedResponse> {
+async function getProducts(categoryName?: string, page: number = 1, search?: string): Promise<PaginatedResponse> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
   const ITEMS_PER_PAGE = 8
   
@@ -51,12 +52,16 @@ async function getProducts(categoryName?: string, page: number = 1): Promise<Pag
     // Calculate offset from page number (offset = (page - 1) * limit)
     const offset = (page - 1) * ITEMS_PER_PAGE
     
-    // Build URL with category and pagination parameters
+    // Build URL with category, search, and pagination parameters
     const url = new URL(`${API_BASE}/products/express-shop`)
     url.searchParams.set('offset', offset.toString())
     
     if (categoryName && categoryName !== 'all') {
       url.searchParams.set('category', categoryName)
+    }
+    
+    if (search && search.trim()) {
+      url.searchParams.set('search', search.trim())
     }
     
     console.log('Fetching products from:', url.toString())
@@ -126,18 +131,19 @@ async function getCategories(): Promise<CategoryOption[]> {
 }
 
 interface ExpressShopProps {
-  searchParams: { category?: string; page?: string }
+  searchParams: { category?: string; page?: string; search?: string }
 }
 
 export default async function ExpressShop({ searchParams }: ExpressShopProps) {
-  // Get selected category name and page from search params
+  // Get selected category name, page, and search from search params
   const params = await searchParams
   const selectedCategoryName = params.category || "all"
   const currentPage = parseInt(params.page || "1", 10)
+  const searchQuery = params.search || ""
   
-  // Fetch categories first, then products with the selected category and page
+  // Fetch categories first, then products with the selected category, page, and search
   const categories = await getCategories()
-  const { products, total, totalPages } = await getProducts(selectedCategoryName, currentPage)
+  const { products, total, totalPages } = await getProducts(selectedCategoryName, currentPage, searchQuery)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -183,11 +189,31 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
           </div>
         </div>
 
-        {/* Category Filter */}
-        <div className="mb-6 max-w-6xl mx-auto">
-          <Suspense fallback={<div className="h-12 w-full rounded-xl bg-gray-200 animate-pulse" />}>
-            <CategoryFilter categories={categories} activeCategory={selectedCategoryName} />
-          </Suspense>
+        {/* Filters Section */}
+        <div className="mb-8 max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              {/* Category Filter */}
+              <div className="w-full md:w-auto">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
+                  Filtrer par catégorie
+                </label>
+                <Suspense fallback={<div className="h-11 w-[280px] rounded-lg bg-gray-100 animate-pulse" />}>
+                  <CategoryFilter categories={categories} activeCategory={selectedCategoryName} />
+                </Suspense>
+              </div>
+
+              {/* Search Bar */}
+              <div className="w-full md:flex-1 md:max-w-md">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
+                  Rechercher un produit
+                </label>
+                <Suspense fallback={<div className="h-11 w-full rounded-lg bg-gray-100 animate-pulse" />}>
+                  <SearchBar />
+                </Suspense>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Results Count */}
@@ -195,10 +221,16 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
           <div className="mb-8 max-w-6xl mx-auto px-1">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-900">
-                {products.length}{" "}
-                {products.length === 1 ? "Produit" : "Produits"}
-                {selectedCategoryName !== "all" && (
+                {total}{" "}
+                {total === 1 ? "Produit" : "Produits"}
+                {searchQuery && (
+                  <span className="text-fitnest-orange"> pour "{searchQuery}"</span>
+                )}
+                {selectedCategoryName !== "all" && !searchQuery && (
                   <span className="text-fitnest-orange"> dans {selectedCategoryName}</span>
+                )}
+                {selectedCategoryName !== "all" && searchQuery && (
+                  <span className="text-gray-600"> dans {selectedCategoryName}</span>
                 )}
               </p>
             </div>
@@ -212,11 +244,13 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
               <ShoppingCart className="h-12 w-12 text-fitnest-green" />
             </div>
             <div className="space-y-3">
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">No products found</h3>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">Aucun produit trouvé</h3>
               <p className="text-base md:text-lg text-gray-600 max-w-md font-medium leading-relaxed">
-                {selectedCategoryName !== "all" 
-                  ? `No products available in this category. Try selecting a different one.` 
-                  : "No products available at the moment. Please check back later."}
+                {searchQuery 
+                  ? `Aucun produit ne correspond à "${searchQuery}". Essayez une autre recherche.`
+                  : selectedCategoryName !== "all" 
+                    ? `Aucun produit disponible dans cette catégorie. Essayez-en une autre.` 
+                    : "Aucun produit disponible pour le moment. Revenez plus tard."}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -378,6 +412,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
             <Link 
               href={`/express-shop?${new URLSearchParams({
                 ...(selectedCategoryName !== 'all' && { category: selectedCategoryName }),
+                ...(searchQuery && { search: searchQuery }),
                 page: Math.max(1, currentPage - 1).toString()
               }).toString()}`}
               className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
@@ -422,6 +457,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                     key={page}
                     href={`/express-shop?${new URLSearchParams({
                       ...(selectedCategoryName !== 'all' && { category: selectedCategoryName }),
+                      ...(searchQuery && { search: searchQuery }),
                       page: page.toString()
                     }).toString()}`}
                   >
@@ -444,6 +480,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
             <Link 
               href={`/express-shop?${new URLSearchParams({
                 ...(selectedCategoryName !== 'all' && { category: selectedCategoryName }),
+                ...(searchQuery && { search: searchQuery }),
                 page: Math.min(totalPages, currentPage + 1).toString()
               }).toString()}`}
               className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}

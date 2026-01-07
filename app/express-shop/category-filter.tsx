@@ -1,7 +1,14 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Filter } from "lucide-react"
 
 interface CategoryOption {
   id: string
@@ -31,20 +38,44 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
     router.push(`/express-shop?${params.toString()}`, { scroll: false })
   }
 
+  const formatCategoryName = (name: string) => {
+    if (name === "all") return "Toutes les catégories"
+    return name.replace(/_/g, " ").replace(/-/g, " ")
+  }
+
+  const selectedCategory = categories.find(cat => cat.name === activeCategory)
+  const displayName = selectedCategory ? formatCategoryName(selectedCategory.name) : "Toutes les catégories"
+
   return (
-    <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full">
-      <TabsList className="flex-wrap h-auto p-2 bg-white shadow-md rounded-2xl border-2 border-gray-100">
-        {categories.map((category) => (
-          <TabsTrigger 
-            key={category.id} 
-            value={category.name} 
-            className="capitalize px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-fitnest-green data-[state=active]:to-fitnest-green/90 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
-          >
-            {category.name === "all" ? "All Products" : category.name.replace(/_/g, " ").replace(/-/g, " ")}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <div className="flex items-center gap-3">
+      <Select value={activeCategory} onValueChange={handleCategoryChange}>
+        <SelectTrigger className="h-11 w-[280px] bg-gray-50 border-0 rounded-lg hover:bg-gray-100 transition-colors">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <SelectValue placeholder="Sélectionner une catégorie" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((category) => (
+            <SelectItem 
+              key={category.id} 
+              value={category.name}
+              className="capitalize cursor-pointer"
+            >
+              {formatCategoryName(category.name)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      {activeCategory !== "all" && (
+        <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-fitnest-green/10 text-fitnest-green rounded-lg">
+          <span className="text-sm font-medium">
+            {displayName}
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
 
