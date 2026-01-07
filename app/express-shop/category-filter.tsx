@@ -57,7 +57,7 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
   return (
     <div className="flex items-center gap-3">
       <Select value={activeCategory} onValueChange={handleCategoryChange}>
-        <SelectTrigger className="h-11 w-[280px] bg-gray-50 border-0 rounded-lg hover:bg-gray-100 transition-colors">
+        <SelectTrigger className="h-11 w-[280px] bg-gray-50 border-0 rounded-lg hover:bg-gray-100 transition-colors text-sm font-normal">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-500" />
             <SelectValue placeholder="Sélectionner une catégorie" />

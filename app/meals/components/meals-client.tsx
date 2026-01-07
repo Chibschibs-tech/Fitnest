@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useMemo } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Search, ChevronDown, Check, X, AlertCircle, RefreshCw, UtensilsCrossed } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -20,39 +21,46 @@ import type { Meal } from "@/lib/api/home"
 
 interface MealsClientProps {
   initialMeals: Meal[]
+  searchQuery?: string
 }
 
-export function MealsClient({ initialMeals }: MealsClientProps) {
-  const [meals] = useState<Meal[]>(initialMeals)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+export function MealsClient({ initialMeals, searchQuery = "" }: MealsClientProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [searchValue, setSearchValue] = useState(searchQuery)
   const [sortOption, setSortOption] = useState("popular")
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
 
-  // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 300)
+  // Clear search
+  const clearSearch = useCallback(() => {
+    setSearchValue("")
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("search")
+    params.delete("page")
+    router.push(`/meals?${params.toString()}`)
+  }, [router, searchParams])
 
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-
-  // Filter and sort meals based on search and sort
-  const filteredMeals = useMemo(() => {
-    if (meals.length === 0) return []
-
-    let result = [...meals]
-
-    // Filter by debounced search query
-    if (debouncedSearchQuery) {
-      const query = debouncedSearchQuery.toLowerCase().trim()
-      result = result.filter(
-        (meal) =>
-          meal.name.toLowerCase().includes(query) ||
-          meal.description.toLowerCase().includes(query),
-      )
+  // Handle search
+  const handleSearch = useCallback((value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    
+    // Reset pagination when search changes
+    params.delete("page")
+    
+    if (value.trim()) {
+      params.set("search", value.trim())
+    } else {
+      params.delete("search")
     }
+    
+    router.push(`/meals?${params.toString()}`)
+  }, [router, searchParams])
+
+  // Sort meals based on sort option (search is handled server-side)
+  const sortedMeals = useMemo(() => {
+    if (initialMeals.length === 0) return []
+
+    let result = [...initialMeals]
 
     // Sort results
     if (sortOption === "calories-low") {
@@ -66,7 +74,7 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
     }
 
     return result
-  }, [meals, debouncedSearchQuery, sortOption])
+  }, [initialMeals, sortOption])
 
   // Get sort option label
   const getSortLabel = useCallback((option: string) => {
@@ -80,11 +88,6 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
     return labels[option] || "Sort by"
   }, [])
 
-  // Clear search
-  const clearSearch = useCallback(() => {
-    setSearchQuery("")
-    setDebouncedSearchQuery("")
-  }, [])
 
   // Open meal detail
   const openMealDetail = useCallback((meal: Meal) => {
@@ -100,48 +103,24 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
     <>
       {/* Search and Sort Controls */}
       <div className="mb-8 max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
-          {/* Search bar */}
-          <div className="relative flex-1">
-            <Search 
-              className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" 
-              aria-hidden="true"
-            />
-            <Input
-              type="search"
-              placeholder="Chercher les recettes par nom ou description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  clearSearch()
-                }
-              }}
-              className="pl-12 pr-12 h-12 border-2 border-gray-200 focus:border-fitnest-green rounded-xl font-medium text-base shadow-sm"
-              aria-label="Search meals"
-            />
-            {searchQuery && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-fitnest-orange transition-colors bg-gray-100 hover:bg-gray-200 rounded-lg p-1.5"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Sort dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2 h-12 w-full sm:w-auto justify-between sm:justify-start border-2 border-gray-200 hover:border-fitnest-green rounded-xl font-semibold shadow-sm"
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            {/* Sort dropdown */}
+            <div className="w-full md:w-auto">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
+                Trier par
+              </label>
+              <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 h-11 w-[280px] justify-between bg-gray-50 border-0 rounded-lg hover:bg-gray-100 transition-colors text-sm font-normal"
                 aria-label="Sort meals"
               >
-                <span className="hidden sm:inline">{getSortLabel(sortOption)}</span>
-                <span className="sm:hidden">Sort</span>
-                <ChevronDown className="h-4 w-4" />
+                <span className="flex items-center gap-2 w-full">
+                  <span className="text-left flex-1">{getSortLabel(sortOption)}</span>
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 shadow-lg">
@@ -186,65 +165,96 @@ export function MealsClient({ initialMeals }: MealsClientProps) {
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-
-        {/* Results count and search indicator */}
-        <div className="flex items-center justify-between mb-6 px-1">
-          <div className="text-sm font-semibold">
-            {debouncedSearchQuery ? (
-              <>
-                Found <span className="text-fitnest-green">{filteredMeals.length}</span>{" "}
-                {filteredMeals.length === 1 ? "meal" : "meals"} for{" "}
-                <span className="text-fitnest-orange">&quot;{debouncedSearchQuery}&quot;</span>
-              </>
-            ) : (
-              <span className="text-gray-900 font-semibold">
-                {filteredMeals.length} {filteredMeals.length === 1 ? "Recette" : "Recettes"}
-              </span>
-            )}
-          </div>
-          {searchQuery !== debouncedSearchQuery && (
-            <div className="flex items-center gap-2 text-xs text-fitnest-orange font-semibold">
-              <div className="animate-spin">
-                <RefreshCw className="h-3 w-3" />
-              </div>
-              Searching...
             </div>
-          )}
-        </div>
 
-        {/* Meal grid */}
-        {filteredMeals.length === 0 ? (
+            {/* Search Bar */}
+            <div className="w-full md:flex-1 md:max-w-md">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
+                Rechercher une recette
+              </label>
+              <div className="relative">
+                <Search 
+                  className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" 
+                  aria-hidden="true"
+                />
+                <Input
+                  type="search"
+                  placeholder="Rechercher une recette..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearch(searchValue)
+                    } else if (e.key === "Escape") {
+                      clearSearch()
+                    }
+                  }}
+                  className="h-11 w-full pl-10 pr-10 rounded-lg bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-fitnest-green/20 hover:bg-gray-100 transition-all duration-200 text-sm font-normal placeholder:text-gray-400"
+                  aria-label="Search meals"
+                />
+                {searchValue && (
+                  <Button
+                    onClick={clearSearch}
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-gray-200 rounded-md transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Results count */}
+      {sortedMeals.length > 0 && (
+        <div className="mb-8 max-w-6xl mx-auto px-1">
+          <p className="text-sm font-semibold text-gray-900">
+            {sortedMeals.length}{" "}
+            {sortedMeals.length === 1 ? "Recette" : "Recettes"}
+            {searchQuery && (
+              <span className="text-fitnest-orange"> pour &quot;{searchQuery}&quot;</span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Meal grid */}
+      <div className="max-w-6xl mx-auto">
+        {sortedMeals.length === 0 ? (
           <div className="text-center py-16 md:py-24">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-fitnest-green/10 to-fitnest-orange/10 mb-6">
-              {debouncedSearchQuery ? (
+              {searchQuery ? (
                 <Search className="h-10 w-10 text-fitnest-orange" />
               ) : (
                 <UtensilsCrossed className="h-10 w-10 text-fitnest-green" />
               )}
             </div>
             <h3 className="text-2xl md:text-3xl font-bold mb-3 text-gray-900">
-              {debouncedSearchQuery ? "No meals found" : "No meals available"}
+              {searchQuery ? "Aucune recette trouvée" : "Aucune recette disponible"}
             </h3>
             <p className="text-gray-600 mb-8 max-w-md mx-auto text-base md:text-lg leading-relaxed font-medium">
-              {debouncedSearchQuery
-                ? `We couldn't find any meals matching "${debouncedSearchQuery}". Try a different search term.`
-                : "There are no meals available at the moment. Please check back later."}
+              {searchQuery
+                ? `Aucune recette ne correspond à "${searchQuery}". Essayez une autre recherche.`
+                : "Aucune recette disponible pour le moment. Revenez plus tard."}
             </p>
-            {debouncedSearchQuery && (
+            {searchQuery && (
               <Button 
                 onClick={clearSearch} 
                 variant="outline"
                 className="border-2 border-gray-200 hover:border-fitnest-orange hover:text-fitnest-orange font-bold px-8 py-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 group"
               >
                 <X className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" />
-                <span>Clear Search</span>
+                <span>Effacer la recherche</span>
               </Button>
             )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredMeals.map((meal) => (
+            {sortedMeals.map((meal) => (
               <MealCard key={meal.id} meal={meal} onViewDetails={openMealDetail} />
             ))}
           </div>
