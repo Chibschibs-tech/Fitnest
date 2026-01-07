@@ -11,23 +11,30 @@ export interface User {
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Changed to false - no loading needed when auth is disabled
 
-  useEffect(() => {
-    checkSession()
-  }, [])
+  // Authentication disabled - no session check
+  // TODO: Re-enable when authentication is needed
+  // useEffect(() => {
+  //   checkSession()
+  // }, [])
 
   const checkSession = async () => {
-    try {
-      const response = await fetch("/api/auth/session")
-      const data = await response.json()
-      setUser(data.user)
-    } catch (error) {
-      console.error("Session check failed:", error)
-      setUser(null)
-    } finally {
-      setLoading(false)
-    }
+    // Authentication disabled - always return no user
+    setUser(null)
+    setLoading(false)
+    
+    // TODO: Re-enable when authentication is needed
+    // try {
+    //   const response = await fetch("/api/auth/session")
+    //   const data = await response.json()
+    //   setUser(data.user)
+    // } catch (error) {
+    //   console.error("Session check failed:", error)
+    //   setUser(null)
+    // } finally {
+    //   setLoading(false)
+    // }
   }
 
   const login = async (email: string, password: string) => {

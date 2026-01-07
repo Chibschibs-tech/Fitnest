@@ -1,4 +1,3 @@
-import { sql, db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -27,12 +26,33 @@ async function getProduct(id: string): Promise<Product | null> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
   
   try {
-    const response = await fetch(`${API_BASE}/products/${id}`, {
+    const url = `${API_BASE}/products/${id}`
+    console.log('Fetching product from:', url)
+    
+    const response = await fetch(url, {
       next: { revalidate: 3600 }, // Revalidate every hour
     })
     
+    // Log response details for debugging
+    console.log('Product API Response:', {
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      ok: response.ok
+    })
+    
+    // Check if the response is not OK (404, 500, etc.)
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`)
+      console.error(`API request failed: ${response.status} for ${url}`)
+      return null
+    }
+    
+    // Check if the response is JSON before parsing
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error(`Expected JSON but got: ${contentType}`)
+      const text = await response.text()
+      console.error('Response body:', text.substring(0, 200))
+      return null
     }
     
     const data = await response.json()
@@ -48,12 +68,12 @@ async function getProduct(id: string): Promise<Product | null> {
     return product as Product
   } catch (error) {
     console.error('Failed to fetch product:', error)
-    throw error
+    return null
   }
 }
 
-export default async function ProductDetail({ params }: { params: { id: string } }) {
-  const { id } = params
+export default async function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
 
   const product = await getProduct(id)
 
