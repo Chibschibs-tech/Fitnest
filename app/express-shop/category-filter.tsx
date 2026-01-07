@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Filter } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Filter, X } from "lucide-react"
 
 interface CategoryOption {
   id: string
@@ -35,6 +36,13 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
     } else {
       params.set("category", categoryName)
     }
+    router.push(`/express-shop?${params.toString()}`, { scroll: false })
+  }
+
+  const handleClearFilter = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("category")
+    params.delete("page")
     router.push(`/express-shop?${params.toString()}`, { scroll: false })
   }
 
@@ -69,10 +77,21 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
       </Select>
       
       {activeCategory !== "all" && (
-        <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-fitnest-green/10 text-fitnest-green rounded-lg">
-          <span className="text-sm font-medium">
-            {displayName}
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-fitnest-green/10 text-fitnest-green rounded-lg">
+            <span className="text-sm font-medium">
+              {displayName}
+            </span>
+          </div>
+          <Button
+            onClick={handleClearFilter}
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors group"
+            title="Effacer le filtre"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>
