@@ -1,20 +1,10 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Search, ChevronDown, Check, X, AlertCircle, RefreshCw, UtensilsCrossed } from "lucide-react"
+import { Search, X, UtensilsCrossed } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { MealCard } from "./meal-card"
 import { MealDetail } from "./meal-detail"
 import type { Meal } from "@/lib/api/home"
@@ -28,7 +18,6 @@ export function MealsClient({ initialMeals, searchQuery = "" }: MealsClientProps
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchValue, setSearchValue] = useState(searchQuery)
-  const [sortOption, setSortOption] = useState("popular")
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
 
   // Clear search
@@ -56,37 +45,6 @@ export function MealsClient({ initialMeals, searchQuery = "" }: MealsClientProps
     router.push(`/meals?${params.toString()}`)
   }, [router, searchParams])
 
-  // Sort meals based on sort option (search is handled server-side)
-  const sortedMeals = useMemo(() => {
-    if (initialMeals.length === 0) return []
-
-    let result = [...initialMeals]
-
-    // Sort results
-    if (sortOption === "calories-low") {
-      result.sort((a, b) => a.calories - b.calories)
-    } else if (sortOption === "calories-high") {
-      result.sort((a, b) => b.calories - a.calories)
-    } else if (sortOption === "protein-high") {
-      result.sort((a, b) => b.protein - a.protein)
-    } else if (sortOption === "alphabetical") {
-      result.sort((a, b) => a.name.localeCompare(b.name))
-    }
-
-    return result
-  }, [initialMeals, sortOption])
-
-  // Get sort option label
-  const getSortLabel = useCallback((option: string) => {
-    const labels: Record<string, string> = {
-      popular: "Les Plus Populaires",
-      "calories-low": "Calories : Faible à Élevé",
-      "calories-high": "Calories : Élevé à Faible",
-      "protein-high": "Protéines Élevées",
-      alphabetical: "Alphabétique",
-    }
-    return labels[option] || "Sort by"
-  }, [])
 
 
   // Open meal detail
@@ -101,120 +59,56 @@ export function MealsClient({ initialMeals, searchQuery = "" }: MealsClientProps
 
   return (
     <>
-      {/* Search and Sort Controls */}
+      {/* Search Controls */}
       <div className="mb-8 max-w-6xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            {/* Sort dropdown */}
-            <div className="w-full md:w-auto">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
-                Trier par
-              </label>
-              <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2 h-11 w-[280px] justify-between bg-gray-50 border-0 rounded-lg hover:bg-gray-100 transition-colors text-sm font-normal"
-                aria-label="Sort meals"
-              >
-                <span className="flex items-center gap-2 w-full">
-                  <span className="text-left flex-1">{getSortLabel(sortOption)}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 shadow-lg">
-              <DropdownMenuLabel className="font-bold text-gray-900">Options de Tri</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem 
-                  onClick={() => setSortOption("popular")}
-                  className="font-medium cursor-pointer"
+          {/* Search Bar */}
+          <div className="w-full">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
+              Rechercher une recette
+            </label>
+            <div className="relative">
+              <Search 
+                className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" 
+                aria-hidden="true"
+              />
+              <Input
+                type="text"
+                placeholder="Rechercher une recette..."
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch(searchValue)
+                  } else if (e.key === "Escape") {
+                    clearSearch()
+                  }
+                }}
+                className="h-11 w-full pl-10 pr-10 rounded-lg bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-fitnest-green/20 hover:bg-gray-100 transition-all duration-200 text-sm font-normal placeholder:text-gray-400"
+                aria-label="Search meals"
+              />
+              {searchValue && (
+                <Button
+                  onClick={clearSearch}
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-gray-200 rounded-md transition-colors"
+                  aria-label="Clear search"
                 >
-                  Les Plus Populaires
-                  {sortOption === "popular" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setSortOption("calories-low")}
-                  className="font-medium cursor-pointer"
-                >
-                  Calories : Faible à Élevé
-                  {sortOption === "calories-low" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setSortOption("calories-high")}
-                  className="font-medium cursor-pointer"
-                >
-                  Calories : Élevé à Faible
-                  {sortOption === "calories-high" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setSortOption("protein-high")}
-                  className="font-medium cursor-pointer"
-                >
-                  Protéines Élevées
-                  {sortOption === "protein-high" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setSortOption("alphabetical")}
-                  className="font-medium cursor-pointer"
-                >
-                  Alphabétique
-                  {sortOption === "alphabetical" && <Check className="ml-auto h-4 w-4 text-fitnest-green" strokeWidth={2.5} />}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-            </div>
-
-            {/* Search Bar */}
-            <div className="w-full md:flex-1 md:max-w-md">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 ml-1">
-                Rechercher une recette
-              </label>
-              <div className="relative">
-                <Search 
-                  className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" 
-                  aria-hidden="true"
-                />
-                <Input
-                  type="search"
-                  placeholder="Rechercher une recette..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSearch(searchValue)
-                    } else if (e.key === "Escape") {
-                      clearSearch()
-                    }
-                  }}
-                  className="h-11 w-full pl-10 pr-10 rounded-lg bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-fitnest-green/20 hover:bg-gray-100 transition-all duration-200 text-sm font-normal placeholder:text-gray-400"
-                  aria-label="Search meals"
-                />
-                {searchValue && (
-                  <Button
-                    onClick={clearSearch}
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-gray-200 rounded-md transition-colors"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3.5 w-3.5 text-gray-500" />
-                  </Button>
-                )}
-              </div>
+                  <X className="h-3.5 w-3.5 text-gray-500" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Results count */}
-      {sortedMeals.length > 0 && (
+      {initialMeals.length > 0 && (
         <div className="mb-8 max-w-6xl mx-auto px-1">
           <p className="text-sm font-semibold text-gray-900">
-            {sortedMeals.length}{" "}
-            {sortedMeals.length === 1 ? "Recette" : "Recettes"}
+            {initialMeals.length}{" "}
+            {initialMeals.length === 1 ? "Recette" : "Recettes"}
             {searchQuery && (
               <span className="text-fitnest-orange"> pour &quot;{searchQuery}&quot;</span>
             )}
@@ -224,7 +118,7 @@ export function MealsClient({ initialMeals, searchQuery = "" }: MealsClientProps
 
       {/* Meal grid */}
       <div className="max-w-6xl mx-auto">
-        {sortedMeals.length === 0 ? (
+        {initialMeals.length === 0 ? (
           <div className="text-center py-16 md:py-24">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-fitnest-green/10 to-fitnest-orange/10 mb-6">
               {searchQuery ? (
@@ -254,7 +148,7 @@ export function MealsClient({ initialMeals, searchQuery = "" }: MealsClientProps
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {sortedMeals.map((meal) => (
+            {initialMeals.map((meal) => (
               <MealCard key={meal.id} meal={meal} onViewDetails={openMealDetail} />
             ))}
           </div>
