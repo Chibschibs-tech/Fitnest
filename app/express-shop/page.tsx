@@ -31,11 +31,23 @@ interface Category {
   updated_at: string
 }
 
-async function getProducts(): Promise<Product[]> {
+interface CategoryOption {
+  id: string
+  name: string
+}
+
+async function getProducts(categoryId?: string): Promise<Product[]> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
   
   try {
-    const response = await fetch(`${API_BASE}/products?status=active`, {
+    // Build URL with category parameter if provided
+    const url = new URL(`${API_BASE}/products/express-shop`)
+    url.searchParams.set('status', 'active')
+    if (categoryId && categoryId !== 'all') {
+      url.searchParams.set('category', categoryId)
+    }
+    
+    const response = await fetch(url.toString(), {
       next: { revalidate: 3600 }, // Revalidate every hour
     })
     
@@ -54,7 +66,7 @@ async function getProducts(): Promise<Product[]> {
   }
 }
 
-async function getCategories(): Promise<string[]> {
+async function getCategories(): Promise<CategoryOption[]> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
   
   try {
@@ -71,17 +83,17 @@ async function getCategories(): Promise<string[]> {
     
     const data = await response.json()
     
-    // Extract category names from the response
-    const categoryNames = Array.isArray(data.data) 
-      ? data.data.map((cat: Category) => cat.name).filter(Boolean)
+    // Extract category id and name from the response
+    const categoryOptions: CategoryOption[] = Array.isArray(data.data) 
+      ? data.data.map((cat: Category) => ({ id: cat.id, name: cat.name }))
       : []
     
     // Return "all" plus the fetched categories
-    return ["all", ...categoryNames]
+    return [{ id: 'all', name: 'all' }, ...categoryOptions]
   } catch (error) {
     console.error('Failed to fetch categories:', error)
     // Return default "all" in case of error
-    return ["all"]
+    return [{ id: 'all', name: 'all' }]
   }
 }
 
@@ -90,17 +102,16 @@ interface ExpressShopProps {
 }
 
 export default async function ExpressShop({ searchParams }: ExpressShopProps) {
-  // Fetch products and categories in parallel
-  const [products, categories] = await Promise.all([
-    getProducts(),
-    getCategories()
-  ])
-
-  // Filter products based on selected category
-  const selectedCategory = (await searchParams).category || "all"
-  const filteredProducts = selectedCategory === "all" 
-    ? products 
-    : products.filter((product) => (product.category?.name || "uncategorized") === selectedCategory)
+  // Get selected category ID from search params
+  const selectedCategoryId = (await searchParams).category || "all"
+  
+  // Fetch categories first, then products with the selected category
+  const categories = await getCategories()
+  const products = await getProducts(selectedCategoryId)
+  
+  // Find the selected category name for display
+  const selectedCategory = categories.find(cat => cat.id === selectedCategoryId)
+  const selectedCategoryName = selectedCategory?.name || "all"
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -149,19 +160,19 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
         {/* Category Filter */}
         <div className="mb-6 max-w-6xl mx-auto">
           <Suspense fallback={<div className="h-12 w-full rounded-xl bg-gray-200 animate-pulse" />}>
-            <CategoryFilter categories={categories} activeCategory={selectedCategory} />
+            <CategoryFilter categories={categories} activeCategory={selectedCategoryId} />
           </Suspense>
         </div>
 
         {/* Results Count */}
-        {filteredProducts.length > 0 && (
+        {products.length > 0 && (
           <div className="mb-8 max-w-6xl mx-auto px-1">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-900">
-                {filteredProducts.length}{" "}
-                {filteredProducts.length === 1 ? "Produit" : "Produits"}
-                {selectedCategory !== "all" && (
-                  <span className="text-fitnest-orange"> dans {selectedCategory}</span>
+                {products.length}{" "}
+                {products.length === 1 ? "Produit" : "Produits"}
+                {selectedCategoryId !== "all" && (
+                  <span className="text-fitnest-orange"> dans {selectedCategoryName}</span>
                 )}
               </p>
             </div>
@@ -169,7 +180,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
         )}
 
         {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
+        {products.length === 0 ? (
           <div className="flex min-h-[500px] flex-col items-center justify-center space-y-6 text-center py-16 px-4">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-fitnest-green/10 to-fitnest-orange/10 shadow-lg">
               <ShoppingCart className="h-12 w-12 text-fitnest-green" />
@@ -177,13 +188,13 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
             <div className="space-y-3">
               <h3 className="text-2xl md:text-3xl font-bold text-gray-900">No products found</h3>
               <p className="text-base md:text-lg text-gray-600 max-w-md font-medium leading-relaxed">
-                {selectedCategory !== "all" 
+                {selectedCategoryId !== "all" 
                   ? `No products available in this category. Try selecting a different one.` 
                   : "No products available at the moment. Please check back later."}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              {selectedCategory !== "all" && (
+              {selectedCategoryId !== "all" && (
                 <Link href="/express-shop">
                   <Button 
                     className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
@@ -206,7 +217,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
-            {filteredProducts.map((product) => {
+            {products.map((product) => {
               const hasDiscount = product.price?.discount > 0 && product.price?.base > product.price?.discount
               const displayPrice = hasDiscount ? product.price.discount : product.price?.base || 0
               const isOutOfStock = product.stock_quantity <= 0
@@ -335,7 +346,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
         )}
 
         {/* Promotional CTA Section */}
-        {filteredProducts.length > 0 && (
+        {products.length > 0 && (
           <div className="mt-16 md:mt-20 max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-6">
               {/* CTA Card 1 */}
