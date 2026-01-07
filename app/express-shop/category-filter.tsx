@@ -17,12 +17,12 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const handleCategoryChange = (categoryId: string) => {
+  const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString())
-    if (categoryId === "all") {
+    if (categoryName === "all") {
       params.delete("category")
     } else {
-      params.set("category", categoryId)
+      params.set("category", categoryName)
     }
     router.push(`/express-shop?${params.toString()}`, { scroll: false })
   }
@@ -33,7 +33,7 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
         {categories.map((category) => (
           <TabsTrigger 
             key={category.id} 
-            value={category.id} 
+            value={category.name} 
             className="capitalize px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-fitnest-green data-[state=active]:to-fitnest-green/90 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
           >
             {category.name === "all" ? "All Products" : category.name.replace(/_/g, " ").replace(/-/g, " ")}

@@ -36,27 +36,30 @@ interface CategoryOption {
   name: string
 }
 
-async function getProducts(categoryId?: string): Promise<Product[]> {
+async function getProducts(categoryName?: string): Promise<Product[]> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
   
   try {
     // Build URL with category parameter if provided
     const url = new URL(`${API_BASE}/products/express-shop`)
     url.searchParams.set('status', 'active')
-    if (categoryId && categoryId !== 'all') {
-      url.searchParams.set('category', categoryId)
+    if (categoryName && categoryName !== 'all') {
+      url.searchParams.set('category', categoryName)
     }
+    
+    console.log('Fetching products from:', url.toString())
     
     const response = await fetch(url.toString(), {
       next: { revalidate: 3600 }, // Revalidate every hour
     })
     
     if (!response.ok) {
+      console.error(`API Error: ${response.status} - URL: ${url.toString()}`)
       throw new Error(`API request failed: ${response.status}`)
     }
     
     const data = await response.json()
-    
+
     // Handle different API response structures
     return Array.isArray(data.data) ? data.data : data
   } catch (error) {
@@ -102,16 +105,12 @@ interface ExpressShopProps {
 }
 
 export default async function ExpressShop({ searchParams }: ExpressShopProps) {
-  // Get selected category ID from search params
-  const selectedCategoryId = (await searchParams).category || "all"
+  // Get selected category name from search params
+  const selectedCategoryName = (await searchParams).category || "all"
   
   // Fetch categories first, then products with the selected category
   const categories = await getCategories()
-  const products = await getProducts(selectedCategoryId)
-  
-  // Find the selected category name for display
-  const selectedCategory = categories.find(cat => cat.id === selectedCategoryId)
-  const selectedCategoryName = selectedCategory?.name || "all"
+  const products = await getProducts(selectedCategoryName)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -160,7 +159,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
         {/* Category Filter */}
         <div className="mb-6 max-w-6xl mx-auto">
           <Suspense fallback={<div className="h-12 w-full rounded-xl bg-gray-200 animate-pulse" />}>
-            <CategoryFilter categories={categories} activeCategory={selectedCategoryId} />
+            <CategoryFilter categories={categories} activeCategory={selectedCategoryName} />
           </Suspense>
         </div>
 
@@ -171,7 +170,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
               <p className="text-sm font-semibold text-gray-900">
                 {products.length}{" "}
                 {products.length === 1 ? "Produit" : "Produits"}
-                {selectedCategoryId !== "all" && (
+                {selectedCategoryName !== "all" && (
                   <span className="text-fitnest-orange"> dans {selectedCategoryName}</span>
                 )}
               </p>
@@ -188,13 +187,13 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
             <div className="space-y-3">
               <h3 className="text-2xl md:text-3xl font-bold text-gray-900">No products found</h3>
               <p className="text-base md:text-lg text-gray-600 max-w-md font-medium leading-relaxed">
-                {selectedCategoryId !== "all" 
+                {selectedCategoryName !== "all" 
                   ? `No products available in this category. Try selecting a different one.` 
                   : "No products available at the moment. Please check back later."}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              {selectedCategoryId !== "all" && (
+              {selectedCategoryName !== "all" && (
                 <Link href="/express-shop">
                   <Button 
                     className="bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
