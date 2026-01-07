@@ -23,6 +23,14 @@ interface Product {
   stock_quantity: number
 }
 
+interface Category {
+  id: string
+  created_at: string
+  deleted_at: string | null
+  name: string
+  updated_at: string
+}
+
 async function getProducts(): Promise<Product[]> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
   
@@ -46,20 +54,47 @@ async function getProducts(): Promise<Product[]> {
   }
 }
 
+async function getCategories(): Promise<string[]> {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+  
+  try {
+    const response = await fetch(`${API_BASE}/categories/express-shop`, {
+      next: { revalidate: 3600 }, // Revalidate every hour
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // Extract category names from the response
+    const categoryNames = Array.isArray(data.data) 
+      ? data.data.map((cat: Category) => cat.name).filter(Boolean)
+      : []
+    
+    // Return "all" plus the fetched categories
+    return ["all", ...categoryNames]
+  } catch (error) {
+    console.error('Failed to fetch categories:', error)
+    // Return default "all" in case of error
+    return ["all"]
+  }
+}
+
 interface ExpressShopProps {
   searchParams: { category?: string }
 }
 
 export default async function ExpressShop({ searchParams }: ExpressShopProps) {
-  const products = await getProducts()
-  
-  // Extract unique categories from products
-  const uniqueCategories = Array.from(new Set(
-    products
-      .map((product) => product.category?.name || "uncategorized")
-      .filter(Boolean)
-  ))
-  const categories = ["all", ...uniqueCategories]
+  // Fetch products and categories in parallel
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getCategories()
+  ])
 
   // Filter products based on selected category
   const selectedCategory = (await searchParams).category || "all"
