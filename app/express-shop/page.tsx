@@ -215,7 +215,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-6xl mx-auto">
             {products.map((product) => {
               const hasDiscount = product.price?.discount > 0 && product.price?.base > product.price?.discount
               const displayPrice = hasDiscount ? product.price.discount : product.price?.base || 0
