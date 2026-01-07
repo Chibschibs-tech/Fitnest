@@ -19,6 +19,10 @@ export function CategoryFilter({ categories, activeCategory }: CategoryFilterPro
 
   const handleCategoryChange = (categoryName: string) => {
     const params = new URLSearchParams(searchParams.toString())
+    
+    // Reset pagination when category changes
+    params.delete("page")
+    
     if (categoryName === "all") {
       params.delete("category")
     } else {

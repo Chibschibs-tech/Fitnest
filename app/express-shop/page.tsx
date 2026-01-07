@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Plus, Sparkles, Tag, ChevronRight, ShoppingBag, Zap, TrendingUp, Package } from "lucide-react"
+import { ShoppingCart, Plus, Sparkles, Tag, ChevronRight, ShoppingBag, Zap, TrendingUp, Package, ChevronLeft } from "lucide-react"
 import { CategoryFilter } from "./category-filter"
 import { Suspense } from "react"
 
@@ -36,13 +36,25 @@ interface CategoryOption {
   name: string
 }
 
-async function getProducts(categoryName?: string): Promise<Product[]> {
+interface PaginatedResponse {
+  products: Product[]
+  total: number
+  currentPage: number
+  totalPages: number
+}
+
+async function getProducts(categoryName?: string, page: number = 1): Promise<PaginatedResponse> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+  const ITEMS_PER_PAGE = 8
   
   try {
-    // Build URL with category parameter if provided
+    // Calculate offset from page number (offset = (page - 1) * limit)
+    const offset = (page - 1) * ITEMS_PER_PAGE
+    
+    // Build URL with category and pagination parameters
     const url = new URL(`${API_BASE}/products/express-shop`)
-    url.searchParams.set('status', 'active')
+    url.searchParams.set('offset', offset.toString())
+    
     if (categoryName && categoryName !== 'all') {
       url.searchParams.set('category', categoryName)
     }
@@ -60,12 +72,25 @@ async function getProducts(categoryName?: string): Promise<Product[]> {
     
     const data = await response.json()
 
-    // Handle different API response structures
-    return Array.isArray(data.data) ? data.data : data
+    // Handle API response structure
+    const products = Array.isArray(data.data) ? data.data : []
+    const pagination = data.pagination || {}
+    
+    return {
+      products,
+      total: pagination.total || products.length,
+      currentPage: pagination.current_page || page,
+      totalPages: pagination.total_pages || 1
+    }
   } catch (error) {
     console.error('Failed to fetch products:', error)
     // Return fallback data in case of error
-    return []
+    return {
+      products: [],
+      total: 0,
+      currentPage: 1,
+      totalPages: 1
+    }
   }
 }
 
@@ -101,16 +126,18 @@ async function getCategories(): Promise<CategoryOption[]> {
 }
 
 interface ExpressShopProps {
-  searchParams: { category?: string }
+  searchParams: { category?: string; page?: string }
 }
 
 export default async function ExpressShop({ searchParams }: ExpressShopProps) {
-  // Get selected category name from search params
-  const selectedCategoryName = (await searchParams).category || "all"
+  // Get selected category name and page from search params
+  const params = await searchParams
+  const selectedCategoryName = params.category || "all"
+  const currentPage = parseInt(params.page || "1", 10)
   
-  // Fetch categories first, then products with the selected category
+  // Fetch categories first, then products with the selected category and page
   const categories = await getCategories()
-  const products = await getProducts(selectedCategoryName)
+  const { products, total, totalPages } = await getProducts(selectedCategoryName, currentPage)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -224,7 +251,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
               return (
                 <Card 
                   key={product.id} 
-                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border-0 shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white"
+                  className="group relative flex h-full flex-col overflow-hidden rounded-xl border-0 shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white"
                 >
                   <Link href={`/express-shop/${product.id}`}>
                     <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
@@ -341,6 +368,95 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                 </Card>
               )
             })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {products.length > 0 && totalPages > 1 && (
+          <div className="mt-12 max-w-6xl mx-auto flex justify-center items-center gap-2">
+            {/* Previous Button */}
+            <Link 
+              href={`/express-shop?${new URLSearchParams({
+                ...(selectedCategoryName !== 'all' && { category: selectedCategoryName }),
+                page: Math.max(1, currentPage - 1).toString()
+              }).toString()}`}
+              className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+            >
+              <Button 
+                variant="outline"
+                className="border-2 border-gray-200 hover:border-fitnest-green hover:bg-fitnest-green hover:text-white font-semibold rounded-xl transition-all duration-300"
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Précédent
+              </Button>
+            </Link>
+
+            {/* Page Numbers */}
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // Show first page, last page, current page, and pages around current
+                const showPage = 
+                  page === 1 || 
+                  page === totalPages || 
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                
+                const showEllipsis = 
+                  (page === 2 && currentPage > 3) || 
+                  (page === totalPages - 1 && currentPage < totalPages - 2)
+
+                if (!showPage && !showEllipsis) return null
+
+                if (showEllipsis) {
+                  return (
+                    <span key={page} className="px-3 py-2 text-gray-400">
+                      ...
+                    </span>
+                  )
+                }
+
+                if (!showPage) return null
+
+                return (
+                  <Link
+                    key={page}
+                    href={`/express-shop?${new URLSearchParams({
+                      ...(selectedCategoryName !== 'all' && { category: selectedCategoryName }),
+                      page: page.toString()
+                    }).toString()}`}
+                  >
+                    <Button
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      className={`font-semibold rounded-xl transition-all duration-300 ${
+                        currentPage === page
+                          ? 'bg-gradient-to-r from-fitnest-green to-fitnest-green/90 text-white border-0 shadow-lg'
+                          : 'border-2 border-gray-200 hover:border-fitnest-green hover:bg-fitnest-green/10'
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Next Button */}
+            <Link 
+              href={`/express-shop?${new URLSearchParams({
+                ...(selectedCategoryName !== 'all' && { category: selectedCategoryName }),
+                page: Math.min(totalPages, currentPage + 1).toString()
+              }).toString()}`}
+              className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+            >
+              <Button 
+                variant="outline"
+                className="border-2 border-gray-200 hover:border-fitnest-green hover:bg-fitnest-green hover:text-white font-semibold rounded-xl transition-all duration-300"
+                disabled={currentPage === totalPages}
+              >
+                Suivant
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Link>
           </div>
         )}
 
