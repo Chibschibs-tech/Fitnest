@@ -43,7 +43,6 @@ async function getMealPlans(): Promise<MealPlan[]> {
     }
     
     const data = await response.json()
-    console.log("✅ Fetched meal plans data:", data)
     // Handle different API response structures
     return Array.isArray(data.data) ? data.data : data
   } catch (error) {

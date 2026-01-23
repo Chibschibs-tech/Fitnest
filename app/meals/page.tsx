@@ -25,9 +25,7 @@ async function getMeals(page: number = 1, search?: string): Promise<PaginatedRes
     if (search && search.trim()) {
       url.searchParams.set('search', search.trim())
     }
-    
-    console.log('Fetching meals from:', url.toString())
-    
+        
     const response = await fetch(url.toString(), {
       cache: 'no-store' // Fresh data on each request
     })
@@ -38,7 +36,6 @@ async function getMeals(page: number = 1, search?: string): Promise<PaginatedRes
     }
     
     const data = await response.json()
-    console.log('API Response:', JSON.stringify(data.pagination))
 
     // Handle API response structure
     const meals = Array.isArray(data.data) ? data.data : []
