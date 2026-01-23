@@ -63,9 +63,7 @@ async function getProducts(categoryName?: string, page: number = 1, search?: str
     if (search && search.trim()) {
       url.searchParams.set('search', search.trim())
     }
-    
-    console.log('Fetching products from:', url.toString())
-    
+        
     const response = await fetch(url.toString(), {
       next: { revalidate: 3600 }, // Revalidate every hour
     })

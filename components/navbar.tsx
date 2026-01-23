@@ -1,16 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, ShoppingBag } from "lucide-react"
+import { Menu, ShoppingBag, UserPlus, LogIn } from "lucide-react"
 import Image from "next/image"
+import { AuthDialogRefactored as AuthDialog } from "@/components/auth-dialog-refactored"
+import { UserMenu } from "@/components/user-menu"
+import { AuthContext } from "@/components/auth-provider"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [authDialogOpen, setAuthDialogOpen] = useState(false)
+  const [authDialogTab, setAuthDialogTab] = useState<"login" | "signup">("login")
+  const { user, setUser } = useContext(AuthContext)
   const pathname = usePathname()
 
   // Track scroll position for navbar shadow
@@ -22,12 +28,37 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Handle authentication success
+  const handleAuthSuccess = (userData: { name: string; email: string; avatar?: string }) => {
+    setUser(userData)
+    console.log("User authenticated:", userData)
+  }
+
+  // Handle logout
+  const handleLogout = async () => {
+    const { logout, clearAuthToken } = await import('@/services/auth.service')
+    
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      clearAuthToken()
+      setUser(null)
+      console.log("User logged out")
+    }
+  }
+
+  // Open auth dialog with specific tab
+  const openAuthDialog = (tab: "login" | "signup") => {
+    setAuthDialogTab(tab)
+    setAuthDialogOpen(true)
+  }
+
   const routes = [
     { href: "/meal-plans", label: "Meal Plans" },
     { href: "/meals", label: "Recettes" },
     { href: "/express-shop", label: "Express Shop" },
-    { href: "/about", label: "A propos" },
-    { href: "/contact", label: "Contact" },
   ]
 
   const isActive = (path: string) => {
@@ -69,7 +100,7 @@ export default function Navbar() {
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2
                 ${
                 isActive(route.href) 
-                  ? "text-fitnest-green bg-fitnest-green/5" 
+                  ? "text-fitnest-green" 
                   : "text-gray-700 hover:text-fitnest-green hover:bg-gray-50"
               }`}
             >
@@ -85,12 +116,9 @@ export default function Navbar() {
         </nav>
 
         {/* Right Side Actions */}
-        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-          {/* Order CTA - Desktop */}
-          <Link
-            href="/order"
-            className="hidden lg:block"
-          >
+        <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
+          {/* Commander Button - Always Visible on Desktop */}
+          <Link href="/order" className="hidden lg:block">
             <Button 
               className="bg-gradient-to-r from-fitnest-orange to-orange-500 hover:from-orange-500 hover:to-fitnest-orange text-white font-bold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl group"
               size="default"
@@ -99,6 +127,40 @@ export default function Navbar() {
               <span>Commander</span>
             </Button>
           </Link>
+
+          {/* Authentication Section - Desktop */}
+          {user ? (
+            // User is logged in - show user menu
+            <div className="hidden lg:flex items-center">
+              <UserMenu user={user} onLogout={handleLogout} />
+            </div>
+          ) : (
+            // User is not logged in - show simplified auth buttons
+            <div className="hidden lg:flex items-center gap-2">
+              {/* Login - Minimal style */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-600 hover:text-fitnest-green hover:bg-transparent font-medium transition-colors duration-200"
+                onClick={() => openAuthDialog("login")}
+              >
+                Connexion
+              </Button>
+              
+              {/* Divider */}
+              <div className="h-6 w-px bg-gray-200" />
+              
+              {/* Signup - Outline style */}
+              <Button 
+                variant="outline"
+                size="sm"
+                className="border-2 border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white font-semibold transition-all duration-300 rounded-xl"
+                onClick={() => openAuthDialog("signup")}
+              >
+                S'inscrire
+              </Button>
+            </div>
+          )}
 
           {/* Mobile Menu Trigger */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -126,6 +188,25 @@ export default function Navbar() {
 
                 {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto px-6 py-6" aria-label="Mobile navigation">
+                  {/* User Info (Mobile) */}
+                  {user && (
+                    <div className="mb-6 p-4 bg-gradient-to-br from-fitnest-green/10 to-fitnest-orange/10 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-fitnest-green to-fitnest-orange flex items-center justify-center text-white font-bold text-sm">
+                          {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {user.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-col space-y-2">
                     {routes.map((route) => (
                       <Link
@@ -147,8 +228,9 @@ export default function Navbar() {
                     ))}
                   </div>
 
-                  {/* Mobile Order CTA */}
-                  <div className="mt-8">
+                  {/* Mobile Actions - Simplified */}
+                  <div className="mt-8 space-y-3">
+                    {/* Primary CTA - Commander */}
                     <Link
                       href="/order"
                       onClick={() => setIsOpen(false)}
@@ -160,6 +242,42 @@ export default function Navbar() {
                         <span>Commander</span>
                       </Button>
                     </Link>
+
+                    {/* Auth Buttons */}
+                    {user ? (
+                      <Button
+                        variant="outline"
+                        className="w-full border-2 border-red-200 text-red-600 hover:bg-red-50 font-semibold py-5 text-base rounded-xl"
+                        onClick={() => {
+                          handleLogout()
+                          setIsOpen(false)
+                        }}
+                      >
+                        Se déconnecter
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-2 border-gray-200 text-gray-700 hover:border-fitnest-green hover:text-fitnest-green font-semibold py-5 text-base rounded-xl transition-colors"
+                          onClick={() => {
+                            openAuthDialog("login")
+                            setIsOpen(false)
+                          }}
+                        >
+                          Connexion
+                        </Button>
+                        <Button
+                          className="flex-1 bg-gradient-to-r from-fitnest-green to-emerald-600 hover:from-emerald-600 hover:to-fitnest-green text-white font-bold py-5 text-base rounded-xl"
+                          onClick={() => {
+                            openAuthDialog("signup")
+                            setIsOpen(false)
+                          }}
+                        >
+                          S'inscrire
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </nav>
               </div>
@@ -167,6 +285,14 @@ export default function Navbar() {
           </Sheet>
         </div>
       </div>
+
+      {/* Auth Dialog */}
+      <AuthDialog
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
+        defaultTab={authDialogTab}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </header>
   )
 }
