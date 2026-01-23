@@ -74,21 +74,82 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
     if (Object.keys(errors).length === 0) {
       setIsLoading(true)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setIsLoading(false)
-      
-      // Mock successful login
-      onAuthSuccess?.({ 
-        name: loginForm.email.split('@')[0], 
-        email: loginForm.email 
-      })
-      
-      // Reset form and close dialog
-      setLoginForm({ email: "", password: "", remember: false })
-      setLoginErrors({})
-      onOpenChange(false)
+      try {
+        // Call login API
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+        const response = await fetch(`${apiUrl}/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: loginForm.email,
+            password: loginForm.password,
+            remember: loginForm.remember
+          }),
+        })
+
+        const data = await response.json()
+        
+        // Debug: Log the response
+        console.log('📥 Login Response:', { status: response.status, data })
+
+        if (!response.ok) {
+          // Handle API errors (4xx, 5xx status codes)
+          setIsLoading(false)
+          
+          if (data.error) {
+            setLoginErrors({ 
+              email: data.error,
+              password: data.error
+            })
+          } else if (response.status === 401) {
+            setLoginErrors({ 
+              email: "Email ou mot de passe incorrect",
+              password: "Email ou mot de passe incorrect"
+            })
+          } else if (data.message) {
+            setLoginErrors({ email: data.message })
+          } else {
+            setLoginErrors({ email: "Une erreur est survenue. Veuillez réessayer." })
+          }
+          return
+        }
+
+        // Successful login (response.ok = true)
+        setIsLoading(false)
+        
+        // Store auth token if provided
+        if (data.token) {
+          localStorage.setItem('authToken', data.token)
+          console.log('🔑 Token stored')
+        }
+        
+        // Extract user data from various possible response formats
+        const userData = {
+          id: data.user?.id || data.id,
+          name: data.user?.name || data.name || loginForm.email.split('@')[0], 
+          email: data.user?.email || data.email || loginForm.email,
+          avatar: data.user?.avatar || data.avatar,
+          role: data.user?.role || data.role
+        }
+        
+        console.log('✅ Login successful, user:', userData)
+        onAuthSuccess?.(userData)
+        
+        // Reset form and close dialog
+        setLoginForm({ email: "", password: "", remember: false })
+        setLoginErrors({})
+        onOpenChange(false)
+
+      } catch (error) {
+        // Handle network errors
+        setIsLoading(false)
+        console.error('Login error:', error)
+        setLoginErrors({ 
+          email: "Impossible de se connecter. Vérifiez votre connexion internet." 
+        })
+      }
     }
   }
 
@@ -137,21 +198,78 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
     if (Object.keys(errors).length === 0) {
       setIsLoading(true)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setIsLoading(false)
-      
-      // Mock successful signup
-      onAuthSuccess?.({ 
-        name: signupForm.name, 
-        email: signupForm.email 
-      })
-      
-      // Reset form and close dialog
-      setSignupForm({ name: "", email: "", password: "", confirmPassword: "", terms: false })
-      setSignupErrors({})
-      onOpenChange(false)
+      try {
+        // Call signup API
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+        const response = await fetch(`${apiUrl}/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: signupForm.name,
+            email: signupForm.email,
+            password: signupForm.password
+          }),
+        })
+
+        const data = await response.json()
+        
+        // Debug: Log the response
+        console.log('📥 Signup Response:', { status: response.status, data })
+
+        if (!response.ok) {
+          // Handle API errors (4xx, 5xx status codes)
+          setIsLoading(false)
+          
+          if (data.error) {
+            setSignupErrors({ email: data.error })
+          } else if (response.status === 409) {
+            setSignupErrors({ 
+              email: "Cet email est déjà utilisé"
+            })
+          } else if (data.message) {
+            setSignupErrors({ email: data.message })
+          } else {
+            setSignupErrors({ email: "Une erreur est survenue. Veuillez réessayer." })
+          }
+          return
+        }
+
+        // Successful signup (response.ok = true)
+        setIsLoading(false)
+        
+        // Store auth token if provided
+        if (data.token) {
+          localStorage.setItem('authToken', data.token)
+          console.log('🔑 Token stored')
+        }
+        
+        // Extract user data from various possible response formats
+        const userData = {
+          id: data.user?.id || data.id,
+          name: data.user?.name || data.name || signupForm.name, 
+          email: data.user?.email || data.email || signupForm.email,
+          avatar: data.user?.avatar || data.avatar,
+          role: data.user?.role || data.role
+        }
+        
+        console.log('✅ Signup successful, user:', userData)
+        onAuthSuccess?.(userData)
+        
+        // Reset form and close dialog
+        setSignupForm({ name: "", email: "", password: "", confirmPassword: "", terms: false })
+        setSignupErrors({})
+        onOpenChange(false)
+
+      } catch (error) {
+        // Handle network errors
+        setIsLoading(false)
+        console.error('Signup error:', error)
+        setSignupErrors({ 
+          email: "Impossible de créer le compte. Vérifiez votre connexion internet." 
+        })
+      }
     }
   }
 

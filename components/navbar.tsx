@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,13 +9,14 @@ import { Menu, ShoppingBag, UserPlus, LogIn } from "lucide-react"
 import Image from "next/image"
 import { AuthDialog } from "@/components/auth-dialog"
 import { UserMenu } from "@/components/user-menu"
+import { AuthContext } from "@/components/auth-provider"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [authDialogTab, setAuthDialogTab] = useState<"login" | "signup">("login")
-  const [user, setUser] = useState<{ name: string; email: string; avatar?: string } | null>(null)
+  const { user, setUser } = useContext(AuthContext)
   const pathname = usePathname()
 
   // Track scroll position for navbar shadow
@@ -28,17 +29,35 @@ export default function Navbar() {
   }, [])
 
   // Handle authentication success
-  const handleAuthSuccess = (userData: { name: string; email: string }) => {
+  const handleAuthSuccess = (userData: { name: string; email: string; avatar?: string }) => {
     setUser(userData)
-    // Here you would typically store the user session
     console.log("User authenticated:", userData)
   }
 
   // Handle logout
-  const handleLogout = () => {
-    setUser(null)
-    // Here you would typically clear the user session
-    console.log("User logged out")
+  const handleLogout = async () => {
+    try {
+      // Get auth token
+      const token = localStorage.getItem('authToken')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      
+      // Call logout API
+      await fetch(`${apiUrl}/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      // Clear user state and token regardless of API response
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      setUser(null)
+      console.log("User logged out")
+    }
   }
 
   // Open auth dialog with specific tab
