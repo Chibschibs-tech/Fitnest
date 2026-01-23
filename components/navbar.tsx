@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ShoppingBag, UserPlus, LogIn } from "lucide-react"
 import Image from "next/image"
-import { AuthDialog } from "@/components/auth-dialog"
+import { AuthDialogRefactored as AuthDialog } from "@/components/auth-dialog-refactored"
 import { UserMenu } from "@/components/user-menu"
 import { AuthContext } from "@/components/auth-provider"
 
@@ -36,25 +36,14 @@ export default function Navbar() {
 
   // Handle logout
   const handleLogout = async () => {
+    const { logout, clearAuthToken } = await import('@/services/auth.service')
+    
     try {
-      // Get auth token
-      const token = localStorage.getItem('authToken')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
-      
-      // Call logout API
-      await fetch(`${apiUrl}/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
+      await logout()
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      // Clear user state and token regardless of API response
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('user')
+      clearAuthToken()
       setUser(null)
       console.log("User logged out")
     }
