@@ -3,7 +3,7 @@
  * Handles authenticated requests to Laravel backend
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 /**
  * Get auth token from localStorage
@@ -29,7 +29,7 @@ export async function apiRequest(
 
   // Add Authorization header if token exists
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
   }
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`

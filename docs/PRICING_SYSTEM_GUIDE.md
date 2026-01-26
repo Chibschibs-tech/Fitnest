@@ -690,7 +690,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   
   // Call pricing API
-  const priceResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/calculate-price`, {
+  const priceResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/calculate-price`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
