@@ -26,7 +26,7 @@ export function OrdersContent() {
   useEffect(() => {
     async function fetchMealPlans() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+        const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'
         const response = await fetch(`${API_URL}/meal-plans?status=active`, {
           headers: {
             'Accept': 'application/json',
@@ -74,7 +74,7 @@ export function OrdersContent() {
           return
         }
 
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+        const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'
 
         const response = await fetch(`${API_URL}/orders/my`, {
           headers: {

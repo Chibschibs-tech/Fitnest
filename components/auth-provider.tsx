@@ -39,18 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedUser) {
           setUser(JSON.parse(storedUser))
         }
-
-        // Optionally: verify with backend
-        // const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-        // const response = await fetch(`${apiUrl}/me`)
-        // if (response.ok) {
-        //   const data = await response.json()
-        //   setUser(data.user)
-        //   localStorage.setItem("user", JSON.stringify(data.user))
-        // } else {
-        //   localStorage.removeItem("user")
-        //   setUser(null)
-        // }
       } catch (error) {
         console.error("Auth check failed:", error)
         localStorage.removeItem("user")

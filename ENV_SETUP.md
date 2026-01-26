@@ -8,7 +8,7 @@ In the root of your project, create or update your `.env.local` file with the fo
 
 ```env
 # Laravel API Base URL
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
 ### 2. **Common API URLs**
@@ -17,27 +17,27 @@ Choose the appropriate URL based on your setup:
 
 #### **Local Laravel Development (default)**
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
 #### **Laravel Valet (macOS)**
 ```env
-NEXT_PUBLIC_API_URL=http://your-project.test
+NEXT_PUBLIC_API_BASE_URL=http://your-project.test
 ```
 
 #### **Laravel Homestead/Vagrant**
 ```env
-NEXT_PUBLIC_API_URL=http://192.168.56.56
+NEXT_PUBLIC_API_BASE_URL=http://192.168.56.56
 ```
 
 #### **Docker/Laradock**
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
 #### **Production/Staging**
 ```env
-NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com
 ```
 
 ---
@@ -61,7 +61,7 @@ With the base URL configured, your app will call:
 
 ```typescript
 // The code automatically uses the environment variable
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 const response = await fetch(`${apiUrl}/login`, {
   method: 'POST',
   // ...
@@ -70,7 +70,7 @@ const response = await fetch(`${apiUrl}/login`, {
 
 ### **Fallback Behavior**
 
-If `NEXT_PUBLIC_API_URL` is not set, the app will default to:
+If `NEXT_PUBLIC_API_BASE_URL` is not set, the app will default to:
 ```
 http://localhost:8000
 ```
@@ -84,7 +84,7 @@ http://localhost:8000
 Add this to any component to check:
 
 ```typescript
-console.log('API URL:', process.env.NEXT_PUBLIC_API_URL)
+console.log('API URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
 ```
 
 ### **2. Test API Connection**
@@ -142,10 +142,10 @@ Create this file in your project root:
 
 # Laravel API Base URL (REQUIRED)
 # Local development:
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 # Production (uncomment and update when deploying):
-# NEXT_PUBLIC_API_URL=https://api.fitnest.ma
+# NEXT_PUBLIC_API_BASE_URL=https://api.fitnest.ma
 
 # ========================================
 # Other Variables (if needed)
@@ -186,12 +186,12 @@ When deploying, update your environment variables:
 
 **Local (.env.local):**
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
 **Production (Vercel/Netlify):**
 ```env
-NEXT_PUBLIC_API_URL=https://api.fitnest.ma
+NEXT_PUBLIC_API_BASE_URL=https://api.fitnest.ma
 ```
 
 ### **Vercel Deployment**
@@ -199,7 +199,7 @@ NEXT_PUBLIC_API_URL=https://api.fitnest.ma
 1. Go to your Vercel project settings
 2. Navigate to "Environment Variables"
 3. Add:
-   - Name: `NEXT_PUBLIC_API_URL`
+   - Name: `NEXT_PUBLIC_API_BASE_URL`
    - Value: `https://api.yourdomain.com`
    - Environment: Production
 
@@ -207,7 +207,7 @@ NEXT_PUBLIC_API_URL=https://api.fitnest.ma
 
 1. Go to Site settings → Build & deploy → Environment
 2. Add variable:
-   - Key: `NEXT_PUBLIC_API_URL`
+   - Key: `NEXT_PUBLIC_API_BASE_URL`
    - Value: `https://api.yourdomain.com`
 
 ---
@@ -215,7 +215,7 @@ NEXT_PUBLIC_API_URL=https://api.fitnest.ma
 ## 🧪 Testing Checklist
 
 - [ ] Created `.env.local` file in project root
-- [ ] Added `NEXT_PUBLIC_API_URL` with correct Laravel URL
+- [ ] Added `NEXT_PUBLIC_API_BASE_URL` with correct Laravel URL
 - [ ] Restarted Next.js dev server
 - [ ] Checked browser console for API URL
 - [ ] Tested login/signup functionality
@@ -229,7 +229,7 @@ NEXT_PUBLIC_API_URL=https://api.fitnest.ma
 
 ### **API requests going to wrong URL**
 
-✅ Check: Is `NEXT_PUBLIC_API_URL` set correctly?
+✅ Check: Is `NEXT_PUBLIC_API_BASE_URL` set correctly?
 ✅ Check: Did you restart the dev server?
 ✅ Check: Is the prefix `NEXT_PUBLIC_` (not just `API_URL`)?
 
