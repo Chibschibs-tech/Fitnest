@@ -6,10 +6,6 @@ const publicRoutes = [
   "/",
   "/login",
   "/register",
-  "/api/auth/login",
-  "/api/auth/register",
-  "/api/auth/session",
-  "/api/auth-status",
   "/api/health",
   "/api/test",
   "/api/test-simple",
@@ -138,7 +134,10 @@ const publicRoutes = [
   "/waitlist",
   "/admin/waitlist",
   "/home",
+  "/orders",
+  "/orders/[id]",
   "/order",
+  "/order/success",
 ]
 
 export function proxy(request: NextRequest) {
