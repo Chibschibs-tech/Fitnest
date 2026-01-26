@@ -135,29 +135,16 @@ export default function Navbar() {
               <UserMenu user={user} onLogout={handleLogout} />
             </div>
           ) : (
-            // User is not logged in - show simplified auth buttons
-            <div className="hidden lg:flex items-center gap-2">
-              {/* Login - Minimal style */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-600 hover:text-fitnest-green hover:bg-transparent font-medium transition-colors duration-200"
-                onClick={() => openAuthDialog("login")}
-              >
-                Connexion
-              </Button>
-              
-              {/* Divider */}
-              <div className="h-6 w-px bg-gray-200" />
-              
-              {/* Signup - Outline style */}
+            // User is not logged in - show single auth button
+            <div className="hidden lg:flex items-center">
               <Button 
                 variant="outline"
-                size="sm"
-                className="border-2 border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white font-semibold transition-all duration-300 rounded-xl"
-                onClick={() => openAuthDialog("signup")}
+                size="default"
+                className="border-2 border-fitnest-green text-fitnest-green hover:bg-fitnest-green hover:text-white font-semibold transition-all duration-300 rounded-xl group"
+                onClick={() => openAuthDialog("login")}
               >
-                S'inscrire
+                <UserPlus className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                <span>Se connecter</span>
               </Button>
             </div>
           )}

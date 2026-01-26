@@ -11,8 +11,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
  * Login user
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  console.log('🔗 API URL:', API_URL)
-  
   const response = await fetch(`${API_URL}/login`, {
     method: 'POST',
     headers: {
@@ -22,7 +20,6 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   })
 
   const data = await response.json()
-  console.log('📥 Login Response:', { status: response.status, data })
 
   if (!response.ok) {
     throw {
@@ -38,10 +35,8 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
 /**
  * Sign up new user
  */
-export async function signup(credentials: Omit<SignupCredentials, 'confirmPassword' | 'terms'>): Promise<AuthResponse> {
-  console.log('🔗 API URL:', API_URL)
-  
-  const response = await fetch(`${API_URL}/signup`, {
+export async function signup(credentials: Omit<SignupCredentials, 'confirmPassword' | 'terms'>): Promise<AuthResponse> {  
+  const response = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

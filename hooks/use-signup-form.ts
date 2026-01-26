@@ -19,7 +19,7 @@ export function useSignupForm({ onSuccess, onClose }: UseSignupFormProps = {}) {
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    password_confirmation: '',
     terms: false,
   })
   const [errors, setErrors] = useState<AuthError>({})
@@ -54,10 +54,10 @@ export function useSignupForm({ onSuccess, onClose }: UseSignupFormProps = {}) {
       newErrors.password = ERROR_MESSAGES.PASSWORD_MIN_LENGTH
     }
 
-    if (!form.confirmPassword) {
-      newErrors.confirmPassword = ERROR_MESSAGES.PASSWORD_CONFIRM_REQUIRED
-    } else if (form.password !== form.confirmPassword) {
-      newErrors.confirmPassword = ERROR_MESSAGES.PASSWORD_MISMATCH
+    if (!form.password_confirmation) {
+      newErrors.password_confirmation = ERROR_MESSAGES.PASSWORD_CONFIRM_REQUIRED
+    } else if (form.password !== form.password_confirmation) {
+      newErrors.password_confirmation = ERROR_MESSAGES.PASSWORD_MISMATCH
     }
 
     if (!form.terms) {
@@ -76,8 +76,8 @@ export function useSignupForm({ onSuccess, onClose }: UseSignupFormProps = {}) {
     setIsLoading(true)
 
     try {
-      const { confirmPassword, terms, ...credentials } = form
-      const data = await signup(credentials)
+      const { password_confirmation, terms, ...credentials } = form
+      const data = await signup({ ...credentials, password_confirmation: password_confirmation })
 
       // Store token
       if (data.token) {
@@ -93,7 +93,7 @@ export function useSignupForm({ onSuccess, onClose }: UseSignupFormProps = {}) {
         name: '',
         email: '',
         password: '',
-        confirmPassword: '',
+        password_confirmation: '',
         terms: false,
       })
       setErrors({})

@@ -306,9 +306,9 @@ export function AuthDialogRefactored({
                       id="signup-confirm-password"
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className={`pl-10 pr-10 ${signupForm.errors.confirmPassword ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                      value={signupForm.form.confirmPassword}
-                      onChange={(e) => signupForm.updateField('confirmPassword', e.target.value)}
+                      className={`pl-10 pr-10 ${signupForm.errors.password_confirmation ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      value={signupForm.form.password_confirmation}
+                      onChange={(e) => signupForm.updateField('password_confirmation', e.target.value)}
                       disabled={signupForm.isLoading}
                     />
                     <button
@@ -320,8 +320,8 @@ export function AuthDialogRefactored({
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {signupForm.errors.confirmPassword && (
-                    <p className="text-sm text-red-500">{signupForm.errors.confirmPassword}</p>
+                  {signupForm.errors.password_confirmation && (
+                    <p className="text-sm text-red-500">{signupForm.errors.password_confirmation}</p>
                   )}
                 </div>
 
