@@ -70,10 +70,11 @@ function SuccessContent() {
     const fetchOrderDetails = async () => {
       try {
         setIsLoading(true)
+        const token = localStorage.getItem('authToken')
         const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
         const response = await fetch(`${API_BASE}/orders/${orderId}`, {
           cache: 'no-store',
-          headers: { 'Accept': 'application/json' },
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
         })
 
         if (response.ok) {
