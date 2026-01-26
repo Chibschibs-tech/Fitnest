@@ -21,7 +21,7 @@ export interface SignupCredentials {
   name: string
   email: string
   password: string
-  confirmPassword: string
+  password_confirmation: string
   terms: boolean
 }
 
@@ -35,7 +35,7 @@ export interface AuthError {
   email?: string
   password?: string
   name?: string
-  confirmPassword?: string
+  password_confirmation?: string
   terms?: string
 }
 
