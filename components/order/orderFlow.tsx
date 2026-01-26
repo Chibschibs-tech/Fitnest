@@ -61,6 +61,13 @@ export function OrderFlow({ initialMealPlans = [] }: OrderFlowProps) {
 
   const handleOrderSubmit = async (orderData: OrderData) => {
     try {
+      // Get token from localStorage
+      const token = localStorage.getItem('authToken')
+      
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
       // Convert menu_selections keys from ISO to Y-m-d format
       const formattedSelections: { [key: string]: any } = {}
       if (menuData?.selections) {
@@ -113,6 +120,7 @@ export function OrderFlow({ initialMealPlans = [] }: OrderFlowProps) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       })

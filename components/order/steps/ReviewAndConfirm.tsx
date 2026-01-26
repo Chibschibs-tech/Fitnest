@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useContext } from "react"
 import { format } from "date-fns"
 import Image from "next/image"
 import {
@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
+import { AuthDialogRefactored } from "@/components/auth-dialog-refactored"
+import { AuthContext } from "@/components/auth-provider"
 import {
   MealPlan,
   OrderPreferences,
@@ -58,6 +60,7 @@ export function ReviewAndConfirm({
   onSubmit,
   onBack
 }: ReviewAndConfirmProps) {
+  const { setUser } = useContext(AuthContext)
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
     name: '',
     email: '',
@@ -76,6 +79,8 @@ export function ReviewAndConfirm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // Get meal details by ID
   const getMealById = (id: string | undefined) => {
@@ -90,6 +95,12 @@ export function ReviewAndConfirm({
     }
     return meal
   }
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const token = localStorage.getItem('authToken')
+    setIsAuthenticated(!!token)
+  }, [])
 
   // Add debugging to see what we have
   useEffect(() => {
@@ -142,10 +153,27 @@ export function ReviewAndConfirm({
   }
 
   const handleContinueToReview = () => {
-    if (validateForm()) {
-      setShowReview(true)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (!validateForm()) return
+
+    // Check if user is authenticated
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      setShowAuthDialog(true)
+      return
     }
+
+    setShowReview(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleAuthSuccess = (userData: { name: string; email: string; avatar?: string; id?: string | number; role?: string }) => {
+    // Update global auth context so navbar reflects logged-in state
+    setUser(userData)
+    
+    setShowAuthDialog(false)
+    setIsAuthenticated(true)
+    setShowReview(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSubmit = async () => {
@@ -167,9 +195,17 @@ export function ReviewAndConfirm({
   // Contact & Address Form
   if (!showReview) {
     return (
-      <div className="space-y-6">
-        {/* Contact Information */}
-        <Card>
+      <>
+        <AuthDialogRefactored 
+          open={showAuthDialog}
+          onOpenChange={setShowAuthDialog}
+          defaultTab="login"
+          onAuthSuccess={handleAuthSuccess}
+          contextMessage="Pour finaliser votre commande et suivre votre livraison, connectez-vous ou créez un compte rapidement."
+        />
+        <div className="space-y-6">
+          {/* Contact Information */}
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-fitnest-green" />
@@ -366,13 +402,22 @@ export function ReviewAndConfirm({
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </>
     )
   }
 
   // Order Review
   return (
-    <div className="space-y-6">
+    <>
+      <AuthDialogRefactored 
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+        defaultTab="login"
+        onAuthSuccess={handleAuthSuccess}
+        contextMessage="Pour finaliser votre commande et suivre votre livraison, connectez-vous ou créez un compte rapidement."
+      />
+      <div className="space-y-6">
       {/* Review Header */}
       <Card className="border-fitnest-green">
         <CardHeader className="bg-fitnest-green/5">
@@ -721,6 +766,7 @@ export function ReviewAndConfirm({
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   )
 }

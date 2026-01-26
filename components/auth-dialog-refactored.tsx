@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Lock, Mail, User, Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Eye, EyeOff, Lock, Mail, User, Loader2, ShieldCheck } from "lucide-react"
 import type { AuthTab, User as UserType } from "@/types/auth.types"
 import { useLoginForm } from "@/hooks/use-login-form"
 import { useSignupForm } from "@/hooks/use-signup-form"
@@ -23,13 +24,15 @@ interface AuthDialogProps {
   onOpenChange: (open: boolean) => void
   defaultTab?: AuthTab
   onAuthSuccess?: (user: UserType) => void
+  contextMessage?: string
 }
 
 export function AuthDialogRefactored({ 
   open, 
   onOpenChange, 
   defaultTab = "login", 
-  onAuthSuccess 
+  onAuthSuccess,
+  contextMessage
 }: AuthDialogProps) {
   const [activeTab, setActiveTab] = useState<AuthTab>(defaultTab)
   const [showPassword, setShowPassword] = useState(false)
@@ -56,9 +59,18 @@ export function AuthDialogRefactored({
               Bienvenue chez Fitnest
             </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Connectez-vous pour accéder à votre compte et profiter de tous nos services
+              {contextMessage || "Connectez-vous pour accéder à votre compte et profiter de tous nos services"}
             </DialogDescription>
           </DialogHeader>
+
+          {contextMessage && (
+            <Alert className="mt-4 border-fitnest-orange/30 bg-gradient-to-r from-fitnest-orange/10 to-orange-50">
+              <ShieldCheck className="h-5 w-5 text-fitnest-orange" />
+              <AlertDescription className="text-sm text-gray-700 ml-2">
+                <span className="font-semibold text-fitnest-orange">Authentification requise :</span> Pour sécuriser votre commande et vous permettre de suivre votre livraison, veuillez vous connecter ou créer un compte.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AuthTab)} className="mt-6">
             <TabsList className="grid w-full grid-cols-2 bg-white/50">
