@@ -126,80 +126,9 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
               </div>
             </Link>
           </DropdownMenuItem>
-
-          <DropdownMenuItem asChild>
-            <Link 
-              href="/favorites" 
-              className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg hover:bg-gray-50 transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-50">
-                <Heart className="h-4 w-4 text-red-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Mes favoris</p>
-                <p className="text-xs text-gray-500">Repas sauvegardés</p>
-              </div>
-            </Link>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem asChild>
-            <Link 
-              href="/payment-methods" 
-              className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg hover:bg-gray-50 transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50">
-                <CreditCard className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Paiement</p>
-                <p className="text-xs text-gray-500">Moyens de paiement</p>
-              </div>
-            </Link>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem asChild>
-            <Link 
-              href="/notifications" 
-              className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg hover:bg-gray-50 transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-50">
-                <Bell className="h-4 w-4 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Notifications</p>
-                <p className="text-xs text-gray-500">Préférences</p>
-              </div>
-              <span className="flex items-center justify-center h-5 w-5 rounded-full bg-fitnest-orange text-white text-[10px] font-bold">
-                3
-              </span>
-            </Link>
-          </DropdownMenuItem>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
-
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link 
-              href="/settings" 
-              className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg hover:bg-gray-50 transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
-                <Settings className="h-4 w-4 text-gray-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Paramètres</p>
-              </div>
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-
         <DropdownMenuItem 
           className="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg hover:bg-red-50 transition-colors focus:bg-red-50"
           onClick={() => {

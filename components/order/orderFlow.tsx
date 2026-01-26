@@ -112,10 +112,8 @@ export function OrderFlow({ initialMealPlans = [] }: OrderFlowProps) {
         total_price: totalPrice,
       }
 
-      console.log('Order payload:', { ...payload, total_price: totalPrice })
-
-      // Use internal API route to avoid CORS issues
-      const response = await fetch(`/api/internal/orders`, {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.fitness.ma/api'
+      const response = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
