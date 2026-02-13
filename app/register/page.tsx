@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +44,7 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        router.push("/dashboard")
+        router.push(callbackUrl)
         router.refresh()
       } else {
         setError(data.error || "Registration failed")
@@ -121,7 +123,10 @@ export default function RegisterPage() {
         <CardFooter className="flex justify-center">
           <p className="text-sm text-gray-600">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:text-blue-500">
+            <Link
+              href={callbackUrl !== "/dashboard" ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
+              className="text-blue-600 hover:text-blue-500"
+            >
               Login
             </Link>
           </p>

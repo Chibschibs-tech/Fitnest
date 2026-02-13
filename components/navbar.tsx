@@ -5,11 +5,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, ShoppingBag, UserPlus, LogIn } from "lucide-react"
+import { Menu, ShoppingBag, UserPlus, LogIn, ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import { AuthDialogRefactored as AuthDialog } from "@/components/auth-dialog-refactored"
 import { UserMenu } from "@/components/user-menu"
 import { AuthContext } from "@/components/auth-provider"
+import { useCart } from "@/contexts/cart-context"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -17,7 +18,9 @@ export default function Navbar() {
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [authDialogTab, setAuthDialogTab] = useState<"login" | "signup">("login")
   const { user, setUser } = useContext(AuthContext)
+  const { getCartCount } = useCart()
   const pathname = usePathname()
+  const cartCount = getCartCount()
 
   // Track scroll position for navbar shadow
   useEffect(() => {
@@ -117,6 +120,20 @@ export default function Navbar() {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
+          {/* Cart Icon - Desktop */}
+          <Link
+            href="/cart"
+            className="hidden md:flex relative items-center justify-center w-10 h-10 rounded-xl hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2"
+            aria-label={`Panier (${cartCount} articles)`}
+          >
+            <ShoppingCart className="h-5 w-5 text-gray-700" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-fitnest-orange rounded-full">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
+          </Link>
+
           {/* Commander Button - Always Visible on Desktop */}
           <Link href="/order" className="hidden lg:block">
             <Button 
@@ -193,6 +210,28 @@ export default function Navbar() {
                       </div>
                     </div>
                   )}
+
+                  {/* Cart Link - Mobile */}
+                  <Link
+                    href="/cart"
+                    className={`flex items-center justify-between px-4 py-3.5 text-base font-semibold rounded-xl transition-all duration-300 mb-2
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fitnest-green focus-visible:ring-offset-2
+                      ${isActive("/cart")
+                        ? "bg-gradient-to-r from-fitnest-green/10 to-fitnest-orange/10 text-fitnest-green border-l-4 border-fitnest-green"
+                        : "text-gray-700 hover:bg-gray-50 hover:text-fitnest-green hover:translate-x-1"
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5" />
+                      Panier
+                      {cartCount > 0 && (
+                        <span className="text-xs font-bold text-white bg-fitnest-orange px-2 py-0.5 rounded-full">
+                          {cartCount}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
 
                   <div className="flex flex-col space-y-2">
                     {routes.map((route) => (
