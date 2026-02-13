@@ -6,7 +6,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -21,13 +21,18 @@ import { useContext } from "react"
 import { AuthContext } from "@/components/auth-provider"
 import { AuthDialogRefactored } from "@/components/auth-dialog-refactored"
 import { useToast } from "@/components/ui/use-toast"
+import { useOrder } from "@/hooks/use-order"
+import { getAuthToken } from "@/services/auth.service"
+import { Loader2 } from "lucide-react"
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, getSubtotal, clearCart } = useCart()
   const { user, setUser } = useContext(AuthContext)
   const { toast } = useToast()
+  const { createOrder, isSubmitting } = useOrder()
   const [showAuthDialog, setShowAuthDialog] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     if (items.length === 0) {
@@ -44,15 +49,58 @@ export default function CheckoutPage() {
     }
   }, [user, items.length])
 
-  const handleConfirmOrder = (e: React.FormEvent) => {
-    e.preventDefault()
-    toast({
-      title: "Commande envoyée",
-      description:
-        "Votre commande a bien été enregistrée. Paiement à la livraison.",
-    })
-    clearCart()
-    router.push("/express-shop")
+  const handleConfirmOrder = async (e?: React.FormEvent<HTMLFormElement>) => {
+    const form = e?.currentTarget ?? formRef.current
+    if (!form || !user || items.length === 0) return
+
+    const token = getAuthToken()
+    if (!token) {
+      toast({ variant: "destructive", title: "Session expirée", description: "Veuillez vous reconnecter." })
+      return
+    }
+
+    const fd = new FormData(form)
+    const name = (fd.get("name") as string)?.trim() ?? ""
+    const email = (fd.get("email") as string)?.trim() ?? ""
+    const phone = (fd.get("phone") as string)?.trim() ?? ""
+    const street = (fd.get("address") as string)?.trim() ?? ""
+    const city = (fd.get("city") as string)?.trim() ?? ""
+    const zipCode = (fd.get("zip_code") as string)?.trim() ?? ""
+
+    if (!name || !email || !phone || !street || !city || !zipCode) {
+      toast({ variant: "destructive", title: "Champs requis", description: "Remplissez nom, email, téléphone, adresse, ville et code postal." })
+      return
+    }
+
+    const payload = {
+      contact_name: name,
+      contact_email: email,
+      contact_phone: phone,
+      total_price: getSubtotal(),
+      delivery_address: {
+        street,
+        address: street,
+        city,
+        state: (fd.get("state") as string) ?? "",
+        zip_code: zipCode,
+        country: "Morocco",
+        additional_info: (fd.get("note") as string) ?? "",
+      },
+      products: items.map((i) => ({ product_id: i.productId, quantity: i.quantity })),
+    }
+
+    const result = await createOrder(payload)
+    if (result.success) {
+      toast({ title: "Commande envoyée", description: "Votre commande a été enregistrée. Paiement à la livraison." })
+      clearCart()
+      const res = result.data as Record<string, unknown> | undefined
+      const inner = res?.data as Record<string, unknown> | undefined
+      const orderId = (inner?.id as string) ?? (res?.id as string) ?? (inner?.order_id as string)
+      const target = orderId ? `/order/success?orderId=${orderId}` : "/orders"
+      window.location.href = target
+    } else {
+      toast({ variant: "destructive", title: "Erreur", description: result.error ?? "Échec de la commande." })
+    }
   }
 
   if (items.length === 0) {
@@ -131,7 +179,15 @@ export default function CheckoutPage() {
             </Card>
           </div>
         ) : (
-        <form onSubmit={handleConfirmOrder} className="space-y-6">
+        <form
+          ref={formRef}
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleConfirmOrder(e)
+          }}
+          className="space-y-6"
+          noValidate
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="rounded-xl border border-gray-100 shadow-sm overflow-hidden">
               <CardContent className="p-6">
@@ -192,6 +248,18 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="vous@exemple.com"
+                    defaultValue={user?.email}
+                    className="mt-1 rounded-lg"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="phone">Téléphone</Label>
                   <Input
                     id="phone"
@@ -219,6 +287,16 @@ export default function CheckoutPage() {
                     name="city"
                     required
                     placeholder="Casablanca"
+                    className="mt-1 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zip_code">Code postal</Label>
+                  <Input
+                    id="zip_code"
+                    name="zip_code"
+                    required
+                    placeholder="20000"
                     className="mt-1 rounded-lg"
                   />
                 </div>
@@ -267,9 +345,17 @@ export default function CheckoutPage() {
             </Link>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold rounded-xl py-6 shadow-lg"
+              disabled={isSubmitting}
+              className="flex-1 bg-gradient-to-r from-fitnest-green to-fitnest-green/90 hover:from-fitnest-green/90 hover:to-fitnest-green text-white font-bold rounded-xl py-6 shadow-lg disabled:opacity-70"
             >
-              Confirmer la commande
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Envoi en cours...
+                </>
+              ) : (
+                "Confirmer la commande"
+              )}
             </Button>
           </div>
         </form>

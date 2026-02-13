@@ -80,6 +80,7 @@ const publicRoutes = [
   "/api/internal/meals/[id]",
   "/api/internal/meal-plans",
   "/api/internal/orders",
+  "/api/orders",
   "/api/upload",
   "/api/auth/[...nextauth]",
   "/api/auth/error",
