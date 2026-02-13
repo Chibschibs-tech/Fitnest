@@ -55,8 +55,8 @@ export function ExpressShopSection({ products }: ExpressShopSectionProps) {
                 {/* Image Container */}
                 <div className="relative h-56 overflow-hidden bg-gray-50">
                   <Image 
-                    src={product.image || "/placeholder.svg?height=224&width=320"} 
-                    alt={`${product.name} - ${product.description}`} 
+                    src={product.images[0] || "/placeholder.svg?height=224&width=320"} 
+                    alt={`${product.name}`} 
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform duration-700" 
                   />

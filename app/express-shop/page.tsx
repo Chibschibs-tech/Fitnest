@@ -12,7 +12,7 @@ interface Product {
   id: string
   name: string
   description: string
-  image: string
+  images: string[]
   category: {
     name: string
   }
@@ -287,9 +287,9 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                 >
                   <Link href={`/express-shop/${product.id}`}>
                     <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-                      {product.image ? (
+                      {product.images[0] ? (
                         <Image
-                          src={product?.image || "/placeholder.svg"}
+                          src={product.images[0]}
                           alt={product.name}
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -301,7 +301,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                       )}
                       
                       {/* Gradient overlay for text readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
                       
                       {/* Badges */}
                       <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
@@ -318,7 +318,7 @@ export default async function ExpressShop({ searchParams }: ExpressShopProps) {
                         )}
                       </div>
                       
-                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/30 to-transparent">
                         <h3 className="line-clamp-2 text-lg font-bold text-white">
                           {product.name}
                         </h3>
