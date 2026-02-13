@@ -79,9 +79,10 @@ export function useSignupForm({ onSuccess, onClose }: UseSignupFormProps = {}) {
       const { password_confirmation, terms, ...credentials } = form
       const data = await signup({ ...credentials, password_confirmation: password_confirmation })
 
-      // Store token
-      if (data.token) {
-        storeAuthToken(data.token)
+      // Store token (Laravel may return token or access_token)
+      const token = data.token ?? data.access_token
+      if (token) {
+        storeAuthToken(token)
       }
 
       // Extract and return user data

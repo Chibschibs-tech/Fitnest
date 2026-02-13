@@ -58,9 +58,10 @@ export function useLoginForm({ onSuccess, onClose }: UseLoginFormProps = {}) {
     try {
       const data = await login(form)
 
-      // Store token
-      if (data.token) {
-        storeAuthToken(data.token)
+      // Store token (Laravel may return token or access_token)
+      const token = data.token ?? data.access_token
+      if (token) {
+        storeAuthToken(token)
       }
 
       // Extract and return user data

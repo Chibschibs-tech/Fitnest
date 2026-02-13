@@ -214,6 +214,40 @@ function SuccessContent() {
             </CardContent>
           </Card>
 
+          {/* Order Items (product orders) */}
+          {orderDetails?.line_items && orderDetails.line_items.length > 0 && (
+            <Card className="rounded-3xl border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="p-2 bg-gradient-to-br from-fitnest-green/10 to-green-100 rounded-xl">
+                    <Package className="h-6 w-6 text-fitnest-green" />
+                  </div>
+                  Order Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {orderDetails.line_items.map((item: { product_id?: string; product_name?: string; quantity?: number; unit_price?: number; subtotal?: number }, idx: number) => (
+                    <div key={item.product_id ?? idx} className="flex justify-between items-center p-4 rounded-xl bg-gray-50 border border-gray-100">
+                      <div>
+                        <p className="font-semibold text-gray-900">{item.product_name}</p>
+                        <p className="text-sm text-gray-500">{item.quantity} × {item.unit_price} MAD</p>
+                      </div>
+                      <p className="font-bold text-fitnest-green">{item.subtotal ?? (item.quantity ?? 0) * (item.unit_price ?? 0)} MAD</p>
+                    </div>
+                  ))}
+                </div>
+                {(orderDetails.subtotal != null || orderDetails.total != null) && (
+                  <div className="mt-4 pt-4 border-t space-y-1 text-right">
+                    {orderDetails.subtotal != null && <p className="text-gray-600">Sous-total: {orderDetails.subtotal} MAD</p>}
+                    {orderDetails.tax != null && <p className="text-gray-600">TVA: {orderDetails.tax} MAD</p>}
+                    {orderDetails.total != null && <p className="font-bold text-lg text-gray-900">Total: {orderDetails.total} MAD</p>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Delivery Schedule */}
           {orderDetails?.delivery_days && orderDetails.delivery_days.length > 0 && (
             <Card className="rounded-3xl border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -349,13 +383,15 @@ function SuccessContent() {
                 </div>
                 <h4 className="font-bold text-xl text-gray-900">Want More?</h4>
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  Explore our other meal plans and customize your nutrition journey.
+                  {orderDetails?.order_type === 'products' 
+                    ? 'Explore more products in our Express Shop.'
+                    : 'Explore our other meal plans and customize your nutrition journey.'}
                 </p>
                 <Button 
                   className="w-full bg-gradient-to-r from-fitnest-green to-green-600 hover:from-green-600 hover:to-fitnest-green text-white font-bold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
-                  onClick={() => router.push('/meal-plans')}
+                  onClick={() => router.push(orderDetails?.order_type === 'products' ? '/express-shop' : '/meal-plans')}
                 >
-                  <span>Browse Meal Plans</span>
+                  <span>{orderDetails?.order_type === 'products' ? 'Browse Express Shop' : 'Browse Meal Plans'}</span>
                   <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>
