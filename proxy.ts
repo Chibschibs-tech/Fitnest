@@ -138,6 +138,8 @@ const publicRoutes = [
   "/orders/[id]",
   "/order",
   "/order/success",
+  "/cart",
+  "/cart/checkout",
 ]
 
 export function proxy(request: NextRequest) {
